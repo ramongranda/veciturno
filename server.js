@@ -1,13 +1,12 @@
-require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const routes = require('./src/routes');
+const config = require('./src/config/env');
+const apiRouter = require('./src/routes');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 
-// Middlewares
+// Middlewares estándar de Express
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -15,18 +14,20 @@ app.use(express.urlencoded({ extended: true }));
 // Servir archivos estáticos del frontend
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Rutas de la API
-app.use('/api', routes);
+// Cargar enrutador unificado para la API REST
+app.use('/api', apiRouter);
 
-// Redirigir el resto de peticiones al frontend (SPA)
+// Fallback para Single Page Application (SPA)
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Iniciar servidor
-app.listen(PORT, () => {
+// Levantar el servidor en el puerto configurado en .env
+app.listen(config.PORT, () => {
   console.log(`====================================================`);
-  console.log(` VeciTurno está corriendo en: http://localhost:${PORT}`);
+  console.log(` 🏡 VeciTurno está corriendo en: http://localhost:${config.PORT}`);
+  console.log(` Comunidad: ${config.COMMUNITY_NAME}`);
+  console.log(` Entorno actual: ${config.NODE_ENV}`);
   console.log(` Listo para desplegar en Oracle Cloud Free Tier`);
   console.log(`====================================================`);
 });

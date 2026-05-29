@@ -1,20 +1,16 @@
-require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
+const config = require('../config/env');
 
-const DB_PATH = path.join(__dirname, '../db/database.json');
+const DB_PATH = path.join(__dirname, '../../db/database.json');
 
-const START_MONTH = process.env.START_MONTH || '2026-06-01';
-const START_FLOOR_ID = process.env.START_FLOOR_ID || '1';
-const BOOTSTRAP_TOKEN = process.env.BOOTSTRAP_TOKEN || 'registro-inicial-planta3';
-
-// Garantizar que la carpeta db existe
+// Asegurar carpeta de BD
 const dbDir = path.dirname(DB_PATH);
 if (!fs.existsSync(dbDir)) {
   fs.mkdirSync(dbDir, { recursive: true });
 }
 
-// Datos iniciales de la comunidad
+// Datos iniciales de la comunidad cargados desde configuración (.env)
 const initialData = {
   neighbors: [
     {
@@ -45,20 +41,20 @@ const initialData = {
       twoFactorSecret: null,
       twoFactorRegistered: false,
       phone: "",
-      isAdmin: true // La tercera planta actúa como administrador ahora
+      isAdmin: true // Planta 3 es Administrador
     }
   ],
   inviteTokens: [
     {
-      token: BOOTSTRAP_TOKEN,
-      floorId: "3", // La planta administrador
+      token: config.BOOTSTRAP_TOKEN,
+      floorId: "3",
       used: false,
       createdAt: new Date().toISOString()
     }
   ],
   state: {
-    currentTurnFloorId: START_FLOOR_ID,
-    currentMonth: START_MONTH,
+    currentTurnFloorId: config.START_FLOOR_ID.toString(),
+    currentMonth: config.START_MONTH,
     lastRotationDate: new Date().toISOString()
   },
   history: []
@@ -70,9 +66,8 @@ function checkAndAutoRotate(data) {
 
   const now = new Date();
   const currentCalendarYear = now.getFullYear();
-  const currentCalendarMonth = now.getMonth(); // 0-indexed (5 es Junio)
+  const currentCalendarMonth = now.getMonth(); // 0-indexed
 
-  // Parsear el mes de turno en BD ("YYYY-MM-DD")
   const [dbYear, dbMonth] = data.state.currentMonth.split('-').map(Number);
   
   let dbDate = new Date(dbYear, dbMonth - 1, 1);
@@ -80,7 +75,6 @@ function checkAndAutoRotate(data) {
 
   let updated = false;
 
-  // Si la fecha actual del sistema supera el mes de turno guardado en BD
   while (currentDate > dbDate) {
     const currentId = data.state.currentTurnFloorId;
     let nextId = "1";
@@ -92,7 +86,6 @@ function checkAndAutoRotate(data) {
     const formattedMonth = dbDate.toLocaleDateString('es-ES', monthOptions);
     const capitalizedMonth = formattedMonth.charAt(0).toUpperCase() + formattedMonth.slice(1);
 
-    // Registrar en el historial que el mes finalizó y rotó automáticamente
     const newHistoryEntry = {
       id: Date.now().toString() + Math.random().toString(36).substring(2, 5),
       floorId: currentId,
@@ -108,7 +101,6 @@ function checkAndAutoRotate(data) {
 
     data.state.currentTurnFloorId = nextId;
     
-    // Incrementar el mes en BD por 1 mes
     dbDate.setMonth(dbDate.getMonth() + 1);
     data.state.currentMonth = dbDate.toISOString().slice(0, 10);
     data.state.lastRotationDate = new Date().toISOString();
@@ -127,7 +119,6 @@ function checkAndAutoRotate(data) {
   return data;
 }
 
-// Cargar base de datos
 function readDB() {
   try {
     if (!fs.existsSync(DB_PATH)) {
@@ -143,7 +134,6 @@ function readDB() {
   }
 }
 
-// Escribir base de datos
 function writeDB(data) {
   try {
     fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), 'utf-8');
@@ -152,15 +142,9 @@ function writeDB(data) {
   }
 }
 
-// Métodos de consulta y actualización
-const db = {
-  // Vecinos
-  getNeighbors: () => {
-    return readDB().neighbors;
-  },
-  getNeighborById: (id) => {
-    return readDB().neighbors.find(n => n.id === id);
-  },
+const dbService = {
+  getNeighbors: () => readDB().neighbors,
+  getNeighborById: (id) => readDB().neighbors.find(n => n.id === id),
   getNeighborByUsername: (username) => {
     if (!username) return null;
     return readDB().neighbors.find(n => n.username && n.username.toLowerCase() === username.toLowerCase());
@@ -175,66 +159,13 @@ const db = {
     }
     return null;
   },
-
-  // Estado del Turno
-  getState: () => {
-    return readDB().state;
-  },
-  rotateTurn: (completedByUsername) => {
-    const data = readDB();
-    const currentId = data.state.currentTurnFloorId;
-    
-    // Calcular siguiente vecino de forma cíclica (1 -> 2 -> 3 -> 1)
-    let nextId = "1";
-    if (currentId === "1") nextId = "2";
-    else if (currentId === "2") nextId = "3";
-    else if (currentId === "3") nextId = "1";
-
-    // Registrar en el historial
-    const newHistoryEntry = {
-      id: Date.now().toString(),
-      floorId: currentId,
-      completedAt: new Date().toISOString(),
-      completedBy: completedByUsername || "Sistema"
-    };
-    
-    data.history.unshift(newHistoryEntry); // Añadir al inicio del historial
-    
-    // Limitar historial a los últimos 20 registros
-    if (data.history.length > 20) {
-      data.history = data.history.slice(0, 20);
-    }
-
-    data.state.currentTurnFloorId = nextId;
-    
-    // Avanzar el mes del turno (incrementar 1 mes)
-    if (data.state.currentMonth) {
-      const currentMonthDate = new Date(data.state.currentMonth);
-      currentMonthDate.setMonth(currentMonthDate.getMonth() + 1);
-      data.state.currentMonth = currentMonthDate.toISOString().slice(0, 10);
-    }
-
-    data.state.lastRotationDate = new Date().toISOString();
-
-    writeDB(data);
-    return { state: data.state, history: data.history };
-  },
-
-  // Historial
-  getHistory: () => {
-    return readDB().history;
-  },
-
-  // Tokens de Invitación (Registro de un solo uso)
-  getInviteTokens: () => {
-    return readDB().inviteTokens;
-  },
+  getState: () => readDB().state,
+  getHistory: () => readDB().history,
+  getInviteTokens: () => readDB().inviteTokens,
+  getInviteToken: (token) => readDB().inviteTokens.find(t => t.token === token),
   createInviteToken: (floorId, token) => {
     const data = readDB();
-    
-    // Invalidar tokens previos para esta planta
     data.inviteTokens = data.inviteTokens.filter(t => t.floorId !== floorId || t.used);
-
     const newToken = {
       token,
       floorId,
@@ -244,9 +175,6 @@ const db = {
     data.inviteTokens.push(newToken);
     writeDB(data);
     return newToken;
-  },
-  getInviteToken: (token) => {
-    return readDB().inviteTokens.find(t => t.token === token);
   },
   useInviteToken: (token) => {
     const data = readDB();
@@ -260,4 +188,4 @@ const db = {
   }
 };
 
-module.exports = db;
+module.exports = dbService;
