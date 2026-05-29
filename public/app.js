@@ -131,13 +131,6 @@ function renderDashboard(data) {
     }
   }
 
-  // Mostrar acción de rotación solo si el usuario está autenticado
-  const rotateSection = document.getElementById('action-rotate-section');
-  if (state.token) {
-    rotateSection.classList.remove('hidden');
-  } else {
-    rotateSection.classList.add('hidden');
-  }
 
   // 2. Renderizar lista de vecinos / plantas
   const neighborsContainer = document.getElementById('neighbors-container');

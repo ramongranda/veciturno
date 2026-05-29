@@ -59,15 +59,79 @@ const initialData = {
   history: []
 };
 
+// Comprobación y auto-rotación mensual basado en la fecha del calendario
+function checkAndAutoRotate(data) {
+  if (!data.state || !data.state.currentMonth) return data;
+
+  const now = new Date();
+  const currentCalendarYear = now.getFullYear();
+  const currentCalendarMonth = now.getMonth(); // 0-indexed (5 es Junio)
+
+  // Parsear el mes de turno en BD ("YYYY-MM-DD")
+  const [dbYear, dbMonth] = data.state.currentMonth.split('-').map(Number);
+  
+  let dbDate = new Date(dbYear, dbMonth - 1, 1);
+  let currentDate = new Date(currentCalendarYear, currentCalendarMonth, 1);
+
+  let updated = false;
+
+  // Si la fecha actual del sistema supera el mes de turno guardado en BD
+  while (currentDate > dbDate) {
+    const currentId = data.state.currentTurnFloorId;
+    let nextId = "1";
+    if (currentId === "1") nextId = "2";
+    else if (currentId === "2") nextId = "3";
+    else if (currentId === "3") nextId = "1";
+
+    const monthOptions = { month: 'long', year: 'numeric' };
+    const formattedMonth = dbDate.toLocaleDateString('es-ES', monthOptions);
+    const capitalizedMonth = formattedMonth.charAt(0).toUpperCase() + formattedMonth.slice(1);
+
+    // Registrar en el historial que el mes finalizó y rotó automáticamente
+    const newHistoryEntry = {
+      id: Date.now().toString() + Math.random().toString(36).substring(2, 5),
+      floorId: currentId,
+      completedAt: new Date().toISOString(),
+      completedBy: `Sistema (Mes de ${capitalizedMonth} finalizado)`
+    };
+
+    data.history.unshift(newHistoryEntry);
+    
+    if (data.history.length > 20) {
+      data.history = data.history.slice(0, 20);
+    }
+
+    data.state.currentTurnFloorId = nextId;
+    
+    // Incrementar el mes en BD por 1 mes
+    dbDate.setMonth(dbDate.getMonth() + 1);
+    data.state.currentMonth = dbDate.toISOString().slice(0, 10);
+    data.state.lastRotationDate = new Date().toISOString();
+    
+    updated = true;
+  }
+
+  if (updated) {
+    try {
+      fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), 'utf-8');
+    } catch (err) {
+      console.error("Error escribiendo base de datos en auto-rotación:", err);
+    }
+  }
+
+  return data;
+}
+
 // Cargar base de datos
 function readDB() {
   try {
     if (!fs.existsSync(DB_PATH)) {
       writeDB(initialData);
-      return initialData;
+      return checkAndAutoRotate(initialData);
     }
     const rawData = fs.readFileSync(DB_PATH, 'utf-8');
-    return JSON.parse(rawData);
+    const data = JSON.parse(rawData);
+    return checkAndAutoRotate(data);
   } catch (err) {
     console.error("Error al leer la base de datos JSON:", err);
     return initialData;
