@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VeciTurno - Comunidad de Vecinos</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Hojas de Estilo -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Gradientes decorativos de fondo -->
+  <div class="bg-glow bg-glow-1"></div>
+  <div class="bg-glow bg-glow-2"></div>
+
+  <!-- Contenedor Principal -->
+  <div class="app-container">
+    
+    <!-- HEADER -->
+    <header class="app-header">
+      <div class="logo-area">
+        <div class="logo-icon">
+          <i data-lucide="rotate-cw"></i>
+        </div>
+        <div class="logo-text">
+          <h1>VeciTurno</h1>
+          <span>Portal de Comunidad</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <!-- Indicador Live -->
+        <div class="live-indicator">
+          <span class="pulse-dot"></span>
+          <span>En vivo</span>
+        </div>
+        
+        <!-- Botón de Acceso / Sesión -->
+        <div id="auth-header-btn">
+          <button class="btn btn-secondary glass" onclick="showView('login')">
+            <i data-lucide="user-check"></i>
+            <span>Acceso Vecino</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- VISTA PRINCIPAL: DASHBOARD -->
+    <main id="view-dashboard" class="app-view active">
+      
+      <!-- GRID PRINCIPAL -->
+      <div class="dashboard-grid">
+        
+        <!-- COLUMNA IZQUIERDA: TURNO ACTIVO -->
+        <div class="dashboard-main-card glass-card">
+          <div class="card-badge">TURNO ACTIVO ACTUALMENTE</div>
+          
+          <div class="active-turn-content">
+            <div id="active-floor-avatar" class="floor-avatar animate-pulse">
+              <span id="active-floor-badge">-</span>
+            </div>
+            <h2 id="active-floor-title">Cargando...</h2>
+            <p id="active-floor-desc">Le toca la tarea asignada de la semana</p>
+            
+            <div class="whatsapp-alert-box">
+              <p>Puedes enviarle una notificación amistosa al vecino de turno ahora mismo por WhatsApp.</p>
+              <a id="whatsapp-btn" href="#" target="_blank" class="btn btn-whatsapp">
+                <i data-lucide="message-square"></i>
+                <span>Avisar por WhatsApp</span>
+              </a>
+            </div>
+
+            <!-- Acción de rotar (visible para logueados) -->
+            <div id="action-rotate-section" class="logged-only-action hidden">
+              <button class="btn btn-primary btn-full animate-hover" onclick="rotateTurn()">
+                <i data-lucide="check-circle-2"></i>
+                <span>Marcar Tarea como Completada</span>
+              </button>
+              <p class="btn-subtext">Esto registrará la tarea en el historial y rotará al siguiente vecino de forma cíclica.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- COLUMNA DERECHA: LOS 3 VECINOS / PLANTAS -->
+        <div class="dashboard-side-column">
+          
+          <!-- Lista de plantas -->
+          <div class="section-card glass-card">
+            <h3>Visualización de Plantas</h3>
+            <div class="neighbors-list" id="neighbors-container">
+              <!-- Render dinámico de los 3 vecinos -->
+              <div class="loading-spinner">Cargando vecinos...</div>
+            </div>
+          </div>
+
+          <!-- Historial -->
+          <div class="section-card glass-card">
+            <h3>Historial de Turnos</h3>
+            <div class="history-list" id="history-container">
+              <!-- Render dinámico del historial -->
+              <div class="loading-spinner">Cargando historial...</div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </main>
+
+    <!-- VISTA: ACCESO / INICIAR SESIÓN (2 PASOS) -->
+    <section id="view-login" class="app-view modal-like">
+      <div class="modal-card glass-card animate-zoom">
+        <button class="modal-close" onclick="showView('dashboard')">
+          <i data-lucide="x"></i>
+        </button>
+        
+        <div class="modal-header">
+          <div class="modal-icon">
+            <i data-lucide="lock"></i>
+          </div>
+          <h2>Acceso a VeciTurno</h2>
+          <p>Introduce tus credenciales de vecino</p>
+        </div>
+
+        <!-- LOGIN PASO 1: CONTRASEÑA -->
+        <form id="login-step1-form" class="auth-form" onsubmit="handleLoginStep1(event)">
+          <div class="form-group">
+            <label for="login-username">Nombre de Usuario</label>
+            <div class="input-wrapper">
+              <i data-lucide="user"></i>
+              <input type="text" id="login-username" placeholder="ej. vecino1" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="login-password">Contraseña</label>
+            <div class="input-wrapper">
+              <i data-lucide="key-round"></i>
+              <input type="password" id="login-password" placeholder="Tu contraseña" required>
+            </div>
+          </div>
+
+          <div id="login-error-1" class="error-msg hidden"></div>
+
+          <button type="submit" class="btn btn-primary btn-full">
+            <span>Siguiente Paso</span>
+            <i data-lucide="arrow-right"></i>
+          </button>
+        </form>
+
+        <!-- LOGIN PASO 2: 2FA TOTP -->
+        <form id="login-step2-form" class="auth-form hidden" onsubmit="handleLoginStep2(event)">
+          <div class="auth-2fa-info">
+            <p>Se requiere verificación de doble factor. Introduce el código de 6 dígitos generado en tu aplicación de autenticación.</p>
+          </div>
+          
+          <div class="form-group">
+            <label for="login-2fa-code">Código de Verificación 2FA</label>
+            <div class="input-wrapper input-2fa">
+              <i data-lucide="shield-check"></i>
+              <input type="text" id="login-2fa-code" placeholder="000 000" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" required autofocus autocomplete="one-time-code">
+            </div>
+          </div>
+
+          <div id="login-error-2" class="error-msg hidden"></div>
+
+          <div class="button-row">
+            <button type="button" class="btn btn-secondary" onclick="backToLoginStep1()">
+              <i data-lucide="arrow-left"></i>
+              <span>Atrás</span>
+            </button>
+            <button type="submit" class="btn btn-primary flex-grow">
+              <span>Verificar e Iniciar</span>
+              <i data-lucide="check"></i>
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- VISTA: REGISTRO CON LINK DE UN SOLO USO (2 PASOS) -->
+    <section id="view-register" class="app-view modal-like">
+      <div class="modal-card glass-card register-modal animate-zoom">
+        <div class="modal-header">
+          <div class="modal-icon text-success">
+            <i data-lucide="sparkles"></i>
+          </div>
+          <h2>Registro Inicial de Vecino</h2>
+          <p id="register-welcome-msg">Cargando detalles de tu invitación...</p>
+        </div>
+
+        <div id="register-error-global" class="error-msg hidden"></div>
+
+        <!-- PASO 1: CREACIÓN DE CREDENCIALES -->
+        <form id="register-step1-form" class="auth-form hidden" onsubmit="handleRegisterStep1(event)">
+          <div class="form-group">
+            <label for="reg-username">Elige un Nombre de Usuario</label>
+            <div class="input-wrapper">
+              <i data-lucide="user"></i>
+              <input type="text" id="reg-username" placeholder="ej. maria_planta2" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="reg-password">Contraseña de Acceso</label>
+            <div class="input-wrapper">
+              <i data-lucide="key-round"></i>
+              <input type="password" id="reg-password" placeholder="Mínimo 6 caracteres" minlength="6" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="reg-phone">Número de Teléfono (para avisos de WhatsApp)</label>
+            <div class="input-wrapper">
+              <i data-lucide="phone"></i>
+              <input type="tel" id="reg-phone" placeholder="ej. +34600112233">
+            </div>
+            <span class="input-hint">Formato con prefijo de país. Ej: +34 para España.</span>
+          </div>
+
+          <div id="register-error-1" class="error-msg hidden"></div>
+
+          <button type="submit" class="btn btn-primary btn-full">
+            <span>Siguiente: Configurar Doble Factor (2FA)</span>
+            <i data-lucide="shield-alert"></i>
+          </button>
+        </form>
+
+        <!-- PASO 2: DOBLE FACTOR QR + TOTP -->
+        <div id="register-step2-container" class="auth-form hidden">
+          <div class="setup-2fa-layout">
+            <div class="qr-container">
+              <img id="register-qr-image" src="" alt="Código QR 2FA">
+              <div class="manual-secret-box">
+                <span>¿No puedes escanear el código QR? Usa esta clave:</span>
+                <code id="register-manual-secret">XXXX XXXX XXXX</code>
+              </div>
+            </div>
+            
+            <div class="instructions-2fa">
+              <h3>Configurar tu Autenticador</h3>
+              <ol>
+                <li>Descarga <strong>Google Authenticator</strong> o <strong>Authy</strong> en tu móvil.</li>
+                <li>Escanea el código QR que aparece en pantalla.</li>
+                <li>Escribe a continuación el código de 6 dígitos que te muestra la aplicación para confirmar la activación.</li>
+              </ol>
+
+              <form id="register-step2-form" onsubmit="handleRegisterStep2(event)">
+                <div class="form-group">
+                  <label for="reg-2fa-code">Introduce el Código de 6 Dígitos</label>
+                  <div class="input-wrapper input-2fa">
+                    <i data-lucide="shield-check"></i>
+                    <input type="text" id="reg-2fa-code" placeholder="000 000" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" required autocomplete="off">
+                  </div>
+                </div>
+
+                <div id="register-error-2" class="error-msg hidden"></div>
+
+                <button type="submit" class="btn btn-success btn-full">
+                  <i data-lucide="check-square"></i>
+                  <span>Completar Registro y Entrar</span>
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VISTA: CONFIGURACIÓN DE PERFIL VECINO -->
+    <section id="view-profile" class="app-view modal-like">
+      <div class="modal-card glass-card animate-zoom">
+        <button class="modal-close" onclick="showView('dashboard')">
+          <i data-lucide="x"></i>
+        </button>
+        
+        <div class="modal-header">
+          <div class="modal-icon">
+            <i data-lucide="settings"></i>
+          </div>
+          <h2 id="profile-title">Mi Perfil</h2>
+          <p>Actualiza tus datos de contacto y contraseña</p>
+        </div>
+
+        <form id="profile-form" class="auth-form" onsubmit="handleProfileUpdate(event)">
+          <div class="form-group">
+            <label for="profile-phone">Número de Teléfono (WhatsApp)</label>
+            <div class="input-wrapper">
+              <i data-lucide="phone"></i>
+              <input type="tel" id="profile-phone" placeholder="ej. +34600112233">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="profile-password">Nueva Contraseña (dejar en blanco para no cambiar)</label>
+            <div class="input-wrapper">
+              <i data-lucide="key-round"></i>
+              <input type="password" id="profile-password" placeholder="Tu nueva contraseña" minlength="6">
+            </div>
+          </div>
+
+          <div id="profile-success" class="success-msg hidden"></div>
+          <div id="profile-error" class="error-msg hidden"></div>
+
+          <button type="submit" class="btn btn-primary btn-full">
+            <i data-lucide="save"></i>
+            <span>Guardar Cambios</span>
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- VISTA: PANEL DE ADMINISTRADOR -->
+    <section id="view-admin" class="app-view modal-like">
+      <div class="modal-card glass-card admin-modal animate-zoom">
+        <button class="modal-close" onclick="showView('dashboard')">
+          <i data-lucide="x"></i>
+        </button>
+        
+        <div class="modal-header">
+          <div class="modal-icon text-warning">
+            <i data-lucide="shield-alert"></i>
+          </div>
+          <h2>Consola de Administración</h2>
+          <p>Gestiona enlaces de registro e invitaciones</p>
+        </div>
+
+        <div class="admin-grid">
+          <!-- Formulario Generador -->
+          <div class="admin-action-box">
+            <h3>Generar Invitación de Un Solo Uso</h3>
+            <p class="box-desc">Crea un enlace exclusivo para permitir el registro de un vecino en una planta específica.</p>
+            
+            <form id="admin-invite-form" onsubmit="handleGenerateInvite(event)">
+              <div class="form-group">
+                <label for="admin-select-floor">Selecciona la Planta</label>
+                <div class="input-wrapper">
+                  <i data-lucide="layers"></i>
+                  <select id="admin-select-floor" required>
+                    <option value="1">Planta 1</option>
+                    <option value="2">Planta 2</option>
+                    <option value="3">Planta 3</option>
+                  </select>
+                </div>
+              </div>
+
+              <div id="admin-invite-success" class="invite-link-result hidden">
+                <span>¡Enlace generado! Copia y envíalo al vecino:</span>
+                <div class="copy-input-row">
+                  <input type="text" id="admin-invite-url" readonly>
+                  <button type="button" class="btn btn-secondary btn-icon" onclick="copyInviteLink()" title="Copiar Enlace">
+                    <i data-lucide="copy"></i>
+                  </button>
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-primary btn-full">
+                <i data-lucide="link"></i>
+                <span>Generar Enlace</span>
+              </button>
+            </form>
+          </div>
+
+          <!-- Tabla/Lista de Enlaces -->
+          <div class="admin-list-box">
+            <h3>Enlaces Generados</h3>
+            <div class="invite-table-container">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Planta</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-invites-list">
+                  <!-- Render dinámico -->
+                  <tr>
+                    <td colspan="3" class="text-center">Cargando invitaciones...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- SCRIPT DEL FRONTEND -->
+  <script src="app.js"></script>
+</body>
+</html>

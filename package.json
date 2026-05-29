@@ -1,0 +1,31 @@
+{
+  "name": "veciturno",
+  "version": "1.0.0",
+  "description": "Aplicación web ligera para gestión de turnos rotativos en una comunidad de vecinos, con auth y 2FA.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": [
+    "vecinos",
+    "comunidad",
+    "rotativo",
+    "2fa",
+    "totp",
+    "oracle-cloud",
+    "lite"
+  ],
+  "author": "Antigravity Pair Programming",
+  "license": "MIT",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "qrcode": "^1.5.3",
+    "speakeasy": "^2.0.0",
+    "uuid": "^9.0.1"
+  }
+}
