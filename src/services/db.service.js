@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const config = require('../config/env');
+const whatsappService = require('./whatsapp.service');
 
 const DB_PATH = path.join(__dirname, '../../db/database.json');
 
@@ -111,6 +112,17 @@ function checkAndAutoRotate(data) {
   if (updated) {
     try {
       fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), 'utf-8');
+      
+      // Enviar la notificación de WhatsApp de forma asíncrona sin bloquear la respuesta
+      const nextNeighbor = data.neighbors.find(n => n.id === data.state.currentTurnFloorId);
+      const nextFloorName = nextNeighbor ? nextNeighbor.floor : 'Planta Desconocida';
+      const monthDate = new Date(data.state.currentMonth);
+      const monthOptions = { month: 'long', year: 'numeric' };
+      let formattedMonth = monthDate.toLocaleDateString('es-ES', monthOptions);
+      formattedMonth = formattedMonth.charAt(0).toUpperCase() + formattedMonth.slice(1);
+      
+      whatsappService.sendRotationNotification(nextFloorName, formattedMonth)
+        .catch(err => console.error("Error asíncrono al enviar WhatsApp de rotación:", err));
     } catch (err) {
       console.error("Error escribiendo base de datos en auto-rotación:", err);
     }

@@ -81,14 +81,7 @@
             <h2 id="active-floor-title">Cargando...</h2>
             <div id="active-turn-month" class="active-month-badge">Cargando mes...</div>
             <p id="active-floor-desc">Le toca la limpieza mensual de la escalera</p>
-            
-            <div class="whatsapp-alert-box">
-              <p>Puedes enviarle una notificación amistosa al vecino de turno ahora mismo por WhatsApp.</p>
-              <a id="whatsapp-btn" href="#" target="_blank" class="btn btn-whatsapp">
-                <i data-lucide="message-square"></i>
-                <span>Avisar por WhatsApp</span>
-              </a>
-            </div>
+
           </div>
         </div>
 
@@ -526,6 +519,23 @@
                   </tr>
                 </tbody>
               </table>
+            </div>
+
+            <!-- Configuración / Prueba del Sistema de WhatsApp -->
+            <div style="margin-top: 20px; border-top: 1px dashed var(--glass-border); padding-top: 16px;">
+              <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                <i data-lucide="message-square" class="text-success" style="width: 16px; height: 16px;"></i>
+                <span>Prueba de Notificación de WhatsApp</span>
+              </h3>
+              <p class="box-desc">Verifica que el servicio de WhatsApp automático del sistema (CallMeBot) esté correctamente configurado en tu archivo .env.</p>
+              
+              <div id="admin-wa-success" class="success-msg hidden" style="margin-bottom: 12px; font-size: 0.75rem; padding: 8px 12px;"></div>
+              <div id="admin-wa-error" class="error-msg hidden" style="margin-bottom: 12px; font-size: 0.75rem; padding: 8px 12px;"></div>
+
+              <button type="button" class="btn btn-whatsapp btn-full" onclick="testSystemWhatsApp()" style="padding: 10px; font-size: 0.8rem;">
+                <i data-lucide="send"></i>
+                <span>Enviar Notificación de Prueba</span>
+              </button>
             </div>
           </div>
         </div>

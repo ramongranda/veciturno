@@ -530,6 +530,7 @@ body {
   align-items: center;
   justify-content: center;
   padding: 20px;
+  overflow-y: auto;
 }
 
 .app-view.modal-like.active {
@@ -1001,5 +1002,57 @@ body {
   
   .button-row {
     flex-direction: column-reverse;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-container {
+    padding: 10px;
+  }
+
+  .glass-card {
+    padding: 16px;
+    border-radius: 18px;
+  }
+
+  .floor-avatar {
+    width: 90px;
+    height: 90px;
+    font-size: 2.2rem;
+    border-width: 3px;
+  }
+
+  .active-turn-content h2 {
+    font-size: 1.7rem;
+  }
+
+  .active-month-badge {
+    font-size: 0.8rem;
+    padding: 4px 12px;
+    margin: 6px 0 14px 0;
+  }
+
+  .neighbor-row {
+    padding: 10px 12px;
+  }
+
+  .btn {
+    padding: 8px 14px;
+    font-size: 0.85rem;
+  }
+
+  .logo-text h1 {
+    font-size: 1.15rem;
+  }
+
+  .logo-icon {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .logo-icon i,
+  .logo-icon svg {
+    width: 18px;
+    height: 18px;
   }
 }

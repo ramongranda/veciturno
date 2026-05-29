@@ -8,7 +8,9 @@ const config = {
   START_MONTH: process.env.START_MONTH || '2026-06-01',
   START_FLOOR_ID: process.env.START_FLOOR_ID || '1',
   BOOTSTRAP_TOKEN: process.env.BOOTSTRAP_TOKEN || 'registro-inicial-planta3',
-  NODE_ENV: process.env.NODE_ENV || 'development'
+  NODE_ENV: process.env.NODE_ENV || 'development',
+  SYSTEM_WHATSAPP_PHONE: process.env.SYSTEM_WHATSAPP_PHONE || '',
+  SYSTEM_WHATSAPP_API_KEY: process.env.SYSTEM_WHATSAPP_API_KEY || ''
 };
 
 // Validación de seguridad: detener servidor de forma temprana si faltan variables críticas

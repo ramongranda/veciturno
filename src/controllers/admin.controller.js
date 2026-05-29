@@ -86,6 +86,30 @@ const adminController = {
     } catch (err) {
       res.status(500).json({ error: 'Error al listar las invitaciones de la comunidad.' });
     }
+  },
+
+  // Enviar una notificación de prueba de WhatsApp
+  sendTestWhatsApp: async (req, res) => {
+    try {
+      const whatsappService = require('../services/whatsapp.service');
+      const config = require('../config/env');
+      
+      if (!config.SYSTEM_WHATSAPP_PHONE || !config.SYSTEM_WHATSAPP_API_KEY) {
+        return res.status(400).json({ error: 'La configuración de WhatsApp del sistema está incompleta. Por favor, configura SYSTEM_WHATSAPP_PHONE y SYSTEM_WHATSAPP_API_KEY en tu archivo .env.' });
+      }
+
+      const message = `🔔 *VeciTurno (Notificación de Prueba)*:\n\n¡Enhorabuena! El sistema de WhatsApp de VeciTurno se ha configurado correctamente.\n\nEnviado a las: ${new Date().toLocaleTimeString('es-ES')}`;
+      
+      const success = await whatsappService.sendMessage(message);
+      
+      if (success) {
+        return res.json({ message: 'Notificación de prueba enviada con éxito. Por favor, comprueba tu WhatsApp.' });
+      } else {
+        return res.status(500).json({ error: 'Error al enviar la notificación mediante CallMeBot. Revisa la consola para más detalles.' });
+      }
+    } catch (err) {
+      res.status(500).json({ error: 'Error interno al enviar el WhatsApp de prueba.' });
+    }
   }
 };
 

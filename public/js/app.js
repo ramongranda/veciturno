@@ -87,7 +87,6 @@ function renderDashboard(data) {
   const activeBadgeEl = document.getElementById('active-floor-badge');
   const activeTitleEl = document.getElementById('active-floor-title');
   const activeMonthEl = document.getElementById('active-turn-month');
-  const whatsappBtnEl = document.getElementById('whatsapp-btn');
   
   // Formatear el mes actual en español
   let formattedMonth = "Junio de 2026"; // Fallback
@@ -106,21 +105,6 @@ function renderDashboard(data) {
   if (activeNeighbor) {
     activeBadgeEl.textContent = activeNeighbor.id;
     activeTitleEl.textContent = activeNeighbor.floor;
-    
-    // Configurar enlace de WhatsApp
-    if (activeNeighbor.phone) {
-      const message = `¡Hola! 🏡 Te escribo desde VeciTurno para recordarte de forma amistosa que te toca el turno mensual de la limpieza de la escalera correspondiente a *${formattedMonth}*. ¡Muchas gracias por colaborar con la comunidad!`;
-      const encodedMsg = encodeURIComponent(message);
-      // Eliminar el símbolo + o espacios si existieran para la API de WhatsApp
-      const cleanPhone = activeNeighbor.phone.replace(/[\s+]/g, '');
-      whatsappBtnEl.href = `https://wa.me/${cleanPhone}?text=${encodedMsg}`;
-      whatsappBtnEl.classList.remove('disabled');
-      whatsappBtnEl.querySelector('span').textContent = `Avisar por WhatsApp a ${activeNeighbor.floor}`;
-    } else {
-      whatsappBtnEl.href = '#';
-      whatsappBtnEl.classList.add('disabled');
-      whatsappBtnEl.querySelector('span').textContent = 'WhatsApp (Sin número registrado)';
-    }
   }
 
   // Mostrar banner de recomendación 2FA si corresponde
@@ -856,5 +840,44 @@ async function handleActivate2FA(event) {
   } catch (err) {
     errorEl.textContent = err.message;
     errorEl.classList.remove('hidden');
+  }
+}
+
+// Probar la conexión del sistema de WhatsApp
+async function testSystemWhatsApp() {
+  if (!state.token || !state.user || !state.user.isAdmin) return;
+
+  const successEl = document.getElementById('admin-wa-success');
+  const errorEl = document.getElementById('admin-wa-error');
+  const buttonEl = document.querySelector('button[onclick="testSystemWhatsApp()"]');
+
+  successEl.classList.add('hidden');
+  errorEl.classList.add('hidden');
+  buttonEl.disabled = true;
+  buttonEl.querySelector('span').textContent = 'Enviando...';
+
+  try {
+    const res = await fetch(`${API_URL}/admin/send-test-whatsapp`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${state.token}`
+      }
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || 'Error al enviar WhatsApp de prueba.');
+    }
+
+    successEl.textContent = data.message;
+    successEl.classList.remove('hidden');
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.classList.remove('hidden');
+  } finally {
+    buttonEl.disabled = false;
+    buttonEl.querySelector('span').textContent = 'Enviar Notificación de Prueba';
   }
 }

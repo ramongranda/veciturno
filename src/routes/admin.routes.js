@@ -7,5 +7,6 @@ const { authenticateToken, requireAdmin } = require('../middlewares/auth.middlew
 router.post('/create-neighbor', authenticateToken, requireAdmin, adminController.createNeighbor);
 router.post('/generate-invite', authenticateToken, requireAdmin, adminController.generateInvite);
 router.get('/invites', authenticateToken, requireAdmin, adminController.getInvites);
+router.post('/send-test-whatsapp', authenticateToken, requireAdmin, adminController.sendTestWhatsApp);
 
 module.exports = router;
