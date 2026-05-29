@@ -117,7 +117,8 @@ body {
   box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
 }
 
-.logo-icon i {
+.logo-icon i,
+.logo-icon svg {
   width: 22px;
   height: 22px;
 }
@@ -180,6 +181,13 @@ body {
   cursor: pointer;
   border: none;
   transition: var(--transition-smooth);
+}
+
+.btn svg,
+.btn i {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 }
 
 .btn-primary {
@@ -253,6 +261,7 @@ body {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-radius: 24px;
   padding: 24px;
   box-shadow: var(--shadow-lg);
@@ -633,7 +642,8 @@ body {
   align-items: center;
 }
 
-.input-wrapper i {
+.input-wrapper i,
+.input-wrapper svg {
   position: absolute;
   left: 14px;
   width: 18px;
