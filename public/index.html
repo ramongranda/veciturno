@@ -53,6 +53,20 @@
     <!-- VISTA PRINCIPAL: DASHBOARD -->
     <main id="view-dashboard" class="app-view active">
       
+      <!-- Recomendación 2FA (Visible si no tiene 2FA y está logueado) -->
+      <div id="banner-2fa-recommendation" class="warning-banner glass-card hidden" style="margin-bottom: 24px; border-color: rgba(245, 158, 11, 0.2); background: radial-gradient(circle at top right, rgba(245, 158, 11, 0.05), transparent), var(--glass-bg); display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <div class="modal-icon text-warning" style="margin: 0; width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+            <i data-lucide="shield-alert"></i>
+          </div>
+          <div>
+            <h4 style="font-family: var(--font-title); font-size: 1.05rem; font-weight: 700;">🔐 Protege tu cuenta con Doble Factor (Recomendado)</h4>
+            <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 2px;">Actualmente tu cuenta de vecino no tiene activada la autenticación 2FA. Te recomendamos activarla para mayor seguridad.</p>
+          </div>
+        </div>
+        <button class="btn btn-primary animate-hover" onclick="open2FASetupModal()" style="padding: 8px 16px; font-size: 0.85rem; background: linear-gradient(135deg, var(--color-warning), #d97706); box-shadow: 0 4px 15px rgba(245, 158, 11, 0.2); border: none;">Activar 2FA</button>
+      </div>
+
       <!-- GRID PRINCIPAL -->
       <div class="dashboard-grid">
         
@@ -246,10 +260,23 @@
             
             <div class="instructions-2fa">
               <h3>Configurar tu Autenticador</h3>
+              
+              <!-- Logos de Apps Recomendadas -->
+              <div class="auth-apps-row" style="display: flex; gap: 8px; margin: 10px 0 16px 0; flex-wrap: wrap;">
+                <div class="auth-app-badge" style="display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 8px 12px; border-radius: 10px; font-size: 0.72rem; font-weight: 600;">
+                  <i data-lucide="smartphone" class="text-success" style="width: 14px; height: 14px; color: var(--color-success);"></i>
+                  <span>Google Authenticator</span>
+                </div>
+                <div class="auth-app-badge" style="display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 8px 12px; border-radius: 10px; font-size: 0.72rem; font-weight: 600;">
+                  <i data-lucide="shield-check" class="text-primary" style="width: 14px; height: 14px; color: var(--color-primary);"></i>
+                  <span>MS Authenticator</span>
+                </div>
+              </div>
+
               <ol>
-                <li>Descarga <strong>Google Authenticator</strong> o <strong>Authy</strong> en tu móvil.</li>
+                <li>Descarga una app de autenticación (ej. las sugeridas arriba).</li>
                 <li>Escanea el código QR que aparece en pantalla.</li>
-                <li>Escribe a continuación el código de 6 dígitos que te muestra la aplicación para confirmar la activación.</li>
+                <li>Escribe a continuación el código de 6 dígitos para validar la activación.</li>
               </ol>
 
               <form id="register-step2-form" onsubmit="handleRegisterStep2(event)">
@@ -317,6 +344,71 @@
       </div>
     </section>
 
+    <!-- VISTA: CONFIGURACIÓN DOBLE FACTOR BAJO DEMANDA -->
+    <section id="view-setup-2fa" class="app-view modal-like">
+      <div class="modal-card glass-card register-modal animate-zoom">
+        <button class="modal-close" onclick="showView('dashboard')">
+          <i data-lucide="x"></i>
+        </button>
+        <div class="modal-header">
+          <div class="modal-icon text-success">
+            <i data-lucide="shield-check"></i>
+          </div>
+          <h2>Activar Doble Factor (2FA)</h2>
+          <p>Protege tu cuenta de vecino con Google Authenticator / Authy</p>
+        </div>
+
+        <div class="setup-2fa-layout">
+          <div class="qr-container">
+            <img id="setup-2fa-qr-image" src="" alt="Código QR 2FA">
+            <div class="manual-secret-box">
+              <span>Clave manual:</span>
+              <code id="setup-2fa-manual-secret">XXXX XXXX XXXX</code>
+            </div>
+          </div>
+          
+          <div class="instructions-2fa">
+            <h3>Activar Autenticador</h3>
+            
+            <!-- Logos de Apps Recomendadas -->
+            <div class="auth-apps-row" style="display: flex; gap: 8px; margin: 10px 0 16px 0; flex-wrap: wrap;">
+              <div class="auth-app-badge" style="display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 8px 12px; border-radius: 10px; font-size: 0.72rem; font-weight: 600;">
+                <i data-lucide="smartphone" class="text-success" style="width: 14px; height: 14px; color: var(--color-success);"></i>
+                <span>Google Authenticator</span>
+              </div>
+              <div class="auth-app-badge" style="display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 8px 12px; border-radius: 10px; font-size: 0.72rem; font-weight: 600;">
+                <i data-lucide="shield-check" class="text-primary" style="width: 14px; height: 14px; color: var(--color-primary);"></i>
+                <span>MS Authenticator</span>
+              </div>
+            </div>
+
+            <ol>
+              <li>Descarga una app de autenticación (como las sugeridas arriba).</li>
+              <li>Escanea el código QR con tu aplicación móvil.</li>
+              <li>Introduce a continuación el código dinámico de 6 dígitos que te proporciona la aplicación para confirmar la activación.</li>
+            </ol>
+
+            <form id="setup-2fa-form" onsubmit="handleActivate2FA(event)">
+              <div class="form-group">
+                <label for="setup-2fa-code">Introduce el Código de 6 Dígitos</label>
+                <div class="input-wrapper input-2fa">
+                  <i data-lucide="shield-check"></i>
+                  <input type="text" id="setup-2fa-code" placeholder="000 000" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" required autocomplete="off">
+                </div>
+              </div>
+
+              <div id="setup-2fa-error" class="error-msg hidden" style="margin-top: 10px;"></div>
+
+              <button type="submit" class="btn btn-success btn-full" style="margin-top: 16px;">
+                <i data-lucide="shield"></i>
+                <span>Confirmar y Activar 2FA</span>
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- VISTA: PANEL DE ADMINISTRADOR -->
     <section id="view-admin" class="app-view modal-like">
       <div class="modal-card glass-card admin-modal animate-zoom">
@@ -334,38 +426,94 @@
 
         <div class="admin-grid">
           <!-- Formulario Generador -->
-          <div class="admin-action-box">
-            <h3>Generar Invitación de Un Solo Uso</h3>
-            <p class="box-desc">Crea un enlace exclusivo para permitir el registro de un vecino en una planta específica.</p>
-            
-            <form id="admin-invite-form" onsubmit="handleGenerateInvite(event)">
-              <div class="form-group">
-                <label for="admin-select-floor">Selecciona la Planta</label>
-                <div class="input-wrapper">
-                  <i data-lucide="layers"></i>
-                  <select id="admin-select-floor" required>
-                    <option value="1">Planta 1</option>
-                    <option value="2">Planta 2</option>
-                    <option value="3">Planta 3</option>
-                  </select>
+          <div class="admin-action-box" style="display: flex; flex-direction: column; gap: 20px;">
+            <div>
+              <h3>Generar Invitación de Un Solo Uso</h3>
+              <p class="box-desc">Crea un enlace exclusivo para permitir el registro de un vecino en una planta específica.</p>
+              
+              <form id="admin-invite-form" onsubmit="handleGenerateInvite(event)">
+                <div class="form-group">
+                  <label for="admin-select-floor">Selecciona la Planta</label>
+                  <div class="input-wrapper">
+                    <i data-lucide="layers"></i>
+                    <select id="admin-select-floor" required>
+                      <option value="1">Planta 1</option>
+                      <option value="2">Planta 2</option>
+                      <option value="3">Planta 3</option>
+                    </select>
+                  </div>
                 </div>
-              </div>
 
-              <div id="admin-invite-success" class="invite-link-result hidden">
-                <span>¡Enlace generado! Copia y envíalo al vecino:</span>
-                <div class="copy-input-row">
-                  <input type="text" id="admin-invite-url" readonly>
-                  <button type="button" class="btn btn-secondary btn-icon" onclick="copyInviteLink()" title="Copiar Enlace">
-                    <i data-lucide="copy"></i>
-                  </button>
+                <div id="admin-invite-success" class="invite-link-result hidden">
+                  <span>¡Enlace generado! Copia y envíalo al vecino:</span>
+                  <div class="copy-input-row">
+                    <input type="text" id="admin-invite-url" readonly>
+                    <button type="button" class="btn btn-secondary btn-icon" onclick="copyInviteLink()" title="Copiar Enlace">
+                      <i data-lucide="copy"></i>
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              <button type="submit" class="btn btn-primary btn-full">
-                <i data-lucide="link"></i>
-                <span>Generar Enlace</span>
-              </button>
-            </form>
+                <button type="submit" class="btn btn-primary btn-full" style="margin-top: 8px;">
+                  <i data-lucide="link"></i>
+                  <span>Generar Enlace</span>
+                </button>
+              </form>
+            </div>
+
+            <!-- Separador -->
+            <div style="border-top: 1px dashed var(--glass-border); margin: 5px 0;"></div>
+
+            <!-- Registro Directo -->
+            <div>
+              <h3>Registrar Vecino Directamente</h3>
+              <p class="box-desc">Crea y activa al instante la cuenta para un vecino sin necesidad de enlaces.</p>
+              
+              <form id="admin-direct-reg-form" onsubmit="handleDirectRegister(event)">
+                <div class="form-group">
+                  <label for="admin-reg-floor">Selecciona la Planta</label>
+                  <div class="input-wrapper">
+                    <i data-lucide="layers"></i>
+                    <select id="admin-reg-floor" required>
+                      <option value="1">Planta 1</option>
+                      <option value="2">Planta 2</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 8px;">
+                  <label for="admin-reg-username">Nombre de Usuario</label>
+                  <div class="input-wrapper">
+                    <i data-lucide="user"></i>
+                    <input type="text" id="admin-reg-username" placeholder="ej. vecino_planta1" required>
+                  </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 8px;">
+                  <label for="admin-reg-password">Contraseña Inicial</label>
+                  <div class="input-wrapper">
+                    <i data-lucide="key-round"></i>
+                    <input type="text" id="admin-reg-password" placeholder="ej. 123456" minlength="6" required>
+                  </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 8px;">
+                  <label for="admin-reg-phone">Teléfono (WhatsApp)</label>
+                  <div class="input-wrapper">
+                    <i data-lucide="phone"></i>
+                    <input type="tel" id="admin-reg-phone" placeholder="ej. +34600112233">
+                  </div>
+                </div>
+
+                <div id="admin-reg-success" class="success-msg hidden" style="margin: 10px 0 0 0;"></div>
+                <div id="admin-reg-error" class="error-msg hidden" style="margin: 10px 0 0 0;"></div>
+
+                <button type="submit" class="btn btn-success btn-full" style="margin-top: 14px;">
+                  <i data-lucide="user-plus"></i>
+                  <span>Registrar y Activar Cuenta</span>
+                </button>
+              </form>
+            </div>
           </div>
 
           <!-- Tabla/Lista de Enlaces -->

@@ -116,6 +116,21 @@ function renderDashboard(data) {
     }
   }
 
+  // Mostrar banner de recomendación 2FA si corresponde
+  const banner2fa = document.getElementById('banner-2fa-recommendation');
+  if (banner2fa) {
+    if (state.token && state.user) {
+      const currentNeighbor = data.neighbors.find(n => n.id === state.user.id);
+      if (currentNeighbor && !currentNeighbor.twoFactorRegistered) {
+        banner2fa.classList.remove('hidden');
+      } else {
+        banner2fa.classList.add('hidden');
+      }
+    } else {
+      banner2fa.classList.add('hidden');
+    }
+  }
+
   // Mostrar acción de rotación solo si el usuario está autenticado
   const rotateSection = document.getElementById('action-rotate-section');
   if (state.token) {
@@ -295,6 +310,18 @@ async function handleLoginStep1(event) {
       document.getElementById('login-step1-form').classList.add('hidden');
       document.getElementById('login-step2-form').classList.remove('hidden');
       document.getElementById('login-2fa-code').focus();
+    } else {
+      // Inicio de sesión directo (sin 2FA habilitado)
+      localStorage.setItem('vt_token', data.token);
+      localStorage.setItem('vt_user', JSON.stringify(data.user));
+      
+      state.token = data.token;
+      state.user = data.user;
+      
+      document.getElementById('login-step1-form').reset();
+      renderAuthHeader();
+      await loadCommunityStatus();
+      showView('dashboard');
     }
   } catch (err) {
     errorEl.textContent = err.message;
@@ -705,4 +732,129 @@ function copyInviteLinkUrl(url) {
   document.execCommand('copy');
   document.body.removeChild(tempInput);
   alert('📋 Enlace de registro copiado al portapapeles.');
+}
+
+// ==========================================
+// REGISTRO DIRECTO Y 2FA BAJO DEMANDA
+// ==========================================
+
+// Registrar un vecino directamente desde el panel de administración
+async function handleDirectRegister(event) {
+  event.preventDefault();
+  
+  if (!state.token || !state.user || !state.user.isAdmin) return;
+
+  const floorId = document.getElementById('admin-reg-floor').value;
+  const username = document.getElementById('admin-reg-username').value.trim();
+  const password = document.getElementById('admin-reg-password').value;
+  const phone = document.getElementById('admin-reg-phone').value.trim();
+  
+  const successEl = document.getElementById('admin-reg-success');
+  const errorEl = document.getElementById('admin-reg-error');
+  
+  successEl.classList.add('hidden');
+  errorEl.classList.add('hidden');
+
+  try {
+    const res = await fetch(`${API_URL}/admin/create-neighbor`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${state.token}`
+      },
+      body: JSON.stringify({ floorId, username, password, phone })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || 'Error al registrar vecino');
+    }
+
+    successEl.textContent = data.message;
+    successEl.classList.remove('hidden');
+    
+    // Limpiar formulario
+    document.getElementById('admin-direct-reg-form').reset();
+    
+    // Recargar estado del dashboard para mostrar que ya está registrado
+    await loadCommunityStatus();
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.classList.remove('hidden');
+  }
+}
+
+// Solicitar secreto y abrir modal para configurar 2FA bajo demanda (usuario logueado)
+async function open2FASetupModal() {
+  if (!state.token) return;
+
+  const qrImage = document.getElementById('setup-2fa-qr-image');
+  const manualSecret = document.getElementById('setup-2fa-manual-secret');
+  const errorEl = document.getElementById('setup-2fa-error');
+  
+  errorEl.classList.add('hidden');
+  document.getElementById('setup-2fa-form').reset();
+  
+  try {
+    const res = await fetch(`${API_URL}/neighbors/setup-2fa`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${state.token}`
+      }
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || 'Error al generar código 2FA');
+    }
+
+    qrImage.src = data.qrCodeUrl;
+    manualSecret.textContent = data.secret;
+
+    showView('setup-2fa');
+  } catch (err) {
+    alert(`Error: ${err.message}`);
+  }
+}
+
+// Activar el Doble Factor (2FA) tras ingresar el código de verificación
+async function handleActivate2FA(event) {
+  event.preventDefault();
+
+  if (!state.token) return;
+
+  const code = document.getElementById('setup-2fa-code').value.trim();
+  const errorEl = document.getElementById('setup-2fa-error');
+  
+  errorEl.classList.add('hidden');
+
+  try {
+    const res = await fetch(`${API_URL}/neighbors/activate-2fa`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${state.token}`
+      },
+      body: JSON.stringify({ code })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || 'Código de verificación incorrecto');
+    }
+
+    alert('🛡️ ¡Doble Factor de Autenticación (2FA) activado correctamente en tu cuenta!');
+    
+    // Ocultar modal y volver al dashboard
+    showView('dashboard');
+    
+    // Recargar estado
+    await loadCommunityStatus();
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.classList.remove('hidden');
+  }
 }
