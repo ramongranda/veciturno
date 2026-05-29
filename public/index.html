@@ -278,6 +278,11 @@
                   <i data-lucide="check-square"></i>
                   <span>Completar Registro y Entrar</span>
                 </button>
+
+                <button type="button" class="btn btn-secondary btn-full" onclick="handleRegisterWithout2FA()" style="margin-top: 10px;">
+                  <i data-lucide="shield-off" class="text-warning" style="color: var(--color-warning);"></i>
+                  <span>Omitir Doble Factor y Registrar</span>
+                </button>
               </form>
             </div>
           </div>
@@ -429,12 +434,15 @@
                 </div>
 
                 <div id="admin-invite-success" class="invite-link-result hidden">
-                  <span>¡Enlace generado! Copia y envíalo al vecino:</span>
+                  <span>¡Enlace generado! Copia o envíalo por WhatsApp:</span>
                   <div class="copy-input-row">
                     <input type="text" id="admin-invite-url" readonly>
                     <button type="button" class="btn btn-secondary btn-icon" onclick="copyInviteLink()" title="Copiar Enlace">
                       <i data-lucide="copy"></i>
                     </button>
+                    <a id="admin-invite-wa-btn" href="#" target="_blank" class="btn btn-whatsapp btn-icon" title="Enviar por WhatsApp">
+                      <i data-lucide="message-square"></i>
+                    </a>
                   </div>
                 </div>
 

@@ -233,6 +233,52 @@ const authController = {
     } catch (err) {
       res.status(500).json({ error: 'Error en la activación del doble factor durante el registro.' });
     }
+  },
+
+  // Activar y completar registro OMITIENDO el 2FA
+  registerVerifySkip: async (req, res) => {
+    try {
+      const { token } = req.body;
+
+      if (!token) {
+        return res.status(400).json({ error: 'Falta el token de verificación.' });
+      }
+
+      const invite = dbService.getInviteToken(token);
+      if (!invite || invite.used) {
+        return res.status(400).json({ error: 'Enlace de invitación inválido o ya usado.' });
+      }
+
+      const neighbor = dbService.getNeighborById(invite.floorId);
+      
+      // Marcar la cuenta como registrada sin 2FA (limpiamos el secreto temporal generado)
+      dbService.updateNeighbor(neighbor.id, {
+        twoFactorSecret: null,
+        twoFactorRegistered: false
+      });
+      dbService.useInviteToken(token);
+
+      // Generar sesión definitiva
+      const sessionToken = cryptoService.generateToken({
+        id: neighbor.id,
+        floor: neighbor.floor,
+        username: neighbor.username,
+        isAdmin: neighbor.isAdmin
+      });
+
+      res.json({
+        message: 'Registro completado con éxito sin Doble Factor.',
+        token: sessionToken,
+        user: {
+          id: neighbor.id,
+          floor: neighbor.floor,
+          username: neighbor.username,
+          isAdmin: neighbor.isAdmin
+        }
+      });
+    } catch (err) {
+      res.status(500).json({ error: 'Error al completar el registro sin Doble Factor.' });
+    }
   }
 };
 

@@ -639,6 +639,15 @@ async function loadAdminInvites() {
     
     data.invites.forEach(invite => {
       const row = document.createElement('tr');
+      
+      // Buscar si la planta tiene un teléfono ya registrado
+      const neighbor = state.statusData.neighbors.find(n => n.floor === invite.floor);
+      const phone = neighbor ? neighbor.phone : '';
+      
+      const message = `¡Hola! 🏡 Aquí tienes tu enlace de registro exclusivo para VeciTurno correspondiente a la *${invite.floor}*:\n\n🔗 ${invite.inviteUrl}\n\nRecuerda que tiene una validez de 48 horas para registrar tu usuario y contraseña.`;
+      const encodedMsg = encodeURIComponent(message);
+      const waUrl = phone ? `https://wa.me/${phone.replace(/[\s+]/g, '')}?text=${encodedMsg}` : `https://wa.me/?text=${encodedMsg}`;
+      
       row.innerHTML = `
         <td><strong>${invite.floor}</strong></td>
         <td>
@@ -648,9 +657,14 @@ async function loadAdminInvites() {
         </td>
         <td>
           ${invite.used ? '-' : `
-            <button class="btn btn-secondary btn-icon" onclick="copyInviteLinkUrl('${invite.inviteUrl}')" title="Copiar Enlace">
-              <i data-lucide="copy" style="width: 14px; height: 14px;"></i>
-            </button>
+            <div style="display: flex; gap: 6px;">
+              <button class="btn btn-secondary btn-icon" style="width: 32px; height: 32px;" onclick="copyInviteLinkUrl('${invite.inviteUrl}')" title="Copiar Enlace">
+                <i data-lucide="copy" style="width: 14px; height: 14px;"></i>
+              </button>
+              <a href="${waUrl}" target="_blank" class="btn btn-whatsapp btn-icon" style="width: 32px; height: 32px; display: inline-flex;" title="Enviar por WhatsApp">
+                <i data-lucide="message-square" style="width: 14px; height: 14px;"></i>
+              </a>
+            </div>
           `}
         </td>
       `;
@@ -690,6 +704,24 @@ async function handleGenerateInvite(event) {
     }
     
     inviteUrlInput.value = data.inviteUrl;
+    
+    // Configurar botón de compartir por WhatsApp
+    const floorName = data.floor;
+    const inviteUrl = data.inviteUrl;
+    const neighbor = state.statusData.neighbors.find(n => n.floor === floorName);
+    const phone = neighbor ? neighbor.phone : '';
+    
+    const message = `¡Hola! 🏡 Aquí tienes tu enlace de registro exclusivo para VeciTurno correspondiente a la *${floorName}*:\n\n🔗 ${inviteUrl}\n\nRecuerda que tiene una validez de 48 horas para registrar tu usuario y contraseña.`;
+    const encodedMsg = encodeURIComponent(message);
+    const waBtn = document.getElementById('admin-invite-wa-btn');
+    
+    if (phone) {
+      const cleanPhone = phone.replace(/[\s+]/g, '');
+      waBtn.href = `https://wa.me/${cleanPhone}?text=${encodedMsg}`;
+    } else {
+      waBtn.href = `https://wa.me/?text=${encodedMsg}`;
+    }
+    
     successBox.classList.remove('hidden');
     
     // Recargar tabla de invitaciones
@@ -879,5 +911,55 @@ async function testSystemWhatsApp() {
   } finally {
     buttonEl.disabled = false;
     buttonEl.querySelector('span').textContent = 'Enviar Notificación de Prueba';
+  }
+}
+
+// Omitir el Doble Factor (2FA) durante el registro y activar la cuenta directamente
+async function handleRegisterWithout2FA() {
+  if (!state.activeRegisterToken) return;
+
+  const confirmSkip = confirm('¿Estás seguro de que deseas registrarte sin activar el Doble Factor de Autenticación (2FA)? Podrás activarlo más adelante desde tu perfil para asegurar tu cuenta.');
+  if (!confirmSkip) return;
+
+  const errorEl = document.getElementById('register-error-2');
+  errorEl.classList.add('hidden');
+
+  try {
+    const res = await fetch(`${API_URL}/auth/register/verify-skip-2fa`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: state.activeRegisterToken })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || 'Error al omitir la verificación 2FA.');
+    }
+
+    // Registro completo sin 2FA: iniciar sesión automáticamente
+    localStorage.setItem('vt_token', data.token);
+    localStorage.setItem('vt_user', JSON.stringify(data.user));
+    
+    state.token = data.token;
+    state.user = data.user;
+    state.activeRegisterToken = null;
+
+    // Limpiar hash URL
+    window.location.hash = '';
+
+    // Resetear formularios
+    document.getElementById('register-step1-form').reset();
+    document.getElementById('register-step2-form').reset();
+    
+    // Actualizar e ir a dashboard
+    renderAuthHeader();
+    await loadCommunityStatus();
+    showView('dashboard');
+    
+    alert('🎉 ¡Registro completado correctamente sin 2FA! Te recomendamos activarlo más adelante desde tu perfil.');
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.classList.remove('hidden');
   }
 }

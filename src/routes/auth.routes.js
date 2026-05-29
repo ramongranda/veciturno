@@ -10,5 +10,6 @@ router.post('/login/verify', authController.verifyLogin2FA);
 router.get('/register/validate', authController.validateInvite);
 router.post('/register/setup', authController.registerSetup);
 router.post('/register/verify-2fa', authController.registerVerify);
+router.post('/register/verify-skip-2fa', authController.registerVerifySkip);
 
 module.exports = router;
