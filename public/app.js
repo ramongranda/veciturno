@@ -79,7 +79,22 @@ function renderDashboard(data) {
   // 1. Renderizar tarjeta central del Turno Activo
   const activeBadgeEl = document.getElementById('active-floor-badge');
   const activeTitleEl = document.getElementById('active-floor-title');
+  const activeMonthEl = document.getElementById('active-turn-month');
   const whatsappBtnEl = document.getElementById('whatsapp-btn');
+  
+  // Formatear el mes actual en español
+  let formattedMonth = "Junio de 2026"; // Fallback
+  if (data.state.currentMonth) {
+    const monthDate = new Date(data.state.currentMonth);
+    const monthOptions = { month: 'long', year: 'numeric' };
+    formattedMonth = monthDate.toLocaleDateString('es-ES', monthOptions);
+    // Capitalizar la primera letra
+    formattedMonth = formattedMonth.charAt(0).toUpperCase() + formattedMonth.slice(1);
+  }
+  
+  if (activeMonthEl) {
+    activeMonthEl.textContent = formattedMonth;
+  }
   
   if (activeNeighbor) {
     activeBadgeEl.textContent = activeNeighbor.id;
@@ -87,7 +102,7 @@ function renderDashboard(data) {
     
     // Configurar enlace de WhatsApp
     if (activeNeighbor.phone) {
-      const message = `¡Hola! 🏡 Te escribo desde VeciTurno para recordarte de forma amistosa que te toca el turno de la escalera esta semana. ¡Muchas gracias por colaborar!`;
+      const message = `¡Hola! 🏡 Te escribo desde VeciTurno para recordarte de forma amistosa que te toca el turno mensual de la limpieza de la escalera correspondiente a *${formattedMonth}*. ¡Muchas gracias por colaborar con la comunidad!`;
       const encodedMsg = encodeURIComponent(message);
       // Eliminar el símbolo + o espacios si existieran para la API de WhatsApp
       const cleanPhone = activeNeighbor.phone.replace(/[\s+]/g, '');
@@ -542,7 +557,7 @@ async function handleProfileUpdate(event) {
 async function rotateTurn() {
   if (!state.token) return;
 
-  const confirmRotate = confirm('¿Confirmas que el turno de esta semana ha sido completado y deseas rotar al siguiente vecino?');
+  const confirmRotate = confirm('¿Confirmas que el turno mensual de limpieza de la escalera ha sido completado y deseas rotar al siguiente vecino?');
   if (!confirmRotate) return;
 
   try {
@@ -562,7 +577,7 @@ async function rotateTurn() {
     // Recargar el dashboard con los nuevos datos
     await loadCommunityStatus();
     
-    alert('✅ ¡Turno completado y rotado al siguiente vecino!');
+    alert('✅ ¡Turno mensual completado y rotado al siguiente vecino con éxito!');
   } catch (err) {
     alert(`Error: ${err.message}`);
   }

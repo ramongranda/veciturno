@@ -946,6 +946,21 @@ body {
   }
 }
 
+.active-month-badge {
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  color: var(--color-primary);
+  font-size: 0.9rem;
+  font-weight: 700;
+  padding: 6px 16px;
+  border-radius: 50px;
+  margin: 8px 0 20px 0;
+  text-transform: capitalize;
+  display: inline-block;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.05);
+}
+
 /* DISEÑO RESPONSIVO */
 @media (max-width: 900px) {
   .dashboard-grid {

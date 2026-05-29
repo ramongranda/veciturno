@@ -43,9 +43,17 @@ const initialData = {
       isAdmin: false
     }
   ],
-  inviteTokens: [],
+  inviteTokens: [
+    {
+      token: "registro-inicial-planta1",
+      floorId: "1",
+      used: false,
+      createdAt: new Date().toISOString()
+    }
+  ],
   state: {
     currentTurnFloorId: "1", // Empieza el Vecino de la Planta 1
+    currentMonth: "2026-06-01", // Empieza en Junio de 2026
     lastRotationDate: new Date().toISOString()
   },
   history: []
@@ -129,6 +137,14 @@ const db = {
     }
 
     data.state.currentTurnFloorId = nextId;
+    
+    // Avanzar el mes del turno (incrementar 1 mes)
+    if (data.state.currentMonth) {
+      const currentMonthDate = new Date(data.state.currentMonth);
+      currentMonthDate.setMonth(currentMonthDate.getMonth() + 1);
+      data.state.currentMonth = currentMonthDate.toISOString().slice(0, 10);
+    }
+
     data.state.lastRotationDate = new Date().toISOString();
 
     writeDB(data);
