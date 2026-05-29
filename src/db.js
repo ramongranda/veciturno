@@ -20,7 +20,7 @@ const initialData = {
       twoFactorSecret: null,
       twoFactorRegistered: false,
       phone: "",
-      isAdmin: true // La primera planta actúa como administrador por defecto
+      isAdmin: false
     },
     {
       id: "2",
@@ -40,13 +40,13 @@ const initialData = {
       twoFactorSecret: null,
       twoFactorRegistered: false,
       phone: "",
-      isAdmin: false
+      isAdmin: true // La tercera planta actúa como administrador ahora
     }
   ],
   inviteTokens: [
     {
-      token: "registro-inicial-planta1",
-      floorId: "1",
+      token: "registro-inicial-planta3",
+      floorId: "3",
       used: false,
       createdAt: new Date().toISOString()
     }
