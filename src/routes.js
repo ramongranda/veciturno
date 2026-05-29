@@ -31,6 +31,7 @@ router.get('/public/status', (req, res) => {
   const history = db.getHistory();
 
   res.json({
+    communityName: process.env.COMMUNITY_NAME || "VeciTurno",
     neighbors,
     state,
     history

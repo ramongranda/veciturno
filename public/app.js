@@ -75,6 +75,13 @@ async function loadCommunityStatus() {
 function renderDashboard(data) {
   const activeFloorId = data.state.currentTurnFloorId;
   const activeNeighbor = data.neighbors.find(n => n.id === activeFloorId);
+
+  // Actualizar el nombre de la comunidad dinámicamente desde el backend (.env)
+  const communityNameEl = document.querySelector('.logo-text span');
+  if (communityNameEl && data.communityName) {
+    communityNameEl.textContent = data.communityName;
+    document.title = `${data.communityName} - VeciTurno`;
+  }
   
   // 1. Renderizar tarjeta central del Turno Activo
   const activeBadgeEl = document.getElementById('active-floor-badge');

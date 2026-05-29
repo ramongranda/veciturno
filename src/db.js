@@ -1,7 +1,12 @@
+require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 
 const DB_PATH = path.join(__dirname, '../db/database.json');
+
+const START_MONTH = process.env.START_MONTH || '2026-06-01';
+const START_FLOOR_ID = process.env.START_FLOOR_ID || '1';
+const BOOTSTRAP_TOKEN = process.env.BOOTSTRAP_TOKEN || 'registro-inicial-planta3';
 
 // Garantizar que la carpeta db existe
 const dbDir = path.dirname(DB_PATH);
@@ -45,15 +50,15 @@ const initialData = {
   ],
   inviteTokens: [
     {
-      token: "registro-inicial-planta3",
-      floorId: "3",
+      token: BOOTSTRAP_TOKEN,
+      floorId: "3", // La planta administrador
       used: false,
       createdAt: new Date().toISOString()
     }
   ],
   state: {
-    currentTurnFloorId: "1", // Empieza el Vecino de la Planta 1
-    currentMonth: "2026-06-01", // Empieza en Junio de 2026
+    currentTurnFloorId: START_FLOOR_ID,
+    currentMonth: START_MONTH,
     lastRotationDate: new Date().toISOString()
   },
   history: []
