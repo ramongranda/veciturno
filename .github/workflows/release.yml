@@ -1,0 +1,59 @@
+name: Generar Paquete de Distribución (Release)
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Compilar y Empaquetar VeciTurno
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar Código (Checkout)
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Configurar pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Instalar Dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Crear Paquete Limpio de Distribución
+        run: |
+          # Crear directorio temporal para el empaquetado
+          mkdir -p veciturno-release
+          
+          # Copiar archivos fuente esenciales para producción
+          cp -r public src scripts server.js nodemon.json package.json pnpm-lock.yaml pnpm-workspace.yaml README.md .env.example veciturno-release/
+          
+          # Eliminar bases de datos, claves privadas locales, cachés de WhatsApp y node_modules del paquete final
+          rm -rf veciturno-release/db/database.json
+          rm -rf veciturno-release/certs
+          rm -rf veciturno-release/node_modules
+          rm -rf veciturno-release/.wwebjs_auth
+          rm -rf veciturno-release/.wwebjs_cache
+          
+          # Comprimir todo en un ZIP limpio y listo para desplegar
+          zip -r veciturno-release.zip veciturno-release/
+
+      - name: Crear Release en GitHub
+        uses: softprops/action-gh-release@v2
+        with:
+          files: veciturno-release.zip
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

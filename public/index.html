@@ -72,37 +72,91 @@
         
         <!-- COLUMNA IZQUIERDA: TURNO ACTIVO -->
         <div class="dashboard-main-card glass-card">
-          <div class="card-badge">TURNO ACTIVO ACTUALMENTE</div>
+          <div class="card-badge">Es turno de Limpieza</div>
           
           <div class="active-turn-content">
             <div id="active-floor-avatar" class="floor-avatar animate-pulse">
               <span id="active-floor-badge">-</span>
             </div>
             <h2 id="active-floor-title">Cargando...</h2>
+            <div class="active-status-tag">
+              <span class="active-dot"></span>
+              <span>Activo</span>
+            </div>
             <div id="active-turn-month" class="active-month-badge">Cargando mes...</div>
             <p id="active-floor-desc">Le toca la limpieza mensual de la escalera</p>
+            
+            <!-- Separador gradiente visual -->
+            <div class="turn-divider">
+              <span class="turn-divider-line"></span>
+              <span class="turn-divider-icon"><i data-lucide="repeat" style="width:12px;height:12px;"></i></span>
+              <span class="turn-divider-line"></span>
+            </div>
+
+            <!-- Indicador Premium del Siguiente Turno -->
+            <div class="next-turn-card">
+              <div class="next-turn-card-inner">
+                <div class="next-avatar-glow" id="next-floor-avatar-badge">-</div>
+                <div class="next-card-details">
+                  <span class="next-card-label">Siguiente turno</span>
+                  <span id="next-floor-name" class="next-card-name">Piso -</span>
+                </div>
+                <div class="next-card-schedule">
+                  <i data-lucide="calendar-clock" style="width:13px;height:13px;"></i>
+                  <span id="next-turn-month-label">Próximo mes</span>
+                </div>
+              </div>
+            </div>
 
           </div>
         </div>
 
-        <!-- COLUMNA DERECHA: LOS 3 VECINOS / PLANTAS -->
+        <!-- COLUMNA DERECHA: LOS 3 VECINOS / PISOS -->
         <div class="dashboard-side-column">
-          
-          <!-- Lista de plantas -->
-          <div class="section-card glass-card">
-            <h3>Visualización de Plantas</h3>
-            <div class="neighbors-list" id="neighbors-container">
-              <!-- Render dinámico de los 3 vecinos -->
-              <div class="loading-spinner">Cargando vecinos...</div>
-            </div>
+          <div id="neighbor-notifications-card" class="section-card glass-card hidden">
+            <h3>
+              <i data-lucide="bell-ring"></i>
+              <span>Grupo de Notificaciones</span>
+            </h3>
+            <p id="neighbor-notifications-text" class="box-desc">
+              Únete al grupo para recibir avisos de turnos y comunicaciones de la comunidad.
+            </p>
+            <a id="neighbor-notifications-link" href="#" target="_blank" class="btn btn-whatsapp btn-full">
+              <i data-lucide="message-square"></i>
+              <span>Abrir Grupo de WhatsApp</span>
+            </a>
           </div>
-
+          
           <!-- Historial -->
           <div class="section-card glass-card">
             <h3>Historial de Turnos</h3>
             <div class="history-list" id="history-container">
               <!-- Render dinámico del historial -->
               <div class="loading-spinner">Cargando historial...</div>
+            </div>
+          </div>
+
+          <!-- Verificador de Certificados (CSV) -->
+          <div class="section-card glass-card">
+            <h3>
+              <i data-lucide="shield-check" class="text-success" style="color: var(--color-success); width: 18px; height: 18px;"></i>
+              <span>Validar Certificado (CSV)</span>
+            </h3>
+            <p class="box-desc" style="margin-bottom: 10px;">
+              Introduce el Código de Verificación Seguro (CSV) del pie de página del PDF oficial.
+            </p>
+            <div class="auth-form" style="gap: 8px;">
+              <div class="input-wrapper">
+                <i data-lucide="key-round"></i>
+                <input type="text" id="verify-csv-input" placeholder="CSV-XXXX-XXXX-XXXX-XXXX" style="font-family: monospace; font-size: 0.8rem; letter-spacing: 0.5px; text-transform: uppercase;">
+              </div>
+              <button class="btn btn-secondary btn-full" onclick="verifyPdfCertificateCsv()" style="padding: 10px; font-size: 0.82rem;">
+                <i data-lucide="search"></i>
+                <span>Verificar Documento</span>
+              </button>
+            </div>
+            <div id="verify-csv-result" class="hidden" style="margin-top: 12px; font-size: 0.78rem;">
+              <!-- Render dinámico -->
             </div>
           </div>
 
@@ -127,7 +181,7 @@
           <p>Introduce tus credenciales de vecino</p>
         </div>
 
-        <!-- LOGIN PASO 1: CONTRASEÑA -->
+        <!-- LOGIN PASO 1: IDENTIFICACIÓN -->
         <form id="login-step1-form" class="auth-form" onsubmit="handleLoginStep1(event)">
           <div class="form-group">
             <label for="login-username">Nombre de Usuario</label>
@@ -137,20 +191,41 @@
             </div>
           </div>
 
-          <div class="form-group">
-            <label for="login-password">Contraseña</label>
-            <div class="input-wrapper">
-              <i data-lucide="key-round"></i>
-              <input type="password" id="login-password" placeholder="Tu contraseña" required>
-            </div>
-          </div>
-
           <div id="login-error-1" class="error-msg hidden"></div>
 
           <button type="submit" class="btn btn-primary btn-full">
-            <span>Siguiente Paso</span>
+            <span>Continuar</span>
             <i data-lucide="arrow-right"></i>
           </button>
+          <button type="button" class="btn btn-secondary btn-full" onclick="handlePasskeyLogin()" style="margin-top: 8px;">
+            <i data-lucide="fingerprint"></i>
+            <span>Entrar con Huella / Passkey</span>
+          </button>
+        </form>
+
+        <!-- LOGIN CON CONTRASEÑA (FALLBACK) -->
+        <form id="login-password-form" class="auth-form hidden" onsubmit="handleLoginWithPassword(event)">
+          <div class="auth-2fa-info">
+            <p>Acceso de respaldo: introduce tu contraseña si no puedes usar el móvil con 2FA.</p>
+          </div>
+          <div class="form-group">
+            <label for="login-password-fallback">Contraseña</label>
+            <div class="input-wrapper">
+              <i data-lucide="key-round"></i>
+              <input type="password" id="login-password-fallback" placeholder="Tu contraseña de respaldo" required>
+            </div>
+          </div>
+          <div id="login-error-password" class="error-msg hidden"></div>
+          <div class="button-row">
+            <button type="button" class="btn btn-secondary" onclick="backToLoginStep1()">
+              <i data-lucide="arrow-left"></i>
+              <span>Atrás</span>
+            </button>
+            <button type="submit" class="btn btn-primary flex-grow">
+              <span>Entrar con Contraseña</span>
+              <i data-lucide="check"></i>
+            </button>
+          </div>
         </form>
 
         <!-- LOGIN PASO 2: 2FA TOTP -->
@@ -168,6 +243,10 @@
           </div>
 
           <div id="login-error-2" class="error-msg hidden"></div>
+          <button type="button" class="btn btn-secondary btn-full" onclick="showPasswordFallback()" style="margin-top: 6px;">
+            <i data-lucide="smartphone-nfc"></i>
+            <span>No puedo acceder al móvil (usar contraseña)</span>
+          </button>
 
           <div class="button-row">
             <button type="button" class="btn btn-secondary" onclick="backToLoginStep1()">
@@ -202,7 +281,7 @@
             <label for="reg-username">Elige un Nombre de Usuario</label>
             <div class="input-wrapper">
               <i data-lucide="user"></i>
-              <input type="text" id="reg-username" placeholder="ej. maria_planta2" required>
+              <input type="text" id="reg-username" placeholder="ej. maria_piso2" required>
             </div>
           </div>
 
@@ -213,6 +292,14 @@
               <input type="password" id="reg-password" placeholder="Mínimo 6 caracteres" minlength="6" required>
             </div>
           </div>
+          
+          <div class="form-group">
+            <label for="reg-password-confirm">Confirmar Contraseña</label>
+            <div class="input-wrapper">
+              <i data-lucide="shield-check"></i>
+              <input type="password" id="reg-password-confirm" placeholder="Repite la contraseña" minlength="6" required>
+            </div>
+          </div>
 
           <div class="form-group">
             <label for="reg-phone">Número de Teléfono (para avisos de WhatsApp)</label>
@@ -220,7 +307,7 @@
               <i data-lucide="phone"></i>
               <input type="tel" id="reg-phone" placeholder="ej. +34600112233">
             </div>
-            <span class="input-hint">Formato con prefijo de país. Ej: +34 para España.</span>
+            <span class="input-hint">Teléfono España: puedes poner 600112233 o +34600112233.</span>
           </div>
 
           <div id="register-error-1" class="error-msg hidden"></div>
@@ -279,7 +366,7 @@
                   <span>Completar Registro y Entrar</span>
                 </button>
 
-                <button type="button" class="btn btn-secondary btn-full" onclick="handleRegisterWithout2FA()" style="margin-top: 10px;">
+                <button type="button" class="btn btn-secondary btn-full" onclick="handleRegisterWithout2FA()" style="margin-top: 14px;">
                   <i data-lucide="shield-off" class="text-warning" style="color: var(--color-warning);"></i>
                   <span>Omitir Doble Factor y Registrar</span>
                 </button>
@@ -303,6 +390,10 @@
           </div>
           <h2 id="profile-title">Mi Perfil</h2>
           <p>Actualiza tus datos de contacto y contraseña</p>
+          <div id="profile-passkey-badge" class="badge badge-success hidden" style="margin-top:8px; align-self:center;">
+            <i data-lucide="fingerprint" style="width:12px;height:12px;margin-right:4px;"></i>
+            Huella activa
+          </div>
         </div>
 
         <form id="profile-form" class="auth-form" onsubmit="handleProfileUpdate(event)">
@@ -322,6 +413,14 @@
             </div>
           </div>
 
+          <div class="form-group">
+            <label for="profile-password-confirm">Confirmar Nueva Contraseña</label>
+            <div class="input-wrapper">
+              <i data-lucide="shield-check"></i>
+              <input type="password" id="profile-password-confirm" placeholder="Repite tu nueva contraseña" minlength="6">
+            </div>
+          </div>
+
           <div id="profile-success" class="success-msg hidden"></div>
           <div id="profile-error" class="error-msg hidden"></div>
 
@@ -329,6 +428,52 @@
             <i data-lucide="save"></i>
             <span>Guardar Cambios</span>
           </button>
+          <button type="button" class="btn btn-secondary btn-full" onclick="registerPasskeyFromProfile()" style="margin-top: 8px;">
+            <i data-lucide="fingerprint"></i>
+            <span>Activar Acceso con Huella</span>
+          </button>
+          <div style="margin-top: 12px;">
+            <h4 style="font-size:0.9rem; margin-bottom:6px;">Huellas/Passkeys activas</h4>
+            <div id="profile-passkey-list" class="history-list" style="max-height: 180px;">
+              <div class="history-item">Cargando dispositivos...</div>
+            </div>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- VISTA: GESTIÓN PASSKEY (RENOMBRAR / REVOCAR) -->
+    <section id="view-passkey-manage" class="app-view modal-like">
+      <div class="modal-card glass-card animate-zoom" style="max-width: 460px;">
+        <button class="modal-close" onclick="closePasskeyActionModal()">
+          <i data-lucide="x"></i>
+        </button>
+        <div class="modal-header">
+          <div class="modal-icon">
+            <i data-lucide="fingerprint"></i>
+          </div>
+          <h2 id="passkey-action-title">Gestionar Dispositivo</h2>
+          <p id="passkey-action-subtitle">Edita o elimina una passkey registrada</p>
+        </div>
+        <form id="passkey-action-form" class="auth-form" onsubmit="submitPasskeyAction(event)">
+          <div class="form-group" id="passkey-label-group">
+            <label for="passkey-action-label">Nombre del dispositivo</label>
+            <div class="input-wrapper">
+              <i data-lucide="tag"></i>
+              <input type="text" id="passkey-action-label" maxlength="40" placeholder="Ej. iPhone Personal">
+            </div>
+          </div>
+          <div id="passkey-action-error" class="error-msg hidden"></div>
+          <div class="button-row">
+            <button type="button" class="btn btn-secondary" onclick="closePasskeyActionModal()">
+              <i data-lucide="x"></i>
+              <span>Cancelar</span>
+            </button>
+            <button type="submit" class="btn btn-primary flex-grow" id="passkey-action-submit">
+              <i data-lucide="check"></i>
+              <span>Guardar</span>
+            </button>
+          </div>
         </form>
       </div>
     </section>
@@ -398,14 +543,21 @@
       </div>
     </section>
 
-    <!-- VISTA: PANEL DE ADMINISTRADOR -->
-    <section id="view-admin" class="app-view modal-like">
-      <div class="modal-card glass-card admin-modal animate-zoom">
-        <button class="modal-close" onclick="showView('dashboard')">
-          <i data-lucide="x"></i>
-        </button>
-        
-        <div class="modal-header">
+    <!-- VISTA: PANEL DE ADMINISTRADOR (PÁGINA COMPLETA) -->
+    <section id="view-admin" class="app-view page-view">
+      <div class="glass-card admin-page-shell">
+        <div class="admin-page-topbar">
+          <button class="btn btn-secondary" onclick="closeAdminPanel()">
+            <i data-lucide="arrow-left"></i>
+            <span>Volver a Inicio</span>
+          </button>
+          <button class="btn btn-secondary" onclick="handleLogout()">
+            <i data-lucide="log-out"></i>
+            <span>Cerrar Sesión</span>
+          </button>
+        </div>
+
+        <div class="modal-header" style="margin-top: 8px;">
           <div class="modal-icon text-warning">
             <i data-lucide="shield-alert"></i>
           </div>
@@ -413,22 +565,318 @@
           <p>Gestiona enlaces de registro e invitaciones</p>
         </div>
 
+        <div class="admin-workspace">
+          <aside class="admin-sidebar glass-card">
+            <h3>Menú Admin</h3>
+            <nav class="admin-menu-nav">
+              <button class="btn btn-secondary" type="button" data-admin-panel-btn="config" onclick="adminShowPanel('config')">
+                <i data-lucide="sliders-horizontal"></i>
+                <span>Configuración</span>
+              </button>
+              <button class="btn btn-secondary" type="button" data-admin-panel-btn="security" onclick="adminShowPanel('security')">
+                <i data-lucide="shield-check"></i>
+                <span>Seguridad</span>
+              </button>
+              <button class="btn btn-secondary" type="button" data-admin-panel-btn="fees" onclick="adminShowPanel('fees')">
+                <i data-lucide="wallet"></i>
+                <span>Cuotas</span>
+              </button>
+              <button class="btn btn-secondary" type="button" data-admin-panel-btn="finance" onclick="adminShowPanel('finance')">
+                <i data-lucide="file-spreadsheet"></i>
+                <span>Finanzas</span>
+              </button>
+              <button class="btn btn-secondary" type="button" data-admin-panel-btn="users" onclick="adminShowPanel('users')">
+                <i data-lucide="users"></i>
+                <span>Usuarios</span>
+              </button>
+              <button class="btn btn-secondary" type="button" data-admin-panel-btn="visualization" onclick="adminShowPanel('visualization')">
+                <i data-lucide="building"></i>
+                <span>Visualización</span>
+              </button>
+              <button class="btn btn-secondary" type="button" data-admin-panel-btn="invites" onclick="adminShowPanel('invites')">
+                <i data-lucide="link"></i>
+                <span>Invitaciones</span>
+              </button>
+              <button class="btn btn-secondary" type="button" data-admin-panel-btn="whatsapp" onclick="adminShowPanel('whatsapp')">
+                <i data-lucide="message-square"></i>
+                <span>WhatsApp Servidor</span>
+              </button>
+            </nav>
+          </aside>
+
+          <div class="admin-content">
+        <section id="admin-section-config" class="section-card glass-card">
+          <h3>Configuración General</h3>
+          <p class="box-desc">Desde esta consola puedes gestionar el acceso de vecinos, invitaciones y el canal oficial de WhatsApp de la comunidad.</p>
+          <div class="section-card" style="margin-bottom: 12px;">
+            <h3 style="font-size: 1rem;">Administrador Independiente</h3>
+            <p class="box-desc">El usuario admin mantiene sus permisos aunque cambie la estructura. Opcionalmente puedes vincularlo como propietario de una unidad.</p>
+            <form id="admin-owner-form" class="auth-form" onsubmit="handleSaveAdminOwner(event)">
+              <div class="form-group">
+                <label for="admin-owner-floor">Piso/Unidad del propietario-admin (opcional)</label>
+                <div class="input-wrapper">
+                  <i data-lucide="home"></i>
+                  <select id="admin-owner-floor">
+                    <option value="">Sin vincular a unidad</option>
+                  </select>
+                </div>
+              </div>
+              <div id="admin-owner-success" class="success-msg hidden"></div>
+              <div id="admin-owner-error" class="error-msg hidden"></div>
+              <button type="submit" class="btn btn-primary">
+                <i data-lucide="save"></i>
+                <span>Guardar Vinculación</span>
+              </button>
+            </form>
+          </div>
+          <div class="section-card" style="margin-bottom: 12px;">
+            <h3 style="font-size: 1rem;">Constructor de Edificio</h3>
+            <p class="box-desc">Añade viviendas y locales comerciales sin usar JSON.</p>
+            <form id="admin-structure-builder-form" class="auth-form" onsubmit="handleAddBuildingUnit(event)">
+              <div class="form-group">
+                <label for="builder-portal">Portal</label>
+                <div class="input-wrapper">
+                  <i data-lucide="building-2"></i>
+                  <input type="text" id="builder-portal" placeholder="Opcional (ej. A)">
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="builder-kind">Tipo de Unidad</label>
+                <div class="input-wrapper">
+                  <i data-lucide="home"></i>
+                  <select id="builder-kind" required>
+                    <option value="vivienda">Vivienda</option>
+                    <option value="comercial">Local Comercial</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="builder-name">Nombre de la unidad</label>
+                <div class="input-wrapper">
+                  <i data-lucide="tag"></i>
+                  <input type="text" id="builder-name" placeholder="Obligatorio (ej. Ático Ana o Local Farmacia)" required>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="builder-legal-name">Nombre legal (documentación)</label>
+                <div class="input-wrapper">
+                  <i data-lucide="file-text"></i>
+                  <input type="text" id="builder-legal-name" placeholder="Opcional (ej. Vivienda 1ªA Finca 12345)">
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="builder-floor">Planta / Bajo</label>
+                <div class="input-wrapper">
+                  <i data-lucide="layers"></i>
+                  <input type="text" id="builder-floor" placeholder="ej. 1 o Bajo" required>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="builder-door">Puerta / Local</label>
+                <div class="input-wrapper">
+                  <i data-lucide="door-open"></i>
+                  <input type="text" id="builder-door" placeholder="Opcional (ej. A o 1)">
+                </div>
+              </div>
+              <div class="form-group">
+                <label style="display:inline-flex;align-items:center;gap:8px;">
+                  <input type="checkbox" id="builder-exempt">
+                  Exenta del turno de limpieza
+                </label>
+              </div>
+              <button type="submit" class="btn btn-primary">
+                <i data-lucide="plus"></i>
+                <span>Añadir Unidad</span>
+              </button>
+            </form>
+          </div>
+
+          <form id="admin-structure-form" onsubmit="handleUpdateCommunityStructure(event)">
+            <div class="form-group">
+              <label>Unidades configuradas</label>
+              <div id="admin-structure-units-list" class="history-list">
+                <div class="history-item">Sin unidades configuradas.</div>
+              </div>
+            </div>
+            <div id="admin-structure-success" class="success-msg hidden" style="margin-bottom: 10px;"></div>
+            <div id="admin-structure-error" class="error-msg hidden" style="margin-bottom: 10px;"></div>
+            <div style="display:flex; gap:12px; flex-wrap:wrap;">
+              <button type="button" class="btn btn-secondary" onclick="resetBuildingUnitsToCurrent()">
+                <i data-lucide="rotate-ccw"></i>
+                <span>Recargar Actual</span>
+              </button>
+              <button type="button" class="btn btn-secondary" onclick="clearBuildingUnits()">
+                <i data-lucide="trash-2"></i>
+                <span>Vaciar Lista</span>
+              </button>
+              <button type="submit" class="btn btn-primary">
+              <i data-lucide="save"></i>
+              <span>Guardar Estructura</span>
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <section id="admin-section-fees" class="section-card glass-card">
+          <h3>Cuotas</h3>
+          <p class="box-desc">Gestiona cuotas base y overrides por unidad por separado de la estructura del edificio.</p>
+          <div class="section-card" style="margin-bottom: 12px;">
+            <h3 style="font-size: 1rem;">Cuotas de Comunidad</h3>
+            <p class="box-desc">Define cuotas distintas para viviendas y bajos comerciales, con override por unidad si hace falta.</p>
+            <form id="admin-fee-config-form" class="auth-form" onsubmit="handleSaveFeeConfig(event)">
+              <div class="form-group">
+                <label for="fee-housing">Cuota Viviendas (€/mes)</label>
+                <div class="input-wrapper">
+                  <i data-lucide="home"></i>
+                  <input type="number" step="0.01" min="0" id="fee-housing" value="25" required>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="fee-commercial">Cuota Bajos/Locales (€/mes)</label>
+                <div class="input-wrapper">
+                  <i data-lucide="store"></i>
+                  <input type="number" step="0.01" min="0" id="fee-commercial" value="20" required>
+                </div>
+              </div>
+              <div id="admin-fee-success" class="success-msg hidden"></div>
+              <div id="admin-fee-error" class="error-msg hidden"></div>
+              <button type="submit" class="btn btn-primary">
+                <i data-lucide="save"></i>
+                <span>Guardar Cuotas Base</span>
+              </button>
+            </form>
+            <div style="margin-top:10px;">
+              <h4 style="font-size:0.9rem; margin-bottom:6px;">Override por Unidad</h4>
+              <div id="admin-fee-units-list" class="history-list">
+                <div class="history-item">Cargando cuotas por unidad...</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="admin-section-finance" class="section-card glass-card">
+          <h3>Finanzas</h3>
+          <p class="box-desc">Carga y actualiza datos financieros sin mezclarlo con la gestión de estructura o cuotas.</p>
+          <div class="section-card" style="margin-bottom: 12px;">
+            <h3 style="font-size: 1rem;">Carga de Finanzas por Excel</h3>
+            <p class="box-desc">Sube un .xlsx con columnas: <code>month</code> (YYYY-MM), <code>incomeFees</code>, <code>expenseElectricity</code>, <code>expenseInsurance</code>, <code>notes</code>.</p>
+            <form id="admin-finance-excel-form" class="auth-form" onsubmit="handleFinanceExcelImport(event)">
+              <div class="form-group">
+                <label for="finance-excel-file">Archivo Excel</label>
+                <div class="input-wrapper">
+                  <i data-lucide="file-spreadsheet"></i>
+                  <input type="file" id="finance-excel-file" class="file-input-elegant" accept=".xlsx,.xls" required>
+                </div>
+              </div>
+              <div id="admin-finance-excel-success" class="success-msg hidden"></div>
+              <div id="admin-finance-excel-error" class="error-msg hidden"></div>
+              <button type="submit" class="btn btn-primary">
+                <i data-lucide="upload"></i>
+                <span>Importar Excel</span>
+              </button>
+              <button type="button" class="btn btn-secondary" onclick="resetFinanceData()" style="margin-top:8px;">
+                <i data-lucide="rotate-ccw"></i>
+                <span>Reiniciar Movimientos (desde cero)</span>
+              </button>
+            </form>
+          </div>
+          <div class="section-card" style="margin-bottom: 12px;">
+            <h3 style="font-size: 1rem;">Asignaciones de Remitentes</h3>
+            <p class="box-desc">El sistema recuerda qué nombre de movimiento corresponde a cada unidad. Aquí puedes corregirlo manualmente.</p>
+            <form class="auth-form" onsubmit="handleAddMovementAssignment(event)">
+              <div class="form-group">
+                <label for="movement-payer-key">Texto remitente / movimiento</label>
+                <div class="input-wrapper">
+                  <i data-lucide="file-signature"></i>
+                  <input type="text" id="movement-payer-key" placeholder="Ej. garcia garcia luis" required>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="movement-unit-id">Asignar a unidad</label>
+                <div class="input-wrapper">
+                  <i data-lucide="home"></i>
+                  <select id="movement-unit-id" required>
+                    <option value="">Selecciona una unidad</option>
+                  </select>
+                </div>
+              </div>
+              <div id="admin-movement-success" class="success-msg hidden"></div>
+              <div id="admin-movement-error" class="error-msg hidden"></div>
+              <button type="submit" class="btn btn-primary">
+                <i data-lucide="save"></i>
+                <span>Guardar Asignación</span>
+              </button>
+            </form>
+            <div style="margin-top:10px;">
+              <div id="admin-movement-assignments-list" class="history-list">
+                <div class="history-item">Cargando asignaciones...</div>
+              </div>
+            </div>
+          </div>
+          <div class="section-card" style="margin-bottom: 12px;">
+            <h3 style="font-size: 1rem;">Histórico Importado</h3>
+            <p class="box-desc">Resumen mensual de ingresos por cuotas y gastos detectados en las importaciones.</p>
+            <div class="form-group" style="max-width: 320px; margin-bottom: 8px;">
+              <label for="admin-finance-records-sort">Orden histórico</label>
+              <div class="input-wrapper">
+                <i data-lucide="arrow-up-down"></i>
+                <select id="admin-finance-records-sort" onchange="loadFinanceRecords()">
+                  <option value="asc">Fecha ascendente</option>
+                  <option value="desc">Fecha descendente</option>
+                </select>
+              </div>
+            </div>
+            <div id="admin-finance-current-balance" class="history-item" style="margin-bottom:8px;">
+              <span>Cargando saldo actual...</span>
+            </div>
+            <div id="admin-finance-records-list" class="history-list">
+              <div class="history-item">Cargando registros...</div>
+            </div>
+          </div>
+          <div class="section-card" style="margin-bottom: 12px;">
+            <h3 style="font-size: 1rem;">Desglose de Aportaciones</h3>
+            <p class="box-desc">Cada cuota recibida con su fecha, importe, concepto y unidad asociada.</p>
+            <div class="form-group" style="max-width: 320px; margin-bottom: 8px;">
+              <label for="admin-finance-contrib-sort">Orden desglose</label>
+              <div class="input-wrapper">
+                <i data-lucide="arrow-up-down"></i>
+                <select id="admin-finance-contrib-sort" onchange="loadFinanceContributions()">
+                  <option value="asc">Fecha ascendente</option>
+                  <option value="desc">Fecha descendente</option>
+                </select>
+              </div>
+            </div>
+            <div id="admin-finance-contributions-list" class="history-list">
+              <div class="history-item">Cargando aportaciones...</div>
+            </div>
+          </div>
+        </section>
+
+        <section id="admin-section-security" class="section-card glass-card">
+          <h3>Seguridad</h3>
+          <p class="box-desc">Seguimiento del estado 2FA de vecinos. Aquí verás quién falta por activar doble factor.</p>
+          <div id="admin-security-summary" class="history-item" style="margin-bottom: 10px;">
+            <span>Cargando resumen de seguridad...</span>
+          </div>
+          <div id="admin-security-list" class="history-list">
+            <div class="history-item">Cargando estado de usuarios...</div>
+          </div>
+        </section>
+
         <div class="admin-grid">
           <!-- Formulario Generador -->
-          <div class="admin-action-box" style="display: flex; flex-direction: column; gap: 20px;">
+          <div id="admin-section-users" class="admin-action-box" style="display: flex; flex-direction: column; gap: 20px;">
             <div>
               <h3>Generar Invitación de Un Solo Uso</h3>
-              <p class="box-desc">Crea un enlace exclusivo para permitir el registro de un vecino en una planta específica.</p>
+              <p class="box-desc">Crea un enlace exclusivo para permitir el registro de un vecino en un piso específico.</p>
               
               <form id="admin-invite-form" onsubmit="handleGenerateInvite(event)">
                 <div class="form-group">
-                  <label for="admin-select-floor">Selecciona la Planta</label>
+                  <label for="admin-select-floor">Número de Piso</label>
                   <div class="input-wrapper">
                     <i data-lucide="layers"></i>
                     <select id="admin-select-floor" required>
-                      <option value="1">Planta 1</option>
-                      <option value="2">Planta 2</option>
-                      <option value="3">Planta 3</option>
+                      <option value="">Cargando viviendas...</option>
                     </select>
                   </div>
                 </div>
@@ -463,12 +911,11 @@
               
               <form id="admin-direct-reg-form" onsubmit="handleDirectRegister(event)">
                 <div class="form-group">
-                  <label for="admin-reg-floor">Selecciona la Planta</label>
+                  <label for="admin-reg-floor">Número de Piso</label>
                   <div class="input-wrapper">
                     <i data-lucide="layers"></i>
                     <select id="admin-reg-floor" required>
-                      <option value="1">Planta 1</option>
-                      <option value="2">Planta 2</option>
+                      <option value="">Cargando viviendas...</option>
                     </select>
                   </div>
                 </div>
@@ -477,7 +924,7 @@
                   <label for="admin-reg-username">Nombre de Usuario</label>
                   <div class="input-wrapper">
                     <i data-lucide="user"></i>
-                    <input type="text" id="admin-reg-username" placeholder="ej. vecino_planta1" required>
+                    <input type="text" id="admin-reg-username" placeholder="ej. vecino_piso1" required>
                   </div>
                 </div>
 
@@ -486,6 +933,14 @@
                   <div class="input-wrapper">
                     <i data-lucide="key-round"></i>
                     <input type="text" id="admin-reg-password" placeholder="ej. 123456" minlength="6" required>
+                  </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 8px;">
+                  <label for="admin-reg-password-confirm">Confirmar Contraseña Inicial</label>
+                  <div class="input-wrapper">
+                    <i data-lucide="shield-check"></i>
+                    <input type="text" id="admin-reg-password-confirm" placeholder="Repite la contraseña inicial" minlength="6" required>
                   </div>
                 </div>
 
@@ -509,13 +964,13 @@
           </div>
 
           <!-- Tabla/Lista de Enlaces -->
-          <div class="admin-list-box">
+          <div id="admin-section-invites" class="admin-list-box">
             <h3>Enlaces Generados</h3>
             <div class="invite-table-container">
               <table class="admin-table">
                 <thead>
                   <tr>
-                    <th>Planta</th>
+                    <th>Número de Piso</th>
                     <th>Estado</th>
                     <th>Acciones</th>
                   </tr>
@@ -529,25 +984,236 @@
               </table>
             </div>
 
-            <!-- Configuración / Prueba del Sistema de WhatsApp -->
-            <div style="margin-top: 20px; border-top: 1px dashed var(--glass-border); padding-top: 16px;">
+            <!-- Configuración / Panel de Control de WhatsApp Propio -->
+            <div id="admin-section-whatsapp" style="margin-top: 20px; border-top: 1px dashed var(--glass-border); padding-top: 16px;">
               <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
                 <i data-lucide="message-square" class="text-success" style="width: 16px; height: 16px;"></i>
-                <span>Prueba de Notificación de WhatsApp</span>
+                <span>Panel de WhatsApp Servidor de la Comunidad</span>
               </h3>
-              <p class="box-desc">Verifica que el servicio de WhatsApp automático del sistema (CallMeBot) esté correctamente configurado en tu archivo .env.</p>
-              
-              <div id="admin-wa-success" class="success-msg hidden" style="margin-bottom: 12px; font-size: 0.75rem; padding: 8px 12px;"></div>
-              <div id="admin-wa-error" class="error-msg hidden" style="margin-bottom: 12px; font-size: 0.75rem; padding: 8px 12px;"></div>
-
-              <button type="button" class="btn btn-whatsapp btn-full" onclick="testSystemWhatsApp()" style="padding: 10px; font-size: 0.8rem;">
-                <i data-lucide="send"></i>
-                <span>Enviar Notificación de Prueba</span>
+              <p class="box-desc" id="admin-wa-desc">Estado: Cargando pasarela de WhatsApp propia...</p>
+              <div class="form-group" style="margin-bottom: 10px;">
+                <label for="admin-wa-group-select">Grupo para Notificaciones de Turnos</label>
+                <div class="input-wrapper">
+                  <i data-lucide="users"></i>
+                  <select id="admin-wa-group-select">
+                    <option value="">Sin grupo (usar chat vinculado)</option>
+                  </select>
+                </div>
+                <span class="input-hint">Selecciona el grupo de WhatsApp donde se enviarán los avisos automáticos de rotación.</span>
+              </div>
+              <button type="button" class="btn btn-primary btn-full" onclick="saveWhatsAppGroupConfig()" style="padding: 10px; font-size: 0.8rem; width: 100%; margin-bottom: 10px;">
+                <i data-lucide="save"></i>
+                <span>Guardar Grupo de Notificaciones</span>
               </button>
+              <button type="button" class="btn btn-warning btn-full" onclick="forceTurnStartNotification()" style="padding: 10px; font-size: 0.8rem; width: 100%; margin-bottom: 10px; background: linear-gradient(135deg, var(--color-warning), #d97706); color: #fff;">
+                <i data-lucide="megaphone"></i>
+                <span>Forzar Aviso de Turno Actual</span>
+              </button>
+              <button type="button" class="btn btn-secondary btn-full" onclick="runWhatsAppRemindersNow()" style="padding: 10px; font-size: 0.8rem; width: 100%; margin-bottom: 10px;">
+                <i data-lucide="bell-ring"></i>
+                <span>Ejecutar Recordatorios Ahora</span>
+              </button>
+              <button type="button" class="btn btn-secondary btn-full" onclick="sendMonthlySummaryNow()" style="padding: 10px; font-size: 0.8rem; width: 100%; margin-bottom: 10px;">
+                <i data-lucide="bar-chart-3"></i>
+                <span>Enviar Resumen Mensual</span>
+              </button>
+              <button type="button" class="btn btn-secondary btn-full" onclick="sendFinanceSummaryNow()" style="padding: 10px; font-size: 0.8rem; width: 100%; margin-bottom: 10px;">
+                <i data-lucide="wallet"></i>
+                <span>Enviar Estado de Cuotas</span>
+              </button>
+              <button type="button" class="btn btn-secondary btn-full" onclick="createQuickPoll()" style="padding: 10px; font-size: 0.8rem; width: 100%; margin-bottom: 10px;">
+                <i data-lucide="list-checks"></i>
+                <span>Crear Encuesta Rápida</span>
+              </button>
+              <button type="button" class="btn btn-secondary btn-full" onclick="sendSegmentedMessageNow()" style="padding: 10px; font-size: 0.8rem; width: 100%; margin-bottom: 10px;">
+                <i data-lucide="send"></i>
+                <span>Enviar Difusión Segmentada</span>
+              </button>
+              <button type="button" class="btn btn-secondary btn-full" onclick="restartSystemWhatsApp()" style="padding: 10px; font-size: 0.8rem; width: 100%; margin-bottom: 10px;">
+                <i data-lucide="refresh-cw"></i>
+                <span>Reiniciar Cliente WhatsApp</span>
+              </button>
+              <div style="margin-top: 10px; border-top: 1px dashed var(--glass-border); padding-top: 10px;">
+                <h4 style="font-size: 0.85rem; margin-bottom: 8px;">Registro de Notificaciones</h4>
+                <div id="admin-notification-logs" class="history-list">
+                  <div class="history-item">Cargando registro...</div>
+                </div>
+              </div>
+              <div style="margin-top: 10px; border-top: 1px dashed var(--glass-border); padding-top: 10px;">
+                <h4 style="font-size: 0.85rem; margin-bottom: 8px;">Incidencias desde WhatsApp</h4>
+                <div id="admin-incidents-list" class="history-list">
+                  <div class="history-item">Cargando incidencias...</div>
+                </div>
+              </div>
+              
+              <!-- Contenedor del Estado / Vinculación por QR -->
+              <div id="admin-wa-wrapper" class="qr-container" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 14px; min-height: 180px; margin-bottom: 12px; background: rgba(255,255,255,0.01);">
+                <div class="loading-spinner" id="admin-wa-spinner">Cargando estado...</div>
+                
+                <!-- Área de Vinculación QR (Oculta por defecto) -->
+                <div id="admin-wa-qr-box" class="hidden" style="text-align: center; width: 100%;">
+                  <p style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 8px; line-height: 1.3;">
+                    Escanea este código QR desde tu WhatsApp móvil (Dispositivos Vinculados) para emparejar la pasarela propia de VeciTurno:
+                  </p>
+                  <img id="admin-wa-qr-img" src="" alt="Vincular WhatsApp QR" style="width: 150px; height: 150px; border-radius: 8px; border: 4px solid #fff; margin: 4px auto 8px;">
+                </div>
+                
+                <!-- Área Conectada (Oculta por defecto) -->
+                <div id="admin-wa-connected-box" class="hidden" style="text-align: center; width: 100%;">
+                  <div class="success-msg" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; padding: 6px 12px; margin-bottom: 10px; width: 100%; justify-content: center; border-radius: 8px;">
+                    <i data-lucide="shield-check" style="width: 14px; height: 14px;"></i>
+                    <span id="admin-wa-phone-span">Conectado</span>
+                  </div>
+                  
+                  <div id="admin-wa-success" class="success-msg hidden" style="margin-bottom: 10px; font-size: 0.75rem; padding: 8px 12px;"></div>
+                  <div id="admin-wa-error" class="error-msg hidden" style="margin-bottom: 10px; font-size: 0.75rem; padding: 8px 12px;"></div>
+
+                  <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <button type="button" class="btn btn-whatsapp btn-full" onclick="testSystemWhatsApp()" style="padding: 10px; font-size: 0.8rem; width: 100%;">
+                      <i data-lucide="send"></i>
+                      <span>Enviar Notificación de Prueba</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-full" onclick="disconnectSystemWhatsApp()" style="padding: 10px; font-size: 0.8rem; width: 100%; color: var(--color-danger); border-color: rgba(239, 68, 68, 0.2); background: rgba(239, 68, 68, 0.02);">
+                      <i data-lucide="log-out" style="color: var(--color-danger);"></i>
+                      <span>Desvincular Dispositivo</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
+
+        <section id="admin-section-visualization" class="section-card glass-card" style="margin-top: 18px;">
+          <h3>Visualización de Pisos</h3>
+          <div class="neighbors-list" id="neighbors-container">
+            <div class="loading-spinner">Cargando vecinos...</div>
+          </div>
+        </section>
+          </div>
+        </div>
       </div>
+    </section>
+
+    <section id="view-finance" class="app-view page-view">
+    <div class="admin-page-shell">
+      <div class="admin-page-topbar">
+        <button class="btn btn-secondary" onclick="showView('dashboard')">
+          <i data-lucide="arrow-left"></i>
+          <span>Volver a Inicio</span>
+        </button>
+      </div>
+      <div class="glass-card finance-dashboard">
+        <h2 style="font-family: var(--font-title); margin-bottom: 8px;">Estado de Cuentas</h2>
+        <p class="box-desc">Resumen simple de tesorería de la comunidad.</p>
+        <div id="finance-summary-cards" class="finance-kpi-grid" style="margin-bottom:12px;">
+          <div class="history-item">Cargando resumen...</div>
+        </div>
+        <div class="finance-exec-layout">
+          <div class="finance-exec-main">
+        <h3 style="font-size:1rem; margin-bottom:8px;">Resumen Principal</h3>
+            <div id="finance-monthly-chart" class="history-list" style="margin-bottom:12px;">
+              <div class="history-item">Cargando gráfico...</div>
+            </div>
+            <div id="finance-donut-panels" class="finance-donut-grid" style="margin-bottom:12px;">
+              <div class="history-item">Cargando gráficos circulares...</div>
+            </div>
+          </div>
+          <aside class="finance-exec-side">
+            <h3 style="font-size:1rem; margin-bottom:8px;">Control de Pagos</h3>
+            <div id="finance-payment-check" class="history-list" style="margin-bottom:12px;">
+              <div class="history-item">Cargando control de pagos...</div>
+            </div>
+          </aside>
+        </div>
+        <h3 style="font-size:1rem; margin-bottom:8px;">Lista de Gastos</h3>
+        <div id="finance-expense-evolution" class="history-list" style="margin-bottom:10px;">
+          <div class="history-item">Cargando evolución de gastos...</div>
+        </div>
+        <div class="expense-tabs" role="tablist" aria-label="Filtro por tipo de gasto">
+          <button class="btn btn-secondary admin-menu-btn-active" type="button" data-expense-tab-btn="all" onclick="setExpenseTypeFilter('all')">
+            <span>Todos</span>
+          </button>
+          <button class="btn btn-secondary" type="button" data-expense-tab-btn="expense_electricity" onclick="setExpenseTypeFilter('expense_electricity')">
+            <span>Luz</span>
+          </button>
+          <button class="btn btn-secondary" type="button" data-expense-tab-btn="expense_insurance" onclick="setExpenseTypeFilter('expense_insurance')">
+            <span>Seguro</span>
+          </button>
+          <button class="btn btn-secondary" type="button" data-expense-tab-btn="other" onclick="setExpenseTypeFilter('other')">
+            <span>Otros</span>
+          </button>
+        </div>
+        <div class="auth-form" style="margin-bottom:10px;">
+          <div class="form-group">
+            <label for="finance-search">Buscar gasto (concepto o tipo)</label>
+            <div class="input-wrapper">
+              <i data-lucide="search"></i>
+              <input type="text" id="finance-search" placeholder="Ej. luz, seguro, recibo">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="finance-sort">Ordenar</label>
+            <div class="input-wrapper">
+              <i data-lucide="arrow-up-down"></i>
+              <select id="finance-sort">
+                <option value="date_asc">Fecha (más antigua)</option>
+                <option value="date_desc">Fecha (más reciente)</option>
+                <option value="amount_desc">Importe (mayor)</option>
+                <option value="amount_asc">Importe (menor)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div id="finance-contributions-table" class="history-list">
+          <div class="history-item">Cargando gastos...</div>
+        </div>
+      </div>
+    </div>
+    </section>
+
+    <section id="view-certificates" class="app-view page-view">
+    <div class="admin-page-shell">
+      <div class="admin-page-topbar">
+        <button class="btn btn-secondary" onclick="showView('dashboard')">
+          <i data-lucide="arrow-left"></i>
+          <span>Volver a Inicio</span>
+        </button>
+      </div>
+      <div class="glass-card finance-dashboard">
+        <h2 style="font-family: var(--font-title); margin-bottom: 8px;">Certificados</h2>
+        <p class="box-desc">Descarga tu certificado PDF de cuotas abonadas por año y trimestre.</p>
+        <div class="section-card" style="margin-bottom:12px;">
+          <h3 style="font-size:1rem;">Certificado de Abonos</h3>
+          <div class="auth-form" style="margin-bottom:6px;">
+            <div class="form-group">
+              <label for="finance-cert-year">Año</label>
+              <div class="input-wrapper">
+                <i data-lucide="calendar"></i>
+                <input type="number" id="finance-cert-year" min="2000" max="2100">
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="finance-cert-quarter">Trimestre</label>
+              <div class="input-wrapper">
+                <i data-lucide="pie-chart"></i>
+                <select id="finance-cert-quarter">
+                  <option value="all">Año completo</option>
+                  <option value="Q1">T1 (ene-mar)</option>
+                  <option value="Q2">T2 (abr-jun)</option>
+                  <option value="Q3">T3 (jul-sep)</option>
+                  <option value="Q4">T4 (oct-dic)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <button class="btn btn-primary" type="button" onclick="downloadFinanceCertificate()">
+            <i data-lucide="file-text"></i>
+            <span>Descargar Certificado PDF</span>
+          </button>
+        </div>
+      </div>
+    </div>
     </section>
 
   </div>

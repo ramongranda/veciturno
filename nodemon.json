@@ -1,0 +1,6 @@
+{
+  "watch": ["server.js", "src", "public", ".env"],
+  "ext": "js,json,css,html,env",
+  "ignore": ["node_modules", "db/.wwebjs_auth"],
+  "exec": "node server.js"
+}

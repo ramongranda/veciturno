@@ -1,12 +1,43 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
 const adminController = require('../controllers/admin.controller');
 const { authenticateToken, requireAdmin } = require('../middlewares/auth.middleware');
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 // Rutas de administración protegidas por sesión y privilegios de administrador
+router.get('/community/structure', authenticateToken, requireAdmin, adminController.getCommunityStructure);
+router.post('/community/structure', authenticateToken, requireAdmin, adminController.updateCommunityStructure);
+router.get('/admin-identity/config', authenticateToken, requireAdmin, adminController.getAdminIdentityConfig);
+router.post('/admin-identity/config', authenticateToken, requireAdmin, adminController.updateAdminIdentityConfig);
+router.post('/finance/import-excel', authenticateToken, requireAdmin, upload.single('file'), adminController.importFinanceExcel);
+router.get('/finance/records', authenticateToken, requireAdmin, adminController.getFinanceRecords);
+router.get('/finance/contributions', authenticateToken, requireAdmin, adminController.getFinanceContributions);
+router.post('/finance/reset', authenticateToken, requireAdmin, adminController.resetFinanceData);
+router.get('/fees/config', authenticateToken, requireAdmin, adminController.getFeeConfig);
+router.post('/fees/config', authenticateToken, requireAdmin, adminController.updateFeeConfig);
+router.post('/fees/unit-override', authenticateToken, requireAdmin, adminController.updateUnitFeeOverride);
+router.get('/finance/movement-assignments', authenticateToken, requireAdmin, adminController.getMovementAssignments);
+router.post('/finance/movement-assignments', authenticateToken, requireAdmin, adminController.upsertMovementAssignment);
+router.post('/finance/movement-assignments/rename', authenticateToken, requireAdmin, adminController.renameMovementAssignment);
+router.delete('/finance/movement-assignments/:payerKey', authenticateToken, requireAdmin, adminController.deleteMovementAssignment);
 router.post('/create-neighbor', authenticateToken, requireAdmin, adminController.createNeighbor);
 router.post('/generate-invite', authenticateToken, requireAdmin, adminController.generateInvite);
 router.get('/invites', authenticateToken, requireAdmin, adminController.getInvites);
+router.get('/notifications/logs', authenticateToken, requireAdmin, adminController.getNotificationLogs);
+router.get('/incidents', authenticateToken, requireAdmin, adminController.getIncidents);
 router.post('/send-test-whatsapp', authenticateToken, requireAdmin, adminController.sendTestWhatsApp);
+router.post('/notifications/force-turn-start', authenticateToken, requireAdmin, adminController.forceTurnStartNotification);
+router.post('/notifications/run-reminders', authenticateToken, requireAdmin, adminController.runWhatsAppReminders);
+router.post('/notifications/monthly-summary', authenticateToken, requireAdmin, adminController.sendMonthlySummary);
+router.post('/notifications/finance-summary', authenticateToken, requireAdmin, adminController.sendFinanceSummary);
+router.post('/notifications/segmented', authenticateToken, requireAdmin, adminController.sendSegmentedNotification);
+router.post('/polls', authenticateToken, requireAdmin, adminController.createWhatsAppPoll);
+router.get('/whatsapp/status', authenticateToken, requireAdmin, adminController.getWhatsAppStatus);
+router.get('/whatsapp/groups', authenticateToken, requireAdmin, adminController.getWhatsAppGroups);
+router.get('/whatsapp/config', authenticateToken, requireAdmin, adminController.getWhatsAppConfig);
+router.post('/whatsapp/config', authenticateToken, requireAdmin, adminController.setWhatsAppGroupConfig);
+router.post('/whatsapp/logout', authenticateToken, requireAdmin, adminController.logoutWhatsApp);
+router.post('/whatsapp/restart', authenticateToken, requireAdmin, adminController.restartWhatsApp);
 
 module.exports = router;

@@ -1,50 +1,646 @@
-const config = require('../config/env');
+const { Client, LocalAuth } = require('whatsapp-web.js');
+const path = require('path');
+const fs = require('fs');
+const qrcode = require('qrcode');
+
+// Ruta donde se guardarán las credenciales de la sesión local
+const authPath = path.join(__dirname, '../../db/.wwebjs_auth');
+
+let client = null;
+let connectionStatus = 'disconnected'; // 'disconnected', 'connecting', 'qr', 'connected'
+let lastQR = '';
+let connectedPhone = '';
+let connectTimeout = null;
+let lastSendError = '';
+let lastCommandError = '';
+
+function normalizeAnyPhone(phone) {
+  let clean = String(phone || '').replace(/\D/g, '');
+  if (clean.startsWith('00')) clean = clean.slice(2);
+  if (clean.startsWith('34') && clean.length > 9) clean = clean.slice(2);
+  if (clean.length === 9) clean = `34${clean}`;
+  return clean;
+}
 
 const whatsappService = {
   /**
-   * Envía una notificación de WhatsApp a través del sistema usando CallMeBot API
-   * @param {string} message Mensaje a enviar
-   * @returns {Promise<boolean>} Retorna si la petición fue exitosa
+   * Inicializa el cliente de WhatsApp Web en segundo plano
    */
-  sendMessage: async (message) => {
-    const phone = config.SYSTEM_WHATSAPP_PHONE;
-    const apiKey = config.SYSTEM_WHATSAPP_API_KEY;
+  initialize: () => {
+    if (client) return;
 
-    if (!phone || !apiKey) {
-      console.warn('⚠️ WhatsApp System: SYSTEM_WHATSAPP_PHONE o SYSTEM_WHATSAPP_API_KEY no están configuradas en el archivo .env. Notificación omitida.');
+    connectionStatus = 'connecting';
+    console.log('[WhatsApp Autohospedado] Inicializando cliente...');
+
+    if (connectTimeout) clearTimeout(connectTimeout);
+    connectTimeout = setTimeout(() => {
+      if (connectionStatus === 'connecting') {
+        console.warn('[WhatsApp Autohospedado] Tiempo de espera agotado en estado connecting. Reiniciando cliente...');
+        whatsappService.restart().catch((err) => {
+          console.error('[WhatsApp Autohospedado] Error al reiniciar tras timeout:', err.message);
+        });
+      }
+    }, 45000);
+
+    client = new Client({
+      authStrategy: new LocalAuth({
+        dataPath: authPath
+      }),
+      puppeteer: {
+        headless: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-accelerated-2d-canvas',
+          '--no-first-run',
+          '--no-zygote',
+          '--disable-gpu',
+          '--disable-features=site-per-process'
+        ]
+      }
+    });
+
+    client.on('qr', async (qr) => {
+      connectionStatus = 'qr';
+      try {
+        // Convertir el string del QR a un DataURL Base64
+        lastQR = await qrcode.toDataURL(qr);
+        console.log('[WhatsApp Autohospedado] Código QR generado. Listo para escanear en la consola.');
+      } catch (err) {
+        console.error('[WhatsApp Autohospedado] Error al convertir QR a imagen:', err.message);
+      }
+    });
+
+    client.on('ready', () => {
+      connectionStatus = 'connected';
+      lastQR = '';
+      lastSendError = '';
+      if (connectTimeout) {
+        clearTimeout(connectTimeout);
+        connectTimeout = null;
+      }
+      
+      // Obtener el número de teléfono del cliente conectado
+      const info = client.info;
+      connectedPhone = info && info.wid ? info.wid.user : '';
+      
+      console.log(`====================================================`);
+      console.log(` 📱 [WhatsApp Autohospedado] ¡CLIENTE LISTO Y VINCULADO!`);
+      console.log(` Número vinculado: +${connectedPhone}`);
+      console.log(`====================================================`);
+      whatsappService.runDailyReminders().catch(() => {});
+    });
+
+    client.on('authenticated', () => {
+      console.log('[WhatsApp Autohospedado] Cliente autenticado con éxito.');
+    });
+
+    client.on('auth_failure', (msg) => {
+      console.error('[WhatsApp Autohospedado] Fallo de autenticación:', msg);
+      connectionStatus = 'disconnected';
+      lastQR = '';
+      connectedPhone = '';
+      lastSendError = `Fallo de autenticación: ${msg}`;
+      if (connectTimeout) {
+        clearTimeout(connectTimeout);
+        connectTimeout = null;
+      }
+    });
+
+    client.on('disconnected', (reason) => {
+      console.log('[WhatsApp Autohospedado] Cliente desconectado. Razón:', reason);
+      connectionStatus = 'disconnected';
+      lastQR = '';
+      connectedPhone = '';
+      lastSendError = `Cliente desconectado: ${reason}`;
+      if (connectTimeout) {
+        clearTimeout(connectTimeout);
+        connectTimeout = null;
+      }
+      
+      // Limpiar la carpeta de sesión si se desconecta
+      try {
+        whatsappService.cleanSession();
+      } catch (err) {
+        console.error('Error al limpiar sesión:', err.message);
+      }
+    });
+
+    client.on('message', async (msg) => {
+      try {
+        await whatsappService.handleIncomingMessage(msg);
+      } catch (err) {
+        lastCommandError = err.message || 'Error procesando mensaje entrante';
+      }
+    });
+
+    client.initialize().catch(err => {
+      console.error('[WhatsApp Autohospedado] Error crítico al inicializar client:', err.message);
+      connectionStatus = 'disconnected';
+      lastSendError = `Error de inicialización: ${err.message}`;
+      if (connectTimeout) {
+        clearTimeout(connectTimeout);
+        connectTimeout = null;
+      }
+    });
+  },
+
+  /**
+   * Obtiene el estado actual de la pasarela
+   */
+  getStatus: () => {
+    return {
+      status: connectionStatus,
+      qrCodeUrl: lastQR,
+      phoneConnected: connectedPhone ? `+${connectedPhone}` : '',
+      lastError: lastSendError
+    };
+  },
+
+  /**
+   * Envía un mensaje de WhatsApp a un número
+   * @param {string} phone Teléfono del destinatario
+   * @param {string} text Texto del mensaje
+   */
+  sendMessage: async (phone, text) => {
+    if (connectionStatus !== 'connected' || !client) {
+      console.warn('[WhatsApp Autohospedado] El cliente no está vinculado. No se pudo enviar la notificación.');
+      lastSendError = 'Cliente no vinculado o no listo.';
       return false;
     }
 
     try {
-      // Formatear el teléfono eliminando espacios y símbolos +
-      const cleanPhone = phone.replace(/[\s+]/g, '');
-      const encodedMessage = encodeURIComponent(message);
-      const url = `https://api.callmebot.com/whatsapp.php?phone=${cleanPhone}&text=${encodedMessage}&apikey=${apiKey}`;
-
-      console.log(`[WhatsApp System] Enviando mensaje de WhatsApp a ${cleanPhone}...`);
-      
-      const response = await fetch(url);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      // Limpiar el teléfono dejando solo dígitos
+      let cleanPhone = String(phone || '').replace(/\D/g, '');
+      if (cleanPhone.startsWith('00')) {
+        cleanPhone = cleanPhone.slice(2);
+      }
+      if (cleanPhone.length < 8) {
+        lastSendError = `Número inválido tras limpiar formato: "${phone}"`;
+        return false;
       }
       
-      console.log('✅ [WhatsApp System] Notificación enviada con éxito.');
+      // Asegurarse de que termine con @c.us (formato de ID de chat individual de WhatsApp)
+      let chatId = cleanPhone;
+      if (!chatId.endsWith('@c.us')) {
+        chatId = `${chatId}@c.us`;
+      }
+
+      const numberId = await client.getNumberId(cleanPhone);
+      if (!numberId || !numberId._serialized) {
+        lastSendError = `El número ${cleanPhone} no está registrado en WhatsApp.`;
+        return false;
+      }
+
+      console.log(`[WhatsApp Autohospedado] Enviando mensaje a ${numberId._serialized}...`);
+      await client.sendMessage(numberId._serialized || chatId, text);
+      console.log(`✅ [WhatsApp Autohospedado] Mensaje enviado correctamente.`);
+      lastSendError = '';
       return true;
     } catch (err) {
-      console.error('❌ [WhatsApp System] Error al enviar notificación:', err.message);
+      console.error(`❌ [WhatsApp Autohospedado] Error al enviar mensaje:`, err.message);
+      lastSendError = err.message || 'Error desconocido al enviar mensaje.';
+      return false;
+    }
+  },
+
+  listGroups: async () => {
+    if (connectionStatus !== 'connected' || !client) {
+      return [];
+    }
+    try {
+      const chats = await client.getChats();
+      return chats
+        .filter(c => c.isGroup)
+        .map(c => ({
+          id: c.id?._serialized || '',
+          name: c.name || 'Grupo sin nombre'
+        }))
+        .filter(g => g.id.endsWith('@g.us'));
+    } catch (err) {
+      lastSendError = err.message || 'No se pudieron listar los grupos.';
+      return [];
+    }
+  },
+
+  sendMessageToGroup: async (groupId, text) => {
+    if (connectionStatus !== 'connected' || !client) {
+      lastSendError = 'Cliente no vinculado o no listo.';
+      return false;
+    }
+    if (!groupId || !groupId.endsWith('@g.us')) {
+      lastSendError = 'ID de grupo no válido.';
+      return false;
+    }
+    try {
+      await client.sendMessage(groupId, text);
+      lastSendError = '';
+      return true;
+    } catch (err) {
+      lastSendError = err.message || 'Error al enviar al grupo.';
+      return false;
+    }
+  },
+
+  sendSegmentedMessage: async ({ text, filter = {} }) => {
+    const dbService = require('./db.service');
+    const neighbors = dbService.getNeighbors();
+    const logs = [];
+    const targets = neighbors.filter((n) => {
+      if (!n.phone) return false;
+      if (filter.portal && String(n.portal || '').toUpperCase() !== String(filter.portal).toUpperCase()) return false;
+      if (filter.kind && (n.kind || 'vivienda') !== filter.kind) return false;
+      if (filter.adminOnly === true && !n.isAdmin) return false;
+      return true;
+    });
+
+    for (const n of targets) {
+      const ok = await whatsappService.sendMessage(n.phone, text);
+      logs.push({
+        notificationType: 'segmented_broadcast',
+        mode: 'manual',
+        channel: 'individual',
+        target: n.phone,
+        status: ok ? 'sent' : 'failed',
+        error: ok ? '' : lastSendError,
+        message: text,
+        metadata: { floorId: n.id, floor: n.floor, filter }
+      });
+    }
+    return { ok: logs.some(l => l.status === 'sent'), total: targets.length, logs };
+  },
+
+  sendMonthlySummaryToGroup: async () => {
+    const dbService = require('./db.service');
+    const state = dbService.getState();
+    const neighbors = dbService.getNeighbors();
+    const history = dbService.getHistory().slice(0, 12);
+    const settings = dbService.getSettings();
+    const current = neighbors.find(n => n.id === state.currentTurnFloorId);
+    const lines = history.slice(0, 5).map((h, idx) => {
+      const neigh = neighbors.find(n => n.id === h.floorId);
+      return `${idx + 1}. ${neigh ? neigh.floor : 'Desconocido'} - ${new Date(h.completedAt).toLocaleDateString('es-ES')}`;
+    });
+    const msg = `📊 *Resumen mensual VeciTurno*\n\nTurno actual: *${current ? current.floor : 'N/D'}*\nMes: *${new Date(state.currentMonth).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}*\n\nÚltimos turnos:\n${lines.join('\n') || '- Sin historial'}\n\nGracias por colaborar.`;
+    const groupId = settings.whatsappGroupId || '';
+    const ok = groupId ? await whatsappService.sendMessageToGroup(groupId, msg) : false;
+    return {
+      ok,
+      log: {
+        notificationType: 'monthly_summary',
+        mode: 'manual',
+        channel: 'group',
+        target: groupId || '(sin grupo)',
+        status: ok ? 'sent' : 'failed',
+        error: ok ? '' : (groupId ? lastSendError : 'Sin grupo configurado'),
+        message: msg
+      }
+    };
+  },
+
+  sendFinanceSummary: async ({ month, targetType = 'group', floorId = '' }) => {
+    const dbService = require('./db.service');
+    const records = dbService.getFinanceRecords();
+    const settings = dbService.getSettings();
+    const rec = records.find(r => r.month === month) || records[0];
+    if (!rec) {
+      return { ok: false, error: 'No hay datos financieros cargados.' };
+    }
+    const balance = Number(rec.incomeFees || 0) - Number(rec.expenseInsurance || 0) - Number(rec.expenseElectricity || 0);
+    const message = `💶 *Estado de cuotas y gastos (${rec.month})*\n\nIngresos por cuotas: ${Number(rec.incomeFees || 0).toFixed(2)} €\nGasto seguro: ${Number(rec.expenseInsurance || 0).toFixed(2)} €\nGasto luz: ${Number(rec.expenseElectricity || 0).toFixed(2)} €\nBalance: ${balance.toFixed(2)} €\n${rec.notes ? `\nNotas: ${rec.notes}` : ''}`;
+    if (targetType === 'group') {
+      const ok = await whatsappService.sendMessageToGroup(settings.whatsappGroupId || '', message);
+      return { ok, log: { notificationType: 'finance_summary', mode: 'manual', channel: 'group', target: settings.whatsappGroupId || '', status: ok ? 'sent' : 'failed', error: ok ? '' : lastSendError, message } };
+    }
+    if (targetType === 'individual' && floorId) {
+      const n = dbService.getNeighborById(floorId);
+      if (!n || !n.phone) return { ok: false, error: 'Vecino sin teléfono' };
+      const ok = await whatsappService.sendMessage(n.phone, message);
+      return { ok, log: { notificationType: 'finance_summary', mode: 'manual', channel: 'individual', target: n.phone, status: ok ? 'sent' : 'failed', error: ok ? '' : lastSendError, message } };
+    }
+    return { ok: false, error: 'Destino no válido.' };
+  },
+
+  runDailyReminders: async () => {
+    const dbService = require('./db.service');
+    const settings = dbService.getSettings();
+    if (!settings.remindersEnabled) return;
+    const today = new Date().toISOString().slice(0, 10);
+    if (settings.lastReminderRunDate === today) return;
+
+    const state = dbService.getState();
+    const neighbors = dbService.getNeighbors();
+    const current = neighbors.find(n => n.id === state.currentTurnFloorId);
+    if (!current) return;
+
+    const monthDate = new Date(state.currentMonth);
+    const startDate = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+    const now = new Date();
+    const diffDays = Math.floor((startDate - new Date(now.getFullYear(), now.getMonth(), now.getDate())) / 86400000);
+    const offsets = Array.isArray(settings.reminderOffsetsDays) ? settings.reminderOffsetsDays : [3, 1, 0];
+    if (!offsets.includes(diffDays)) {
+      dbService.updateSettings({ lastReminderRunDate: today });
+      return;
+    }
+
+    const label = diffDays === 0 ? 'hoy' : `en ${diffDays} día(s)`;
+    const message = `🧹 *Recordatorio de turno de limpieza*\n\nEl turno de *${current.floor}* comienza *${label}*.`;
+    const individualMessage = `🧹 *Recordatorio de turno de limpieza*\n\nTu turno (${current.floor}) comienza *${label}*.\nPor favor confirma respondiendo: *OK TURNO*`;
+    const result = await whatsappService.sendTurnStartNotifications({
+      nextFloorName: current.floor,
+      formattedMonth: monthDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }),
+      message,
+      individualMessage,
+      groupId: settings.whatsappGroupId || '',
+      individualPhone: current.phone || '',
+      mode: 'automatic'
+    });
+    if (Array.isArray(result.logs)) {
+      result.logs.forEach((log) => dbService.addNotificationLog({ ...log, notificationType: 'turn_cleanup_reminder' }));
+    }
+    dbService.updateSettings({ lastReminderRunDate: today });
+  },
+
+  handleIncomingMessage: async (msg) => {
+    if (!msg || msg.fromMe) return;
+    const dbService = require('./db.service');
+    const bodyRaw = String(msg.body || '').trim();
+    if (!bodyRaw) return;
+    const body = bodyRaw.toUpperCase();
+    const from = msg.from || '';
+    const phone = from.endsWith('@c.us') ? from.replace('@c.us', '') : '';
+    const normalized = normalizeAnyPhone(phone);
+    const neighbors = dbService.getNeighbors();
+    const sender = neighbors.find(n => normalizeAnyPhone(n.phone) === normalized);
+    const state = dbService.getState();
+    const current = neighbors.find(n => n.id === state.currentTurnFloorId);
+    const ids = neighbors.slice().sort((a, b) => Number(a.id) - Number(b.id)).map(n => n.id);
+    const idx = ids.indexOf(state.currentTurnFloorId);
+    const next = idx >= 0 ? neighbors.find(n => n.id === ids[(idx + 1) % ids.length]) : null;
+
+    if (body === 'OK TURNO' || body === 'CONFIRMAR TURNO') {
+      if (!sender || !current || sender.id !== current.id) {
+        await msg.reply('Recibido. Solo el vecino en turno puede confirmar este mes.');
+        return;
+      }
+      const month = state.currentMonth.slice(0, 7);
+      dbService.addTurnConfirmation({ floorId: sender.id, month, phone: sender.phone, via: 'whatsapp' });
+      dbService.addNotificationLog({
+        notificationType: 'turn_confirmation',
+        mode: 'manual',
+        channel: 'individual',
+        target: sender.phone || from,
+        status: 'sent',
+        error: '',
+        message: `Confirmación de turno de ${sender.floor}`
+      });
+      await msg.reply(`Gracias, ${sender.username || sender.floor}. Confirmación registrada para ${month}.`);
+      return;
+    }
+
+    if (body.startsWith('INCIDENCIA')) {
+      const text = bodyRaw.slice('INCIDENCIA'.length).trim();
+      if (!text) {
+        await msg.reply('Formato: INCIDENCIA <descripción>');
+        return;
+      }
+      dbService.addIncident({ source: 'whatsapp', from: sender?.phone || from, text, status: 'open' });
+      await msg.reply('Incidencia recibida y registrada. Gracias.');
+      return;
+    }
+
+    if (body === 'MI TURNO') {
+      if (!sender) {
+        await msg.reply('No tengo tu teléfono asociado en el sistema. Pide al administrador que lo registre.');
+        return;
+      }
+      const isCurrent = current && sender.id === current.id;
+      await msg.reply(isCurrent ? `Sí, tu turno está activo este mes (${state.currentMonth.slice(0, 7)}).` : `Tu turno no es el actual. Turno activo: ${current ? current.floor : 'N/D'}.`);
+      return;
+    }
+
+    if (body === 'PROXIMO TURNO' || body === 'PRÓXIMO TURNO') {
+      await msg.reply(`Turno actual: ${current ? current.floor : 'N/D'}\nPróximo turno: ${next ? next.floor : 'N/D'}`);
+      return;
+    }
+
+    if (body === 'ESTADO CUOTAS') {
+      const rec = dbService.getFinanceRecords()[0];
+      if (!rec) {
+        await msg.reply('No hay datos de cuotas todavía.');
+        return;
+      }
+      const balance = Number(rec.incomeFees || 0) - Number(rec.expenseInsurance || 0) - Number(rec.expenseElectricity || 0);
+      await msg.reply(`Estado cuotas ${rec.month}:\nIngresos: ${Number(rec.incomeFees || 0).toFixed(2)} €\nSeguro: ${Number(rec.expenseInsurance || 0).toFixed(2)} €\nLuz: ${Number(rec.expenseElectricity || 0).toFixed(2)} €\nBalance: ${balance.toFixed(2)} €`);
+      return;
+    }
+
+    if (body.startsWith('VOTO ')) {
+      const parts = body.split(/\s+/);
+      const option = Number(parts[1]);
+      if (!Number.isInteger(option) || option < 1) {
+        await msg.reply('Formato de voto: VOTO <número_opción>. Ejemplo: VOTO 2');
+        return;
+      }
+      const poll = dbService.getLatestOpenPoll(msg.from.endsWith('@g.us') ? msg.from : '');
+      if (!poll) {
+        await msg.reply('No hay encuestas abiertas ahora mismo.');
+        return;
+      }
+      if (option > poll.options.length) {
+        await msg.reply(`Opción inválida. Elige entre 1 y ${poll.options.length}.`);
+        return;
+      }
+      dbService.addPollVote({ pollId: poll.id, voter: sender?.phone || from, optionIndex: option - 1 });
+      await msg.reply(`Voto registrado para encuesta ${poll.id}.`);
+    }
+  },
+
+  /**
+   * Cierra la sesión activa del cliente y borra la caché
+   */
+  logout: async () => {
+    if (!client) return;
+
+    try {
+      console.log('[WhatsApp Autohospedado] Desvinculando dispositivo...');
+      await client.logout();
+      await client.destroy();
+      client = null;
+      connectionStatus = 'disconnected';
+      lastQR = '';
+      connectedPhone = '';
+      lastSendError = '';
+      whatsappService.cleanSession();
+      
+      // Re-inicializar para volver a generar un QR de inmediato si se solicita
+      setTimeout(() => {
+        whatsappService.initialize();
+      }, 2000);
+    } catch (err) {
+      console.error('Error al cerrar sesión de WhatsApp:', err.message);
+    }
+  },
+
+  restart: async () => {
+    try {
+      if (connectTimeout) {
+        clearTimeout(connectTimeout);
+        connectTimeout = null;
+      }
+
+      if (client) {
+        try {
+          await client.destroy();
+        } catch (_) {}
+      }
+
+      client = null;
+      connectionStatus = 'disconnected';
+      lastQR = '';
+      connectedPhone = '';
+      lastSendError = '';
+
+      whatsappService.cleanSession();
+      whatsappService.initialize();
+      return true;
+    } catch (err) {
+      console.error('[WhatsApp Autohospedado] Error en restart:', err.message);
       return false;
     }
   },
 
   /**
-   * Envía una notificación del sistema cuando cambia el turno
-   * @param {string} nextFloorName Planta a la que le toca
-   * @param {string} formattedMonth Mes del turno
+   * Limpia físicamente la carpeta de autenticación para asegurar un login limpio
    */
-  sendRotationNotification: async (nextFloorName, formattedMonth) => {
+  cleanSession: () => {
+    try {
+      if (fs.existsSync(authPath)) {
+        fs.rmSync(authPath, { recursive: true, force: true });
+        console.log('[WhatsApp Autohospedado] Carpeta de sesión eliminada correctamente.');
+      }
+    } catch (err) {
+      console.error('[WhatsApp Autohospedado] No se pudo borrar la carpeta de autenticación:', err.message);
+    }
+  },
+
+  /**
+   * Envía la notificación de rotación
+   */
+  sendRotationNotification: async (nextFloorName, formattedMonth, options = {}) => {
+    const groupId = typeof options?.groupId === 'string' ? options.groupId : '';
+    const individualPhone = typeof options?.individualPhone === 'string' ? options.individualPhone : '';
     const message = `🏡 *VeciTurno (Notificación General)*:\n\n¡Atención comunidad! Ha comenzado el turno de limpieza de *${formattedMonth}*.\n\nLe corresponde limpiar de forma automática a: *${nextFloorName}*.\n\n¡Gracias por colaborar con la limpieza y mantenimiento del portal! ✨`;
-    return whatsappService.sendMessage(message);
+
+    return whatsappService.sendTurnStartNotifications({
+      nextFloorName,
+      formattedMonth,
+      message,
+      groupId,
+      individualPhone,
+      mode: 'automatic'
+    });
+  },
+
+  sendTurnStartNotifications: async ({ nextFloorName, formattedMonth, message, groupId = '', individualPhone = '', mode = 'automatic', individualMessage = '' }) => {
+    const logs = [];
+    const type = 'turn_cleanup_start';
+
+    if (connectionStatus !== 'connected') {
+      const errMsg = 'Cliente no vinculado para envío automático.';
+      logs.push({
+        notificationType: type,
+        mode,
+        channel: 'group',
+        target: groupId || '(sin grupo configurado)',
+        status: 'failed',
+        error: errMsg,
+        message
+      });
+      if (individualPhone) {
+        logs.push({
+          notificationType: type,
+          mode,
+          channel: 'individual',
+          target: individualPhone,
+          status: 'failed',
+          error: errMsg,
+          message
+        });
+      }
+      return { ok: false, logs };
+    }
+
+    // Grupo
+    if (groupId) {
+      const groupOk = await whatsappService.sendMessageToGroup(groupId, message);
+      logs.push({
+        notificationType: type,
+        mode,
+        channel: 'group',
+        target: groupId,
+        status: groupOk ? 'sent' : 'failed',
+        error: groupOk ? '' : lastSendError,
+        message,
+        metadata: {
+          nextFloorName,
+          month: formattedMonth
+        }
+      });
+    } else {
+      logs.push({
+        notificationType: type,
+        mode,
+        channel: 'group',
+        target: '(sin grupo configurado)',
+        status: 'failed',
+        error: 'No hay grupo de notificación configurado.',
+        message,
+        metadata: {
+          nextFloorName,
+          month: formattedMonth
+        }
+      });
+    }
+
+    // Individual al piso en turno
+    if (individualPhone) {
+      const directMessage = individualMessage || message;
+      const individualOk = await whatsappService.sendMessage(individualPhone, directMessage);
+      logs.push({
+        notificationType: type,
+        mode,
+        channel: 'individual',
+        target: individualPhone,
+        status: individualOk ? 'sent' : 'failed',
+        error: individualOk ? '' : lastSendError,
+        message: directMessage,
+        metadata: {
+          nextFloorName,
+          month: formattedMonth
+        }
+      });
+    } else {
+      logs.push({
+        notificationType: type,
+        mode,
+        channel: 'individual',
+        target: '(sin teléfono)',
+        status: 'failed',
+        error: 'El piso en turno no tiene teléfono configurado.',
+        message,
+        metadata: {
+          nextFloorName,
+          month: formattedMonth
+        }
+      });
+    }
+
+    return {
+      ok: logs.some(l => l.status === 'sent'),
+      logs
+    };
   }
 };
 

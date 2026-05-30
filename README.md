@@ -8,42 +8,112 @@ Esta aplicación está completamente optimizada para ejecutarse en el plan gratu
 
 ## ✨ Características Principales
 
-- **Dashboard Público e Interactivo**: Los vecinos pueden visualizar en tiempo real quién tiene el turno activo, quién fue el anterior y quién será el siguiente. No requiere inicio de sesión para visualización básica.
-- **Aviso Rotativo por WhatsApp**: Un botón integrado que genera un enlace de WhatsApp (`wa.me`) con un mensaje cortés y pre-redactado para notificar al vecino de turno con un solo clic, sin coste de APIs externas.
-- **Autenticación Segura en 2 Pasos**: Los vecinos acceden con usuario y contraseña, seguido por la validación de un **código de doble factor (2FA/TOTP)** que puede ser escaneado con Google Authenticator, Authy o Microsoft Authenticator.
-- **Invitaciones de Un Solo Uso**: El registro inicial se realiza a través de un enlace de un solo uso generado en la consola del administrador. Al registrarse, se fuerza la configuración del 2FA.
-- **Ligero y Portable**: Base de datos integrada en JSON (actúa como ORM local portable, ideal para VPS pequeños) sin dependencias nativas complejas.
+- **Dashboard Público e Interactivo (Premium CSS/Glassmorphism)**: 
+  * Una interfaz táctil, animada y fluida con sombras de neón en 3D.
+  * **Halo Orbit Activo**: Un aro giratorio de neón verde esmeralda rodea al avatar del vecino que tiene el turno activo actual.
+  * Colapso adaptativo inteligente que garantiza que el título y los avatares nunca se superpongan en pantallas móviles.
+- **Gráficas de Tesorería Interactivas (Neón HD)**:
+  * Gráfico de evolución de gastos de los últimos 12 meses con trazos de neón flotantes. En el modo "Todos", divide los gastos en series dinámicas independientes (Luz, Seguro, Otros) con su leyenda interactiva correspondiente.
+  * Donut charts interactivos encogidos al tamaño ideal de tarjeta KPI para ver ingresos, egresos y balances a simple vista.
+- **Firma Electrónica y Código Seguro de Verificación (CSV) para PDFs**:
+  * Los certificados de abono descargables en PDF incorporan una firma electrónica oficial en el pie de página.
+  * Cada documento emitido genera un hash criptográfico SHA-256 único formateado como `CSV-XXXX-XXXX-XXXX-XXXX` y guardado en la base de datos.
+  * **Verificador Público**: Desde el sidebar del dashboard, cualquier propietario o entidad puede validar el código CSV para certificar en tiempo real que el documento PDF es auténtico e inalterado.
+- **Aviso Rotativo por WhatsApp Web.js (Autohospedado)**:
+  * Pasarela automatizada y autohospedada en Node.js que arranca un Puppeteer en segundo plano para el envío de alertas y notificaciones del tablón y turnos gratis.
+- **Autenticación Segura en 2 Pasos (2FA/TOTP)**:
+  * Los vecinos acceden de manera segura y configuran obligatoriamente el doble factor de autenticación TOTP con su app preferida (Google Authenticator, Authy, etc.).
+- **Invitaciones de Un Solo Uso**:
+  * Enlaces seguros de registro inicial únicos generados por el administrador.
 
 ---
 
-## 🛠️ Tecnologías y Dependencias
+## 🛠️ Tecnologías y Seguridad
 
 - **Backend**: Node.js & Express
-- **Seguridad**: JWT (JSON Web Tokens), `bcryptjs` (hashing seguro puro JS, ideal para evitar fallos de compilación en Windows/Linux)
-- **Doble Factor (2FA)**: `speakeasy` (algoritmo TOTP de nivel industrial) y `qrcode` (generador de códigos QR)
-- **Diseño**: HTML5 & **Vanilla CSS** con estética premium de *Glassmorphic* (tema oscuro, desenfoques transTranslúcidos y micro-interacciones fluidas).
+- **Seguridad y Cifrado**:
+  * **HTTPS Local Automático**: Genera certificados SSL auto-firmados en JavaScript puro al arrancar, protegiendo tus credenciales y cookies locales en `https://localhost:3000`.
+  * **Helmet**: Blindaje estricto de cabeceras HTTP de seguridad global y políticas CSP configuradas a medida.
+  * **Express Rate Limit**: Mitigación integrada contra ataques DoS y fuerza bruta en autenticación y validación CSV.
+  * **Cifrado**: JWT (JSON Web Tokens), `bcryptjs` (hashing seguro puro JS).
+- **Diseño**: HTML5 & **Vanilla CSS** con estética *Glassmorphic*, animaciones `@keyframes`, sombras radiales y transiciones táctiles elásticas (`transform: scale(0.96) !important` en clics).
 
 ---
 
-## 🚀 Instalación y Uso en Local
+## 🚀 Instalación y Uso en Local (HTTPS Habilitado)
 
 ### Requisitos Previos
-
-- Tener instalado **Node.js** (versión 18 o superior).
-- Recomendado usar **pnpm** (o npm / yarn).
+- Tener instalado **Node.js** (versión 20 o superior).
+- Tener instalado **pnpm** (o npm / yarn).
 
 ### Pasos de Instalación
 
-1. Instalar todas las dependencias del proyecto:
+1. **Instalar dependencias**:
    ```bash
    pnpm install
    ```
-2. Ejecutar la aplicación en modo desarrollo:
+2. **Configurar el entorno**:
+   Copia el archivo `.env.example` como `.env` y edita los valores si es necesario:
+   ```bash
+   cp .env.example .env
+   ```
+3. **Arrancar en modo desarrollo**:
    ```bash
    pnpm dev
    ```
-3. Abrir en tu navegador preferido:
-   `http://localhost:3000`
+   * **Arranque Seguro automático**: El sistema detectará que estás en desarrollo y que no tienes certificados SSL locales. **Los generará automáticamente** en el directorio `certs/` (excluido de Git) y arrancará en **HTTPS** de forma inmediata.
+4. **Abrir en tu navegador**:
+   Entra en: **[https://localhost:3000](https://localhost:3000)**
+   *(Acepta la advertencia inicial de certificado auto-firmado de desarrollo en tu navegador para continuar).*
+
+---
+
+## 📦 Distribución y Despliegue Automatizado (GitHub & OCI)
+
+Este proyecto está completamente preparado para ciclos de integración y distribución continua:
+
+### 1. Generación de Release Automático en GitHub (Actions CI/CD)
+Hemos incluido un flujo de trabajo de GitHub Actions en `.github/workflows/release.yml`. Cada vez que generes y subas una versión con una etiqueta (por ejemplo, `v1.2.0`), GitHub se encargará automáticamente de:
+1. Compilar el código en un contenedor Ubuntu limpio.
+2. Limpiar y excluir todos los archivos sensibles (`.env`, certificados `/certs`, cachés de WhatsApp `.wwebjs_*`, bases de datos locales `db/database.json`).
+3. Empaquetar todo en un archivo zip optimizado de producción: `veciturno-release.zip`.
+4. Crear una **Release** en tu repositorio de GitHub y subir el ZIP como un asset oficial listo para descargar e instalar.
+
+Para activar este flujo:
+```bash
+git add .
+git commit -m "feat: implementar HTTPS local, CSP Helmet, CSV para PDF y flujos de release"
+git tag -a v1.0.0 -m "Versión Inicial Estable de Producción"
+git push origin main --tags
+```
+
+### 2. Despliegue en Servidor en la Nube (Oracle Cloud / VPS)
+En tu servidor VPS con Ubuntu o Oracle Linux:
+
+1. **Descargar el release oficial** o clonar el repositorio:
+   ```bash
+   git clone <tu-repositorio-url>
+   cd veciturno
+   ```
+2. **Instalar dependencias de producción**:
+   ```bash
+   pnpm install --prod
+   ```
+3. **Configurar entorno**:
+   ```bash
+   cp .env.example .env
+   # Genera una clave segura para producción
+   openssl rand -base64 32
+   ```
+4. **Modo Producción Flexible**:
+   Dado que no has generado certificados locales `/certs/` en producción, **el servidor arrancará automáticamente en HTTP estándar** en el puerto `3000`. Esto es el comportamiento correcto, permitiendo que proxies inversos como **Nginx, Caddy o balanceadores de OCI** controlen la capa HTTPS de red oficial de forma centralizada sin causar bloqueos o colisiones de certificados en la app Node.js.
+5. **Mantener activo con PM2**:
+   ```bash
+   sudo npm install -g pm2
+   pm2 start server.js --name veciturno
+   pm2 save
+   pm2 startup
+   ```
 
 ---
 
@@ -51,106 +121,33 @@ Esta aplicación está completamente optimizada para ejecutarse en el plan gratu
 
 ```
 veciturno/
+├── .github/
+│   └── workflows/
+│       └── release.yml        # CI/CD de empaquetado de producción en GitHub
+├── certs/                     # Certificados locales SSL auto-firmados (autocreados en dev)
 ├── db/
-│   └── database.json          # Archivo de base de datos local JSON (autocreado)
+│   └── database.json          # Base de datos integrada JSON local (autocreada en inicio)
 ├── public/
-│   ├── index.html             # Interfaz web única (SPA)
-│   ├── app.js                 # Lógica interactiva del frontend
-│   └── styles.css             # Estilo CSS premium y dinámico
+│   ├── index.html             # Interfaz web de panel único (SPA)
+│   ├── js/
+│   │   └── app.js             # Lógica interactiva del frontend, visualizaciones y CSV
+│   └── css/
+│       └── styles.css         # Estilo de diseño premium y neón Glassmorphic
+├── scripts/
+│   └── generate-certs.js      # Generador portable JS de certificados auto-firmados
 ├── src/
-│   ├── db.js                  # Manejador de Base de Datos estructurada
-│   ├── auth.js                # Helpers para JWT, contraseñas y 2FA
-│   └── routes.js              # Endpoints de API
-├── .env                       # Variables de entorno (JWT_SECRET, PORT)
-├── .gitignore                 # Exclusiones de Git
-├── server.js                  # Servidor Express principal
-└── package.json               # Dependencias del proyecto
+│   ├── config/
+│   │   └── env.js             # Validador y cargador de variables de entorno
+│   ├── controllers/
+│   │   ├── auth.controller.js
+│   │   ├── neighbor.controller.js # Generación de PDFs firmados por CSV
+│   │   └── turn.controller.js     # Rutas de verificación de CSV
+│   ├── middlewares/
+│   │   └── auth.middleware.js # Autenticación de API y control administrativo
+│   └── services/
+│       ├── db.service.js      # Conector de base de datos JSON local
+│       └── whatsapp.service.js# Pasarela WhatsApp autohospedada
+├── .env.example               # Plantilla modelo documentada de configuración
+├── server.js                  # Servidor Express, HTTPS nativo y middlewares de seguridad
+└── package.json               # Dependencias de producción y scripts de ejecución
 ```
-
----
-
-## 💻 Despliegue en Oracle Cloud (Gratuito)
-
-La máquina virtual Always Free de **Oracle Linux** o **Ubuntu** en Oracle Cloud es perfecta para VeciTurno. Sigue estos pasos para desplegarla en tu VPS:
-
-### 1. Preparar la Máquina en Oracle Cloud
-1. Conéctate a tu VPS OCI mediante SSH.
-2. Actualiza tu sistema e instala Node.js y Git:
-   - **Ubuntu**:
-     ```bash
-     sudo apt update && sudo apt install -y nodejs npm git
-     ```
-   - **Oracle Linux (RHEL)**:
-     ```bash
-     sudo dnf install -y nodejs npm git
-     ```
-3. Instala `pnpm` globalmente para optimizar almacenamiento:
-   ```bash
-   sudo npm install -g pnpm
-   ```
-
-### 2. Clonar y Configurar VeciTurno
-1. Clona tu repositorio de GitHub (ver siguiente sección):
-   ```bash
-   git clone <tu-url-del-repositorio>
-   cd veciturno
-   ```
-2. Instala dependencias:
-   ```bash
-   pnpm install
-   ```
-3. Crea un archivo `.env` de producción:
-   ```bash
-   echo "PORT=3000" > .env
-   echo "JWT_SECRET=$(openssl rand -base64 32)" >> .env
-   ```
-
-### 3. Abrir el Puerto en OCI (¡Muy Importante!)
-Para acceder a la web, debes abrir el puerto `3000` tanto en el cortafuegos interno de la máquina virtual como en el panel de OCI:
-
-1. **Cortafuegos Interno del VPS**:
-   - **Ubuntu**:
-     ```bash
-     sudo ufw allow 3000/tcp
-     ```
-   - **Oracle Linux**:
-     ```bash
-     sudo firewall-cmd --permanent --add-port=3000/tcp
-     sudo firewall-cmd --reload
-     ```
-2. **Consola Web de Oracle Cloud (Security Lists)**:
-   - Ve a tu instancia OCI -> haz clic en la **VCN (Red Virtual)** -> **Security Lists** -> **Default Security List**.
-   - Haz clic en **Add Ingress Rules**.
-   - Configura:
-     - **Source CIDR**: `0.0.0.0/0`
-     - **IP Protocol**: `TCP`
-     - **Destination Port Range**: `3000`
-     - Haz clic en **Add Ingress Rule**.
-
-### 4. Mantener la Aplicación Activa (PM2)
-Instala `pm2` para garantizar que la app siga corriendo de fondo incluso tras reiniciar la consola:
-```bash
-sudo pnpm add -g pm2
-pm2 start server.js --name veciturno
-pm2 save
-pm2 startup
-```
-
----
-
-## 🐙 Subir a un Repositorio de GitHub
-
-Este proyecto ya está inicializado localmente como un repositorio Git. Para subirlo a tu cuenta de GitHub:
-
-1. Crea un repositorio vacío en la web de GitHub llamado `veciturno` (sin inicializar README o gitignore).
-2. Vincula tu repositorio local con el de GitHub:
-   ```bash
-   git remote add origin https://github.com/TU_USUARIO/veciturno.git
-   ```
-3. Haz tu primer commit y súbelo:
-   ```bash
-   git add .
-   git commit -m "primer commit: estructura premium de VeciTurno"
-   git branch -M main
-   git push -u origin main
-   ```
