@@ -57,3 +57,45 @@ jobs:
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  deploy:
+    name: Desplegar en Oracle Cloud (OCI - Madrid)
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Despliegue de Código vía SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script: |
+            echo "⚡ Iniciando despliegue de la versión ${{ github.ref_name }} en Oracle Cloud..."
+            
+            # Asegurar que el directorio existe
+            if [ ! -d "$HOME/veciturno" ]; then
+              echo "📂 El directorio de la aplicación no existe en la VM. Clonando..."
+              git clone https://github.com/${{ github.repository }}.git $HOME/veciturno
+            fi
+            
+            cd $HOME/veciturno
+            
+            # Obtener todas las etiquetas y hacer checkout al tag disparado
+            git fetch --all --tags
+            git checkout refs/tags/${{ github.ref_name }}
+            
+            # Instalar dependencias de producción de forma limpia
+            echo "📦 Instalando dependencias de producción con pnpm..."
+            pnpm install --prod --frozen-lockfile
+            
+            # Asegurar que existe el directorio de base de datos
+            mkdir -p db
+            
+            # Recargar la aplicación en PM2 de forma segura (cero tiempo de inactividad)
+            echo "🚀 Recargando VeciTurno en PM2..."
+            pm2 startOrReload ecosystem.config.js --update-env
+            pm2 save
+            
+            echo "✅ ¡Despliegue de versión ${{ github.ref_name }} completado con éxito en eu-madrid-1!"
+

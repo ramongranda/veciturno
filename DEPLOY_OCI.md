@@ -185,9 +185,49 @@ Para no exponer el puerto `3000` al usuario y tener un dominio web limpio (ej. `
 
 ---
 
+## 🤖 Despliegue Continuo (CD) Automático con GitHub Actions
+
+Hemos integrado soporte completo para despliegues continuos automatizados. Cada vez que hagas un tag de versión (`v*`) y lo subas a tu repositorio en GitHub, la acción de GitHub Actions hará lo siguiente de forma automática:
+1. **Compilar y verificar** la aplicación.
+2. **Generar un ZIP limpio** listo para producción y publicarlo como una **Release** oficial en GitHub.
+3. **Conectarse vía SSH** de manera segura a tu instancia OCI, descargar la versión exacta y reiniciar PM2 con **cero tiempo de inactividad**.
+
+### ⚙️ Configuración de Secretos en GitHub
+
+Para que la automatización pueda conectarse a tu máquina virtual de Oracle Cloud, debes configurar 3 secretos en tu repositorio de GitHub:
+
+1. Ve a tu repositorio en GitHub.
+2. Navega a **Settings** ➔ **Secrets and variables** ➔ **Actions**.
+3. Haz clic en **New repository secret** y añade las siguientes variables:
+
+* **`SSH_HOST`**: La IP pública de tu servidor de Oracle Cloud (ej. `140.238.X.X`).
+* **`SSH_USERNAME`**: El usuario del sistema operativo de tu instancia. Por defecto en OCI Ubuntu es `ubuntu`.
+* **`SSH_PRIVATE_KEY`**: Abre la clave SSH privada con la que te conectas (ej. el archivo `clave-oci.key` que descargaste en el paso 1) con un editor de texto, copia **todo su contenido** (incluyendo las líneas de `-----BEGIN OPENSSH PRIVATE KEY-----` y `-----END OPENSSH PRIVATE KEY-----`) y pégalo aquí.
+
+### 🚀 Cómo Publicar y Desplegar una Nueva Versión
+
+Una vez configurados los secretos, desplegar una nueva versión es extremadamente sencillo. Desde tu terminal local, simplemente ejecuta:
+
+```bash
+# 1. Asegúrate de añadir y hacer commit de tus cambios
+git add .
+git commit -m "feat: descripción de mis mejoras"
+
+# 2. Crea una etiqueta de versión (ej. v1.0.0)
+git tag -a v1.0.0 -m "Lanzamiento de versión 1.0.0"
+
+# 3. Sube tus commits y el tag a GitHub
+git push origin master --tags
+```
+
+¡Y listo! GitHub Actions se encargará de compilar, empaquetar, crear la release y auto-desplegar tu aplicación en la nube de Madrid automáticamente en segundos. Puedes monitorizar el proceso en la pestaña **Actions** de tu repositorio.
+
+---
+
 ## 🎉 ¡Listo! Despliegue Finalizado
 
 ¡Enhorabuena! Has completado el despliegue de **VeciTurno** en la nube de Oracle Cloud (eu-madrid-1). La aplicación ya está disponible públicamente de forma segura en `https://tu-dominio.com`, equipada con:
+- Despliegue continuo en un solo paso mediante etiquetas de Git.
 - Inicio automático en caso de caídas o reinicios físicos del servidor.
 - Cifrado SSL automático y gratuito con Let's Encrypt.
 - Un bot de WhatsApp integrado de alto rendimiento corriendo aislado y de forma óptima.
