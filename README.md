@@ -88,6 +88,12 @@ git push origin main --tags
 ```
 
 ### 2. Despliegue en Servidor en la Nube (Oracle Cloud / VPS)
+
+Para facilitar el despliegue automático y óptimo en **Oracle Cloud (región eu-madrid-1)**, hemos preparado una guía paso a paso y herramientas dedicadas:
+
+> [!TIP]
+> 📖 **Guía Completa de Producción**: Consulta nuestra guía interactiva paso a paso **[DEPLOY_OCI.md](file:///c:/Users/ramon/workspaces/veciturno/DEPLOY_OCI.md)** para configurar tu cuenta OCI, abrir los puertos de red en la consola web, configurar Nginx como proxy inverso y obtener certificados SSL gratuitos con Let's Encrypt.
+
 En tu servidor VPS con Ubuntu o Oracle Linux:
 
 1. **Descargar el release oficial** o clonar el repositorio:
@@ -95,22 +101,26 @@ En tu servidor VPS con Ubuntu o Oracle Linux:
    git clone <tu-repositorio-url>
    cd veciturno
    ```
-2. **Instalar dependencias de producción**:
+2. **Ejecutar el script automatizador para OCI**:
    ```bash
-   pnpm install --prod
+   chmod +x scripts/deploy-oci.sh
+   sudo ./scripts/deploy-oci.sh
    ```
+   *(Este script instala Node.js 20, pnpm, pm2, abre los puertos en el cortafuegos de Linux y descarga todas las librerías necesarias para Puppeteer).*
 3. **Configurar entorno**:
    ```bash
    cp .env.example .env
    # Genera una clave segura para producción
    openssl rand -base64 32
+   nano .env
    ```
-4. **Modo Producción Flexible**:
-   Dado que no has generado certificados locales `/certs/` en producción, **el servidor arrancará automáticamente en HTTP estándar** en el puerto `3000`. Esto es el comportamiento correcto, permitiendo que proxies inversos como **Nginx, Caddy o balanceadores de OCI** controlen la capa HTTPS de red oficial de forma centralizada sin causar bloqueos o colisiones de certificados en la app Node.js.
-5. **Mantener activo con PM2**:
+4. **Instalar dependencias de producción**:
    ```bash
-   sudo npm install -g pm2
-   pm2 start server.js --name veciturno
+   pnpm install --prod
+   ```
+5. **Mantener activo y arrancar de forma permanente con PM2**:
+   ```bash
+   pm2 start ecosystem.config.js
    pm2 save
    pm2 startup
    ```
@@ -134,7 +144,8 @@ veciturno/
 │   └── css/
 │       └── styles.css         # Estilo de diseño premium y neón Glassmorphic
 ├── scripts/
-│   └── generate-certs.js      # Generador portable JS de certificados auto-firmados
+│   ├── generate-certs.js      # Generador portable JS de certificados auto-firmados
+│   └── deploy-oci.sh          # Script de automatización de dependencias y cortafuegos en OCI
 ├── src/
 │   ├── config/
 │   │   └── env.js             # Validador y cargador de variables de entorno
@@ -148,6 +159,8 @@ veciturno/
 │       ├── db.service.js      # Conector de base de datos JSON local
 │       └── whatsapp.service.js# Pasarela WhatsApp autohospedada
 ├── .env.example               # Plantilla modelo documentada de configuración
+├── ecosystem.config.js        # Configuración de procesos PM2 para producción
 ├── server.js                  # Servidor Express, HTTPS nativo y middlewares de seguridad
 └── package.json               # Dependencias de producción y scripts de ejecución
 ```
+
