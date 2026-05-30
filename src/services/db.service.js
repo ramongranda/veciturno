@@ -130,6 +130,7 @@ function buildInitialData() {
     pollRecords: [],
     turnConfirmations: [],
     settings: {
+      communityName: config.COMMUNITY_NAME || 'Comunidad VeciTurno',
       whatsappGroupId: '',
       remindersEnabled: true,
       reminderOffsetsDays: [3, 1, 0],
@@ -179,6 +180,9 @@ function ensureDataShape(data) {
   safe.pollRecords = Array.isArray(safe.pollRecords) ? safe.pollRecords : [];
   safe.turnConfirmations = Array.isArray(safe.turnConfirmations) ? safe.turnConfirmations : [];
   safe.settings = safe.settings && typeof safe.settings === 'object' ? safe.settings : {};
+  if (typeof safe.settings.communityName !== 'string') {
+    safe.settings.communityName = config.COMMUNITY_NAME || 'Comunidad VeciTurno';
+  }
   if (typeof safe.settings.whatsappGroupId !== 'string') {
     safe.settings.whatsappGroupId = '';
   }

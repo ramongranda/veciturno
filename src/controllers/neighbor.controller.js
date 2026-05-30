@@ -148,7 +148,7 @@ table{width:100%;border-collapse:collapse}th,td{border:1px solid #cbd5e1;padding
 th{background:#f1f5f9;text-align:left}.right{text-align:right}.total{font-size:15px;font-weight:700}
 </style></head><body>
 <h1>Certificado de Abono de Cuotas</h1>
-<div class="muted">${escapeHtml(config.COMMUNITY_NAME)}</div>
+<div class="muted">${escapeHtml(dbService.getSettings().communityName || config.COMMUNITY_NAME)}</div>
 <div class="box">
   <div><strong>Propietario/Usuario:</strong> ${escapeHtml(user.username || user.floor)}</div>
   <div><strong>Unidad:</strong> ${escapeHtml(user.floor)}</div>

@@ -34,7 +34,7 @@ const turnController = {
       const history = dbService.getHistory();
 
       res.json({
-        communityName: config.COMMUNITY_NAME,
+        communityName: settings.communityName || config.COMMUNITY_NAME,
         notificationsGroupUrl: config.NOTIFICATIONS_GROUP_URL,
         neighbors,
         state,
@@ -58,7 +58,7 @@ const turnController = {
 
       return res.json({
         valid: true,
-        communityName: config.COMMUNITY_NAME,
+        communityName: dbService.getSettings().communityName || config.COMMUNITY_NAME,
         csv: cert.csv,
         floorName: cert.floorName,
         username: cert.username,
