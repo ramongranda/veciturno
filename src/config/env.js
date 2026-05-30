@@ -10,7 +10,8 @@ const config = {
   BOOTSTRAP_TOKEN: process.env.BOOTSTRAP_TOKEN || 'registro-inicial-planta3',
   NODE_ENV: process.env.NODE_ENV || 'development',
   SYSTEM_WHATSAPP_API_KEY: process.env.SYSTEM_WHATSAPP_API_KEY || '',
-  NOTIFICATIONS_GROUP_URL: process.env.NOTIFICATIONS_GROUP_URL || ''
+  NOTIFICATIONS_GROUP_URL: process.env.NOTIFICATIONS_GROUP_URL || '',
+  DATABASE_URL: process.env.DATABASE_URL || ''
 };
 
 // Validación de seguridad: detener servidor de forma temprana si faltan variables críticas

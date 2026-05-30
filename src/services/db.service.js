@@ -1,14 +1,34 @@
 const fs = require('fs');
 const path = require('path');
+const { Pool } = require('pg');
 const config = require('../config/env');
 const whatsappService = require('./whatsapp.service');
 
 const DB_PATH = path.join(__dirname, '../../db/database.json');
 
-const dbDir = path.dirname(DB_PATH);
-if (!fs.existsSync(dbDir)) {
-  fs.mkdirSync(dbDir, { recursive: true });
+let dbInMemoryData = null;
+let pgPool = null;
+
+function loadFromLocalJSONFile() {
+  try {
+    if (!fs.existsSync(DB_PATH)) {
+      const dbDir = path.dirname(DB_PATH);
+      if (!fs.existsSync(dbDir)) {
+        fs.mkdirSync(dbDir, { recursive: true });
+      }
+      const data = buildInitialData();
+      fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), 'utf-8');
+      dbInMemoryData = ensureDataShape(data);
+    } else {
+      const rawData = fs.readFileSync(DB_PATH, 'utf-8');
+      dbInMemoryData = ensureDataShape(JSON.parse(rawData));
+    }
+  } catch (err) {
+    console.error('Error al cargar archivo JSON local:', err);
+    dbInMemoryData = ensureDataShape(buildInitialData());
+  }
 }
+
 
 function normalizeMovementText(value) {
   const normalized = String(value || '')
@@ -306,7 +326,7 @@ function checkAndAutoRotate(data) {
 
   if (updated) {
     try {
-      fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), 'utf-8');
+      writeDB(data);
 
       const nextNeighbor = data.neighbors.find(n => n.id === data.state.currentTurnFloorId);
       const nextFloorName = nextNeighbor ? nextNeighbor.floor : 'Vivienda desconocida';
@@ -342,30 +362,68 @@ function checkAndAutoRotate(data) {
 }
 
 function readDB() {
-  try {
-    if (!fs.existsSync(DB_PATH)) {
-      writeDB(initialData);
-      return checkAndAutoRotate(ensureDataShape(initialData));
-    }
-
-    const rawData = fs.readFileSync(DB_PATH, 'utf-8');
-    const data = ensureDataShape(JSON.parse(rawData));
-    return checkAndAutoRotate(data);
-  } catch (err) {
-    console.error('Error al leer la base de datos JSON:', err);
-    return ensureDataShape(initialData);
+  if (!dbInMemoryData) {
+    dbInMemoryData = ensureDataShape(buildInitialData());
   }
+  return checkAndAutoRotate(dbInMemoryData);
 }
 
 function writeDB(data) {
-  try {
-    fs.writeFileSync(DB_PATH, JSON.stringify(ensureDataShape(data), null, 2), 'utf-8');
-  } catch (err) {
-    console.error('Error al escribir en la base de datos JSON:', err);
+  dbInMemoryData = ensureDataShape(data);
+  if (config.DATABASE_URL && pgPool) {
+    // Sincronización asíncrona en segundo plano a Supabase (PostgreSQL)
+    pgPool.query(
+      'INSERT INTO veciturno_store (id, data) VALUES (1, $1) ON CONFLICT (id) DO UPDATE SET data = $1',
+      [JSON.stringify(dbInMemoryData)]
+    ).catch((err) => {
+      console.error('Error al guardar asíncronamente en PostgreSQL/Supabase:', err.message);
+    });
+  } else {
+    try {
+      fs.writeFileSync(DB_PATH, JSON.stringify(dbInMemoryData, null, 2), 'utf-8');
+    } catch (err) {
+      console.error('Error al escribir en la base de datos JSON local:', err.message);
+    }
   }
 }
 
 const dbService = {
+  initialize: async () => {
+    if (config.DATABASE_URL) {
+      console.log('🔌 Conectando a la base de datos remota de Supabase (PostgreSQL)...');
+      pgPool = new Pool({
+        connectionString: config.DATABASE_URL,
+        ssl: { rejectUnauthorized: false }
+      });
+
+      try {
+        await pgPool.query(`
+          CREATE TABLE IF NOT EXISTS veciturno_store (
+            id INT PRIMARY KEY,
+            data JSONB
+          );
+        `);
+
+        const res = await pgPool.query('SELECT data FROM veciturno_store WHERE id = 1');
+        if (res.rows.length > 0) {
+          console.log('✅ Base de datos remota cargada correctamente de Supabase.');
+          dbInMemoryData = ensureDataShape(res.rows[0].data);
+        } else {
+          console.log('📦 Inicializando base de datos vacía en Supabase...');
+          const data = buildInitialData();
+          await pgPool.query('INSERT INTO veciturno_store (id, data) VALUES (1, $1)', [JSON.stringify(data)]);
+          dbInMemoryData = ensureDataShape(data);
+        }
+      } catch (err) {
+        console.error('❌ Error crítico al inicializar la base de datos remota en Supabase:', err.message);
+        console.log('⚠️ Rebotando al archivo JSON local temporal como medida de seguridad.');
+        loadFromLocalJSONFile();
+      }
+    } else {
+      console.log('🏡 Usando base de datos JSON local (desarrollo local).');
+      loadFromLocalJSONFile();
+    }
+  },
   getNeighbors: () => readDB().neighbors,
   getNeighborById: (id) => readDB().neighbors.find(n => n.id === id),
   getNeighborByUsername: (username) => {

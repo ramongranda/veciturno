@@ -7,6 +7,7 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const config = require('./src/config/env');
 const apiRouter = require('./src/routes');
+const dbService = require('./src/services/db.service');
 const whatsappService = require('./src/services/whatsapp.service');
 
 const certsDir = path.join(__dirname, 'certs');
@@ -37,11 +38,6 @@ if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
   }
 }
 
-// Inicializar la pasarela de WhatsApp propia en segundo plano
-whatsappService.initialize();
-setInterval(() => {
-  whatsappService.runDailyReminders().catch(() => {});
-}, 6 * 60 * 60 * 1000);
 
 const app = express();
 
@@ -98,26 +94,42 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Levantar el servidor en el puerto configurado (según disponibilidad de SSL)
-if (sslOptions) {
-  const secureServer = https.createServer(sslOptions, app);
-  secureServer.listen(config.PORT, () => {
-    console.log(`====================================================`);
-    console.log(` 🏡 VeciTurno está corriendo en modo SEGURO (HTTPS)`);
-    console.log(` URL local: https://localhost:${config.PORT}`);
-    console.log(` Comunidad: ${config.COMMUNITY_NAME}`);
-    console.log(` Entorno actual: ${config.NODE_ENV}`);
-    console.log(` Listo para desplegar en Oracle Cloud Free Tier`);
-    console.log(`====================================================`);
-  });
-} else {
-  app.listen(config.PORT, () => {
-    console.log(`====================================================`);
-    console.log(` 🏡 VeciTurno está corriendo en modo ESTÁNDAR (HTTP)`);
-    console.log(` URL local: http://localhost:${config.PORT}`);
-    console.log(` Comunidad: ${config.COMMUNITY_NAME}`);
-    console.log(` Entorno actual: ${config.NODE_ENV}`);
-    console.log(` Listo para desplegar en Oracle Cloud Free Tier`);
-    console.log(`====================================================`);
-  });
+async function startServer() {
+  // 🔌 Inicializar la base de datos híbrida (in-memory con Postgres/Supabase de respaldo)
+  await dbService.initialize();
+
+  // 💬 Inicializar la pasarela de WhatsApp en segundo plano
+  whatsappService.initialize();
+  setInterval(() => {
+    whatsappService.runDailyReminders().catch(() => {});
+  }, 6 * 60 * 60 * 1000);
+
+  // Levantar el servidor en el puerto configurado (según disponibilidad de SSL)
+  if (sslOptions) {
+    const secureServer = https.createServer(sslOptions, app);
+    secureServer.listen(config.PORT, () => {
+      console.log(`====================================================`);
+      console.log(` 🏡 VeciTurno está corriendo en modo SEGURO (HTTPS)`);
+      console.log(` URL local: https://localhost:${config.PORT}`);
+      console.log(` Comunidad: ${config.COMMUNITY_NAME}`);
+      console.log(` Entorno actual: ${config.NODE_ENV}`);
+      console.log(` Listo para desplegar en Hugging Face Spaces`);
+      console.log(`====================================================`);
+    });
+  } else {
+    app.listen(config.PORT, () => {
+      console.log(`====================================================`);
+      console.log(` 🏡 VeciTurno está corriendo en modo ESTÁNDAR (HTTP)`);
+      console.log(` URL local: http://localhost:${config.PORT}`);
+      console.log(` Comunidad: ${config.COMMUNITY_NAME}`);
+      console.log(` Entorno actual: ${config.NODE_ENV}`);
+      console.log(` Listo para desplegar en Hugging Face Spaces`);
+      console.log(`====================================================`);
+    });
+  }
 }
+
+startServer().catch((err) => {
+  console.error('❌ Error crítico al arrancar el servidor VeciTurno:', err);
+  process.exit(1);
+});
