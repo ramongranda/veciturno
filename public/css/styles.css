@@ -225,6 +225,13 @@ body.modal-open {
   transform: scale(0.96) translateY(0) !important;
 }
 
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
 .btn-success {
   background: linear-gradient(135deg, var(--color-success), var(--color-success-hover));
   color: #fff;
@@ -2209,6 +2216,29 @@ input[type='number'] {
   .app-header {
     position: relative;
   }
+
+  .header-dropdown-overlay.active {
+    background: rgba(3, 7, 18, 0.58);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+  }
+
+  .header-dropdown {
+    position: fixed;
+    left: 14px;
+    right: 14px;
+    top: auto;
+    bottom: calc(74px + env(safe-area-inset-bottom));
+    min-width: 0;
+    padding: 10px;
+    border-radius: 18px;
+    z-index: 220;
+  }
+
+  .header-dropdown .btn {
+    min-height: 48px;
+    font-size: 0.9rem;
+  }
 }
 
 @media (min-width: 769px) {
@@ -2288,6 +2318,7 @@ input[type='number'] {
    ========================================================================== */
 
 .app-view.page-view.active {
+  opacity: 1;
   animation: fadeSlideIn 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -2358,6 +2389,10 @@ input[type='number'] {
 
   .app-container {
     padding-bottom: 80px;
+  }
+
+  .app-view.page-view.active {
+    padding-bottom: 92px;
   }
 }
 

@@ -20,6 +20,7 @@ build/
 
 # Local screenshots and visual checks
 *.png
+tmp-audit/
 
 # Local SSL Certificates
 certs/

@@ -12,6 +12,7 @@
 };
 
 let pendingLoginUsername = '';
+let pendingProtectedView = null;
 let adminBuildingUnits = [];
 const LAST_LOGIN_USERNAME_KEY = 'vt_last_username';
 const passkeyActionState = {
@@ -108,6 +109,7 @@ function normalizeSpanishPhoneInput(rawPhone) {
 // Inicialización de la aplicación al cargar
 document.addEventListener('DOMContentLoaded', () => {
   initApp();
+  document.addEventListener('keydown', handleGlobalKeyboardShortcuts);
 });
 
 // Inicialización general
@@ -361,17 +363,27 @@ function renderAdminUnitSelectors() {
   const units = state.statusData?.neighbors || [];
   const inviteSelect = document.getElementById('admin-select-floor');
   const registerSelect = document.getElementById('admin-reg-floor');
+  const inviteButton = document.getElementById('admin-generate-invite-btn');
 
   if (!inviteSelect || !registerSelect) return;
 
-  const options = units
+  const pendingUnits = units.filter((unit) => !unit.registered);
+  const inviteOptions = pendingUnits
+    .slice()
+    .sort((a, b) => Number(a.id) - Number(b.id))
+    .map((unit) => `<option value=\"${unit.id}\">${unit.floor}</option>`)
+    .join('');
+  const registerOptions = pendingUnits
     .slice()
     .sort((a, b) => Number(a.id) - Number(b.id))
     .map((unit) => `<option value=\"${unit.id}\">${unit.floor}</option>`)
     .join('');
 
-  inviteSelect.innerHTML = options || '<option value=\"\">Sin viviendas</option>';
-  registerSelect.innerHTML = options || '<option value=\"\">Sin viviendas</option>';
+  inviteSelect.innerHTML = inviteOptions || '<option value=\"\">Sin viviendas pendientes de registro</option>';
+  inviteSelect.disabled = !inviteOptions;
+  if (inviteButton) inviteButton.disabled = !inviteOptions;
+  registerSelect.innerHTML = registerOptions || '<option value=\"\">Sin viviendas pendientes de registro</option>';
+  registerSelect.disabled = !registerOptions;
 }
 
 // ==========================================
@@ -382,6 +394,8 @@ function renderAdminUnitSelectors() {
 function showView(viewName) {
   // Sincronizar barra de navegación inferior móvil
   updateBottomNavActive(viewName);
+  toggleHeaderDropdown(false);
+  toggleAdminSidebar(false);
 
   // Mostrar dashboard por defecto
   const dashboardView = document.getElementById('view-dashboard');
@@ -415,6 +429,10 @@ function showView(viewName) {
       document.body.classList.add('modal-open');
       targetView.scrollTop = 0;
       window.scrollTo({ top: 0, behavior: 'auto' });
+      requestAnimationFrame(() => {
+        const focusTarget = targetView.querySelector('input, select, textarea, button:not(.modal-close)');
+        if (focusTarget) focusTarget.focus({ preventScroll: true });
+      });
     } else if (targetView.classList.contains('page-view')) {
       if (dashboardView) {
         dashboardView.classList.remove('active');
@@ -423,6 +441,20 @@ function showView(viewName) {
       window.scrollTo({ top: 0, behavior: 'auto' });
     }
   }
+}
+
+function handleGlobalKeyboardShortcuts(event) {
+  if (event.key !== 'Escape') return;
+  const activeModal = document.querySelector('.app-view.modal-like.active');
+  if (activeModal) {
+    event.preventDefault();
+    if (activeModal.id === 'view-passkey-manage') closePasskeyActionModal();
+    else if (activeModal.id === 'view-edit-neighbor') closeEditNeighborModal();
+    else showView('dashboard');
+    return;
+  }
+  toggleHeaderDropdown(false);
+  toggleAdminSidebar(false);
 }
 
 // Renderizar la cabecera y el botón de sesión según el estado de auth
@@ -511,9 +543,13 @@ function toggleHeaderDropdown(forceState) {
   if (show) {
     dropdown.classList.add('open');
     overlay.classList.add('active');
+    const menuButton = document.getElementById('mobile-menu-btn');
+    if (menuButton) menuButton.setAttribute('aria-expanded', 'true');
   } else {
     dropdown.classList.remove('open');
     overlay.classList.remove('active');
+    const menuButton = document.getElementById('mobile-menu-btn');
+    if (menuButton) menuButton.setAttribute('aria-expanded', 'false');
   }
 }
 
@@ -562,7 +598,7 @@ function renderMobileBottomNav() {
         <span>Perfil</span>
       </button>
     `;
-    bottomNav.style.display = 'flex';
+    bottomNav.style.display = '';
   } else {
     bottomNav.innerHTML = `
       <button onclick="showView('dashboard'); updateBottomNavActive('dashboard');" id="bottom-btn-dashboard" class="active">
@@ -574,7 +610,7 @@ function renderMobileBottomNav() {
         <span>Acceso</span>
       </button>
     `;
-    bottomNav.style.display = 'flex';
+    bottomNav.style.display = '';
   }
   lucide.createIcons();
 }
@@ -593,8 +629,31 @@ function updateBottomNavActive(viewName) {
   }
 }
 
+function requireAuthenticatedView(viewName, label) {
+  if (state.token && state.user) return true;
+  pendingProtectedView = viewName;
+  showView('login');
+  showToast(`Inicia sesión para acceder a ${label}.`, 'warning');
+  return false;
+}
+
+async function completeAuthenticatedNavigation() {
+  renderAuthHeader();
+  await loadCommunityStatus();
+  const nextView = pendingProtectedView;
+  pendingProtectedView = null;
+
+  if (nextView === 'finance') {
+    await openFinancePage();
+  } else if (nextView === 'certificates') {
+    openCertificatesPage();
+  } else {
+    showView('dashboard');
+  }
+}
+
 async function openFinancePage() {
-  if (!state.token || !state.user) return;
+  if (!requireAuthenticatedView('finance', 'Finanzas')) return;
   updateBottomNavActive('finance');
   const financeView = document.getElementById('view-finance');
   const dashboardView = document.getElementById('view-dashboard');
@@ -611,14 +670,14 @@ async function openFinancePage() {
 }
 
 function openCertificatesPage() {
-  if (!state.token || !state.user) return;
+  if (!requireAuthenticatedView('certificates', 'Certificados')) return;
   showView('certificates');
   const yearInput = document.getElementById('finance-cert-year');
   if (yearInput && !yearInput.value) yearInput.value = String(new Date().getFullYear());
 }
 
 async function downloadFinanceCertificate() {
-  if (!state.token || !state.user) return;
+  if (!requireAuthenticatedView('certificates', 'Certificados')) return;
   const year = document.getElementById('finance-cert-year')?.value || String(new Date().getFullYear());
   const quarter = document.getElementById('finance-cert-quarter')?.value || 'all';
   const url = `${API_URL}/neighbors/finance/certificate?year=${encodeURIComponent(year)}&quarter=${encodeURIComponent(quarter)}`;
@@ -659,7 +718,16 @@ async function loadFinanceOverview() {
     financeOverviewData = data;
     renderFinanceOverview();
   } catch (err) {
-    summaryEl.innerHTML = `<div class="history-item">${err.message}</div>`;
+    const errorHtml = `<div class="history-item">${err.message}</div>`;
+    summaryEl.innerHTML = errorHtml;
+    monthlyEl.innerHTML = errorHtml;
+    const donutsEl = document.getElementById('finance-donut-panels');
+    const paymentEl = document.getElementById('finance-payment-check');
+    const evolutionEl = document.getElementById('finance-expense-evolution');
+    if (donutsEl) donutsEl.innerHTML = errorHtml;
+    if (paymentEl) paymentEl.innerHTML = errorHtml;
+    if (evolutionEl) evolutionEl.innerHTML = errorHtml;
+    tableEl.innerHTML = errorHtml;
   }
 }
 
@@ -2078,9 +2146,15 @@ function adminShowPanel(panelKey) {
   const security = document.getElementById('admin-section-security');
   const grid = document.querySelector('.admin-grid');
   const users = document.getElementById('admin-section-users');
+  const inviteGenerator = document.getElementById('admin-section-invite-generator');
+  const securitySummary = document.getElementById('admin-section-security-summary-card');
+  const usersSeparator = document.getElementById('admin-section-users-separator');
+  const directRegister = document.getElementById('admin-section-direct-register');
+  const usersManagement = document.getElementById('admin-section-users-management');
   const invites = document.getElementById('admin-section-invites');
   const visualization = document.getElementById('admin-section-visualization');
   const whatsapp = document.getElementById('admin-section-whatsapp');
+  const whatsappTemplates = document.getElementById('admin-section-whatsapp-templates');
   const invitesTable = invites ? invites.querySelector('.invite-table-container') : null;
   const invitesTitle = invites ? invites.querySelector('h3') : null;
 
@@ -2094,8 +2168,12 @@ function adminShowPanel(panelKey) {
   if (invites) invites.style.display = 'none';
   if (visualization) visualization.style.display = 'none';
   if (whatsapp) whatsapp.style.display = 'none';
+  if (whatsappTemplates) whatsappTemplates.style.display = 'none';
   if (invitesTable) invitesTable.style.display = '';
   if (invitesTitle) invitesTitle.style.display = '';
+  [inviteGenerator, securitySummary, usersSeparator, directRegister, usersManagement].forEach((el) => {
+    if (el) el.style.display = '';
+  });
 
   if (panelKey === 'config' && config) {
     config.style.display = '';
@@ -2125,7 +2203,15 @@ function adminShowPanel(panelKey) {
 
   if (panelKey === 'invites' && grid && invites) {
     grid.style.display = '';
-    grid.classList.add('admin-grid-single-panel');
+    grid.classList.remove('admin-grid-single-panel');
+    if (users) {
+      users.style.display = 'flex';
+      users.style.flexDirection = 'column';
+    }
+    [securitySummary, usersSeparator, directRegister, usersManagement].forEach((el) => {
+      if (el) el.style.display = 'none';
+    });
+    if (inviteGenerator) inviteGenerator.style.display = '';
     invites.style.display = 'flex';
     invites.style.flexDirection = 'column';
     if (whatsapp) whatsapp.style.display = 'none';
@@ -2141,6 +2227,7 @@ function adminShowPanel(panelKey) {
     if (invitesTable) invitesTable.style.display = 'none';
     if (invitesTitle) invitesTitle.style.display = 'none';
     if (whatsapp) whatsapp.style.display = '';
+    if (whatsappTemplates) whatsappTemplates.style.display = '';
   }
 
   document.querySelectorAll('[data-admin-panel-btn]').forEach((btn) => {
@@ -2389,8 +2476,13 @@ async function loadAdminInvites() {
       const row = document.createElement('tr');
       
       // Buscar si el piso tiene un teléfono ya registrado
-      const neighbor = state.statusData.neighbors.find(n => n.floor === invite.floor);
+      const neighbor = state.statusData?.neighbors?.find(n => n.id === invite.floorId || n.floor === invite.floor);
       const phone = neighbor ? neighbor.phone : '';
+      const unavailable = invite.used || !invite.unitExists || invite.registered;
+      const statusText = invite.used
+        ? 'Usado'
+        : (!invite.unitExists ? 'Unidad eliminada' : (invite.registered ? 'Cuenta registrada' : 'Activo'));
+      const statusClass = unavailable ? 'badge-danger' : 'badge-success';
       
       const message = `¡Hola! 🏡 Aquí tienes tu enlace de registro exclusivo para VeciTurno correspondiente a la *${invite.floor}*:\n\n🔗 ${invite.inviteUrl}\n\nRecuerda que tiene una validez de 48 horas para registrar tu usuario y contraseña.`;
       const encodedMsg = encodeURIComponent(message);
@@ -2399,12 +2491,12 @@ async function loadAdminInvites() {
       row.innerHTML = `
         <td><strong>${invite.floor}</strong></td>
         <td>
-          <span class="badge ${invite.used ? 'badge-danger' : 'badge-success'}">
-            ${invite.used ? 'Usado' : 'Activo'}
+          <span class="badge ${statusClass}">
+            ${statusText}
           </span>
         </td>
         <td>
-          ${invite.used ? '-' : `
+          ${unavailable ? '-' : `
             <div style="display: flex; gap: 6px;">
               <button class="btn btn-secondary btn-icon" style="width: 32px; height: 32px;" onclick="copyInviteLinkUrl('${invite.inviteUrl}')" title="Copiar Enlace">
                 <i data-lucide="copy" style="width: 14px; height: 14px;"></i>
@@ -2431,9 +2523,18 @@ async function handleGenerateInvite(event) {
   
   const floorId = document.getElementById('admin-select-floor').value;
   const successBox = document.getElementById('admin-invite-success');
+  const errorBox = document.getElementById('admin-invite-error');
   const inviteUrlInput = document.getElementById('admin-invite-url');
   
   successBox.classList.add('hidden');
+  if (errorBox) errorBox.classList.add('hidden');
+  if (!floorId) {
+    if (errorBox) {
+      errorBox.textContent = 'No hay viviendas pendientes de registro para invitar.';
+      errorBox.classList.remove('hidden');
+    }
+    return;
+  }
   
   try {
     const res = await fetch(`${API_URL}/admin/generate-invite`, {
@@ -2476,7 +2577,12 @@ async function handleGenerateInvite(event) {
     await loadAdminInvites();
     await loadAdminNeighborsManagement();
   } catch (err) {
-    alert(`Error: ${err.message}`);
+    if (errorBox) {
+      errorBox.textContent = err.message;
+      errorBox.classList.remove('hidden');
+    } else {
+      showToast(err.message, 'error');
+    }
   }
 }
 

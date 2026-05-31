@@ -11,10 +11,9 @@
   <meta property="og:title" content="VeciTurno - Portal de tu Comunidad de Vecinos">
   <meta property="og:description" content="Gestiona turnos de limpieza, cuotas, finanzas e incidencias de forma transparente y automatizada.">
   <meta property="og:type" content="website">
-  <meta property="og:image" content="favicon.svg">
+  <meta property="og:image" content="/favicon.svg">
 
-  <!-- Inline SVG Favicon -->
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%233b82f6%22/><path d=%22M50 20 L25 45 H75 Z M35 45 V75 H65 V45%22 fill=%22none%22 stroke=%22%23ffffff%22 stroke-width=%228%22 stroke-linejoin=%22round%22/><circle cx=%2250%22 cy=%2255%22 r=%228%22 fill=%22%23ffffff%22/></svg>">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -192,7 +191,7 @@
     <!-- VISTA: ACCESO / INICIAR SESIÓN (2 PASOS) -->
     <section id="view-login" class="app-view modal-like">
       <div class="modal-card glass-card animate-zoom">
-        <button class="modal-close" onclick="showView('dashboard')">
+        <button class="modal-close" onclick="showView('dashboard')" aria-label="Cerrar acceso">
           <i data-lucide="x"></i>
         </button>
         
@@ -235,7 +234,7 @@
             <label for="login-password-fallback">Contraseña</label>
             <div class="input-wrapper">
               <i data-lucide="key-round"></i>
-              <input type="password" id="login-password-fallback" placeholder="Tu contraseña de respaldo" required>
+              <input type="password" id="login-password-fallback" placeholder="Tu contraseña de respaldo" autocomplete="current-password" required>
             </div>
           </div>
           <div id="login-error-password" class="error-msg hidden"></div>
@@ -312,7 +311,7 @@
             <label for="reg-password">Contraseña de Acceso</label>
             <div class="input-wrapper">
               <i data-lucide="key-round"></i>
-              <input type="password" id="reg-password" placeholder="Mínimo 6 caracteres" minlength="6" required>
+              <input type="password" id="reg-password" placeholder="Mínimo 6 caracteres" autocomplete="new-password" minlength="6" required>
             </div>
           </div>
           
@@ -320,7 +319,7 @@
             <label for="reg-password-confirm">Confirmar Contraseña</label>
             <div class="input-wrapper">
               <i data-lucide="shield-check"></i>
-              <input type="password" id="reg-password-confirm" placeholder="Repite la contraseña" minlength="6" required>
+              <input type="password" id="reg-password-confirm" placeholder="Repite la contraseña" autocomplete="new-password" minlength="6" required>
             </div>
           </div>
 
@@ -403,7 +402,7 @@
     <!-- VISTA: CONFIGURACIÓN DE PERFIL VECINO -->
     <section id="view-profile" class="app-view modal-like">
       <div class="modal-card glass-card animate-zoom">
-        <button class="modal-close" onclick="showView('dashboard')">
+        <button class="modal-close" onclick="showView('dashboard')" aria-label="Cerrar perfil">
           <i data-lucide="x"></i>
         </button>
         
@@ -432,7 +431,7 @@
             <label for="profile-password">Nueva Contraseña (dejar en blanco para no cambiar)</label>
             <div class="input-wrapper">
               <i data-lucide="key-round"></i>
-              <input type="password" id="profile-password" placeholder="Tu nueva contraseña" minlength="6">
+              <input type="password" id="profile-password" placeholder="Tu nueva contraseña" autocomplete="new-password" minlength="6">
             </div>
           </div>
 
@@ -440,7 +439,7 @@
             <label for="profile-password-confirm">Confirmar Nueva Contraseña</label>
             <div class="input-wrapper">
               <i data-lucide="shield-check"></i>
-              <input type="password" id="profile-password-confirm" placeholder="Repite tu nueva contraseña" minlength="6">
+              <input type="password" id="profile-password-confirm" placeholder="Repite tu nueva contraseña" autocomplete="new-password" minlength="6">
             </div>
           </div>
 
@@ -468,7 +467,7 @@
     <!-- VISTA: GESTIÓN PASSKEY (RENOMBRAR / REVOCAR) -->
     <section id="view-passkey-manage" class="app-view modal-like">
       <div class="modal-card glass-card animate-zoom" style="max-width: 460px;">
-        <button class="modal-close" onclick="closePasskeyActionModal()">
+        <button class="modal-close" onclick="closePasskeyActionModal()" aria-label="Cerrar gestión de dispositivo">
           <i data-lucide="x"></i>
         </button>
         <div class="modal-header">
@@ -504,7 +503,7 @@
     <!-- VISTA: MODIFICAR VECINO / VIVIENDA -->
     <section id="view-edit-neighbor" class="app-view modal-like">
       <div class="modal-card glass-card animate-zoom" style="max-width: 480px;">
-        <button class="modal-close" onclick="closeEditNeighborModal()">
+        <button class="modal-close" onclick="closeEditNeighborModal()" aria-label="Cerrar edición de vecino">
           <i data-lucide="x"></i>
         </button>
         <div class="modal-header">
@@ -573,7 +572,7 @@
     <!-- VISTA: CONFIGURACIÓN DOBLE FACTOR BAJO DEMANDA -->
     <section id="view-setup-2fa" class="app-view modal-like">
       <div class="modal-card glass-card register-modal animate-zoom">
-        <button class="modal-close" onclick="showView('dashboard')">
+        <button class="modal-close" onclick="showView('dashboard')" aria-label="Cerrar configuración 2FA">
           <i data-lucide="x"></i>
         </button>
         <div class="modal-header">
@@ -979,7 +978,7 @@
           <!-- Formulario Generador -->
           <div id="admin-section-users" class="admin-action-box" style="display: flex; flex-direction: column; gap: 20px;">
             <!-- Resumen de Seguridad Consolidado -->
-            <div class="section-card glass-card" style="padding: 14px 18px; margin-bottom: 5px; width: 100%;">
+            <div id="admin-section-security-summary-card" class="section-card glass-card" style="padding: 14px 18px; margin-bottom: 5px; width: 100%;">
               <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
                 <i data-lucide="shield-check" class="text-success" style="width: 18px; height: 18px; color: var(--color-success);"></i>
                 <span>Resumen de Seguridad 2FA de la Comunidad</span>
@@ -988,7 +987,7 @@
                 <span>Cargando resumen de seguridad...</span>
               </div>
             </div>
-            <div>
+            <div id="admin-section-invite-generator">
               <h3>Generar Invitación de Un Solo Uso</h3>
               <p class="box-desc">Crea un enlace exclusivo para permitir el registro de un vecino en un piso específico.</p>
               
@@ -1015,8 +1014,9 @@
                     </a>
                   </div>
                 </div>
+                <div id="admin-invite-error" class="error-msg hidden" style="margin-top: 8px;"></div>
 
-                <button type="submit" class="btn btn-primary btn-full" style="margin-top: 8px;">
+                <button id="admin-generate-invite-btn" type="submit" class="btn btn-primary btn-full" style="margin-top: 8px;">
                   <i data-lucide="link"></i>
                   <span>Generar Enlace</span>
                 </button>
@@ -1024,10 +1024,10 @@
             </div>
 
             <!-- Separador -->
-            <div style="border-top: 1px dashed var(--glass-border); margin: 5px 0;"></div>
+            <div id="admin-section-users-separator" style="border-top: 1px dashed var(--glass-border); margin: 5px 0;"></div>
 
             <!-- Registro Directo -->
-            <div>
+            <div id="admin-section-direct-register">
               <h3>Registrar Vecino Directamente</h3>
               <p class="box-desc">Crea y activa al instante la cuenta para un vecino sin necesidad de enlaces.</p>
               
@@ -1054,7 +1054,7 @@
                   <label for="admin-reg-password">Contraseña Inicial</label>
                   <div class="input-wrapper">
                     <i data-lucide="key-round"></i>
-                    <input type="text" id="admin-reg-password" placeholder="ej. 123456" minlength="6" required>
+                    <input type="password" id="admin-reg-password" placeholder="Mínimo 6 caracteres" autocomplete="new-password" minlength="6" required>
                   </div>
                 </div>
 
@@ -1062,7 +1062,7 @@
                   <label for="admin-reg-password-confirm">Confirmar Contraseña Inicial</label>
                   <div class="input-wrapper">
                     <i data-lucide="shield-check"></i>
-                    <input type="text" id="admin-reg-password-confirm" placeholder="Repite la contraseña inicial" minlength="6" required>
+                    <input type="password" id="admin-reg-password-confirm" placeholder="Repite la contraseña inicial" autocomplete="new-password" minlength="6" required>
                   </div>
                 </div>
 
@@ -1088,7 +1088,7 @@
             <div style="border-top: 1px dashed var(--glass-border); margin: 5px 0;"></div>
 
             <!-- Listado y Gestión de Vecinos -->
-            <div style="margin-top: 10px;">
+            <div id="admin-section-users-management" style="margin-top: 10px;">
               <h3>Gestión de Usuarios y Viviendas</h3>
               <p class="box-desc">Controla las cuentas de los vecinos, teléfonos, exenciones de limpieza y bajas de usuarios.</p>
               
@@ -1128,7 +1128,13 @@
                 <tbody id="admin-invites-list">
                   <!-- Render dinámico -->
                   <tr>
-                    <td colspan="3" cla            <!-- Configuración / Panel de Control de WhatsApp Propio -->
+                    <td colspan="3" class="text-center">Cargando invitaciones...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Configuración / Panel de Control de WhatsApp Propio -->
             <div id="admin-section-whatsapp" class="admin-subsection" style="margin-top: 20px; border-top: 1px dashed var(--glass-border); padding-top: 16px;">
               <h3 class="admin-subsection-title">
                 <i data-lucide="message-square" class="text-success"></i>
@@ -1447,7 +1453,6 @@
         </section>
       </div>
         </div>
-      </div>
     </section>
 
     <section id="view-finance" class="app-view page-view">

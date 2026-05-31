@@ -11,7 +11,8 @@ const config = {
   NODE_ENV: process.env.NODE_ENV || 'development',
   SYSTEM_WHATSAPP_API_KEY: process.env.SYSTEM_WHATSAPP_API_KEY || '',
   NOTIFICATIONS_GROUP_URL: process.env.NOTIFICATIONS_GROUP_URL || '',
-  DATABASE_URL: process.env.DATABASE_URL || ''
+  DATABASE_URL: process.env.DATABASE_URL || '',
+  APP_BASE_URL: (process.env.APP_BASE_URL || '').replace(/\/+$/, '')
 };
 
 // Validación de seguridad: detener servidor de forma temprana si faltan variables críticas

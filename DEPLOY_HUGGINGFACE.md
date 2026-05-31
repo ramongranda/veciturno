@@ -58,6 +58,7 @@ Ahora debemos introducir de forma segura las claves de nuestra aplicación en Hu
 | **`BOOTSTRAP_TOKEN`** | `"registro-inicial-planta3"` | Token para el primer registro del administrador. |
 | **`START_MONTH`** | `2026-06-01` | Mes de inicio de la rotación de limpieza. |
 | **`START_FLOOR_ID`** | `1` | ID de la vivienda que arranca el primer turno. |
+| **`APP_BASE_URL`** | `https://rgranda-veciturno.hf.space` | URL pública real de tu Space. Imprescindible para que los enlaces de invitación apunten al despliegue y no al host interno. |
 
 ---
 

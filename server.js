@@ -40,6 +40,7 @@ if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
 
 
 const app = express();
+app.set('trust proxy', 1);
 
 // 🛡️ Cabeceras HTTP seguras con Helmet (configuración compatible con SPA)
 app.use(

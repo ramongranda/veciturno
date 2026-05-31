@@ -1,6 +1,7 @@
 const { v4: uuidv4 } = require('uuid');
 const dbService = require('../services/db.service');
 const cryptoService = require('../services/crypto.service');
+const config = require('../config/env');
 const XLSX = require('xlsx');
 
 function normalizeSpanishPhone(phone) {
@@ -11,6 +12,19 @@ function normalizeSpanishPhone(phone) {
   if (digits.length === 0) return '';
   if (!/^\d{9}$/.test(digits)) return null;
   return `+34${digits}`;
+}
+
+function getPublicBaseUrl(req) {
+  if (config.APP_BASE_URL) return config.APP_BASE_URL;
+  const forwardedProto = String(req.get('x-forwarded-proto') || '').split(',')[0].trim();
+  const forwardedHost = String(req.get('x-forwarded-host') || '').split(',')[0].trim();
+  const protocol = forwardedProto || req.protocol;
+  const host = forwardedHost || req.get('host');
+  return `${protocol}://${host}`;
+}
+
+function buildInviteUrl(req, token) {
+  return `${getPublicBaseUrl(req)}/#register?token=${encodeURIComponent(token)}`;
 }
 
 function normalizeAnyPhone(phone) {
@@ -817,6 +831,11 @@ const adminController = {
       if (!neighbor) {
         return res.status(404).json({ error: 'El número de piso especificado no existe.' });
       }
+      if (neighbor.registered) {
+        return res.status(409).json({
+          error: 'Esta vivienda ya tiene una cuenta registrada. Para generar una invitación nueva, primero da de baja/restablece esa cuenta desde Usuarios y Seguridad.'
+        });
+      }
 
       let targetPhone = neighbor.phone;
 
@@ -831,9 +850,7 @@ const adminController = {
       }
 
       const token = uuidv4();
-      dbService.createInviteToken(floorId, token);
-
-      const inviteUrl = `${req.protocol}://${req.get('host')}/#register?token=${token}`;
+      const inviteUrl = buildInviteUrl(req, token);
       let whatsappSent = false;
       let whatsappError = '';
 
@@ -878,6 +895,8 @@ const adminController = {
           }
         }
       }
+
+      dbService.createInviteToken(floorId, token);
 
       res.json({
         message: whatsappSent
@@ -1086,12 +1105,16 @@ const adminController = {
     try {
       const invites = dbService.getInviteTokens().map(t => {
         const neighbor = dbService.getNeighborById(t.floorId);
+        const floor = neighbor ? neighbor.floor : `Unidad eliminada (${t.floorId})`;
         return {
           token: t.token,
-          floor: neighbor.floor,
+          floor,
+          floorId: t.floorId,
+          unitExists: !!neighbor,
+          registered: !!(neighbor && neighbor.registered),
           used: t.used,
           createdAt: t.createdAt,
-          inviteUrl: `${req.protocol}://${req.get('host')}/#register?token=${t.token}`
+          inviteUrl: buildInviteUrl(req, t.token)
         };
       });
       
