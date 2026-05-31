@@ -1,3 +1,13 @@
+---
+title: VeciTurno
+emoji: 🏡
+colorFrom: blue
+colorTo: purple
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # 🏡 VeciTurno - Comunidad de Vecinos
 
 **VeciTurno** es una aplicación web ligera, moderna y premium diseñada específicamente para gestionar turnos rotativos en comunidades de vecinos (ej. turnos de limpieza de escalera o tareas comunes). 
