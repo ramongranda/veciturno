@@ -1227,7 +1227,7 @@ async function handleRegisterStep2(event) {
     await loadCommunityStatus();
     showView('dashboard');
     
-    alert('🎉 ¡Registro completado correctamente! Ya tienes acceso a VeciTurno con Doble Factor.');
+    showToast('🎉 ¡Registro completado correctamente! Ya tienes acceso a VeciTurno con Doble Factor.', 'success');
   } catch (err) {
     errorEl.textContent = err.message;
     errorEl.classList.remove('hidden');
@@ -2321,7 +2321,7 @@ function copyInviteLink() {
   const inviteUrlInput = document.getElementById('admin-invite-url');
   inviteUrlInput.select();
   document.execCommand('copy');
-  alert('📋 Enlace de registro copiado al portapapeles.');
+  showToast('📋 Enlace de registro copiado al portapapeles.', 'success');
 }
 
 // Copiar enlace de la tabla
@@ -2332,7 +2332,7 @@ function copyInviteLinkUrl(url) {
   tempInput.select();
   document.execCommand('copy');
   document.body.removeChild(tempInput);
-  alert('📋 Enlace de registro copiado al portapapeles.');
+  showToast('📋 Enlace de registro copiado al portapapeles.', 'success');
 }
 
 // ==========================================
@@ -2529,7 +2529,7 @@ async function inviteNeighborViaWhatsApp(floorId, currentPhone) {
     if (input === null) return; // Cancelado por usuario
     phone = input.trim();
     if (!phone) {
-      alert("Es necesario un número de teléfono móvil para enviar la invitación.");
+      showToast("Es necesario un número de teléfono móvil para enviar la invitación.", "error");
       return;
     }
   }
@@ -2547,14 +2547,14 @@ async function inviteNeighborViaWhatsApp(floorId, currentPhone) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error al procesar la invitación.');
     
-    alert(data.message);
+    showToast(data.message, "success");
     
     // Recargar tabla de gestión, listado de invitaciones y estado general
     await loadAdminNeighborsManagement();
     await loadAdminInvites();
     await loadCommunityStatus();
   } catch (err) {
-    alert(`Error: ${err.message}`);
+    showToast(`Error: ${err.message}`, "error");
   }
 }
 
@@ -3518,4 +3518,45 @@ async function handleForceTurnState(event) {
       errorEl.classList.remove('hidden');
     }
   }
+}
+
+function showToast(message, type = 'success') {
+  let container = document.getElementById('toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toast-container';
+    container.className = 'toast-container';
+    document.body.appendChild(container);
+  }
+
+  const toast = document.createElement('div');
+  toast.className = `toast-notification ${type}`;
+  
+  let iconName = 'check-circle';
+  if (type === 'error') iconName = 'alert-triangle';
+  else if (type === 'info') iconName = 'info';
+  else if (type === 'warning') iconName = 'alert-circle';
+
+  toast.innerHTML = `
+    <div class="toast-icon">
+      <i data-lucide="${iconName}"></i>
+    </div>
+    <div class="toast-message">${escapeHtmlForJs(message)}</div>
+  `;
+
+  container.appendChild(toast);
+  lucide.createIcons();
+
+  // Trigger animation after adding to DOM
+  setTimeout(() => {
+    toast.classList.add('show');
+  }, 10);
+
+  // Auto remove after 3.5s
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => {
+      toast.remove();
+    }, 400);
+  }, 3500);
 }
