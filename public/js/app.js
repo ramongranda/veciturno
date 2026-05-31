@@ -114,6 +114,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Inicialización general
 async function initApp() {
+  normalizeAdminLayout();
+
   // Inicializar iconos de Lucide
   lucide.createIcons();
   
@@ -134,6 +136,18 @@ async function initApp() {
   const financeSort = document.getElementById('finance-sort');
   if (financeSearch) financeSearch.addEventListener('input', renderFinanceContributionsTable);
   if (financeSort) financeSort.addEventListener('change', renderFinanceContributionsTable);
+}
+
+function normalizeAdminLayout() {
+  const adminContent = document.querySelector('#view-admin .admin-content');
+  if (!adminContent) return;
+
+  ['admin-section-visualization', 'admin-section-whatsapp-templates'].forEach((id) => {
+    const section = document.getElementById(id);
+    if (section && section.parentElement !== adminContent) {
+      adminContent.appendChild(section);
+    }
+  });
 }
 
 function preloadRememberedUsername() {
