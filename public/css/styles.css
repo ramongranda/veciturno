@@ -1801,3 +1801,48 @@ input[type='number']::-webkit-inner-spin-button {
 input[type='number'] {
   -moz-appearance: textfield;
 }
+
+/* Control de Turnos Manual en Visualización */
+.admin-force-turn-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.admin-force-turn-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) auto;
+  gap: 12px;
+  align-items: end;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--glass-border);
+}
+
+.admin-force-turn-form .form-group {
+  margin: 0;
+}
+
+.admin-force-turn-form button {
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 0;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .admin-force-turn-form {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+  
+  .admin-force-turn-form button {
+    height: 48px;
+    margin-top: 6px;
+  }
+}

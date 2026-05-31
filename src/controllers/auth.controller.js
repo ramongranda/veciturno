@@ -65,6 +65,11 @@ const authController = {
       if (!neighbor) {
         return res.status(401).json({ error: 'Usuario o contraseña incorrectos.' });
       }
+
+      if (neighbor.deactivated) {
+        return res.status(403).json({ error: 'Tu cuenta ha sido desactivada temporalmente por la administración.' });
+      }
+
       const isSystemAdmin = dbService.isSystemAdminUsername(neighbor.username);
 
       const hasPassword = typeof password === 'string' && password.trim().length > 0;
@@ -204,6 +209,11 @@ const authController = {
 
       const neighbor = dbService.getNeighborByUsername(username);
       if (!neighbor) return res.status(404).json({ error: 'Usuario no encontrado.' });
+
+      if (neighbor.deactivated) {
+        return res.status(403).json({ error: 'Tu cuenta ha sido desactivada temporalmente por la administración.' });
+      }
+
       const passkeys = Array.isArray(neighbor.passkeys) ? neighbor.passkeys : [];
       if (!passkeys.length) return res.status(400).json({ error: 'Este usuario no tiene acceso por huella/passkey activado.' });
 
@@ -228,6 +238,10 @@ const authController = {
       const neighbor = dbService.getNeighborById(userId);
       const isSystemAdmin = dbService.isSystemAdminUsername(neighbor.username);
       if (!neighbor) return res.status(404).json({ error: 'Usuario no encontrado.' });
+
+      if (neighbor.deactivated) {
+        return res.status(403).json({ error: 'Tu cuenta ha sido desactivada temporalmente por la administración.' });
+      }
 
       const expectedChallenge = passkeyLoginChallenges.get(neighbor.id);
       if (!expectedChallenge) return res.status(400).json({ error: 'Challenge de passkey no encontrado o expirado.' });

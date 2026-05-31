@@ -804,10 +804,10 @@ const adminController = {
     }
   },
 
-  // Generar un link de invitación
-  generateInvite: (req, res) => {
+  // Generar un link de invitación y enviarlo por WhatsApp opcionalmente
+  generateInvite: async (req, res) => {
     try {
-      const { floorId } = req.body;
+      const { floorId, phone, sendWhatsApp } = req.body;
 
       if (!floorId) {
         return res.status(400).json({ error: 'Debes especificar el número de piso.' });
@@ -818,17 +818,266 @@ const adminController = {
         return res.status(404).json({ error: 'El número de piso especificado no existe.' });
       }
 
+      let targetPhone = neighbor.phone;
+
+      // Actualizar el teléfono del vecino si se proporciona en la petición
+      if (phone !== undefined) {
+        const normalized = normalizeSpanishPhone(phone);
+        if (phone && !normalized) {
+          return res.status(400).json({ error: 'Teléfono inválido. Usa un número español (9 dígitos), con o sin +34.' });
+        }
+        dbService.updateNeighbor(floorId, { phone: normalized || '' });
+        targetPhone = normalized || '';
+      }
+
       const token = uuidv4();
       dbService.createInviteToken(floorId, token);
 
+      const inviteUrl = `${req.protocol}://${req.get('host')}/#register?token=${token}`;
+      let whatsappSent = false;
+      let whatsappError = '';
+
+      if (sendWhatsApp) {
+        if (!targetPhone) {
+          return res.status(400).json({ error: 'No se puede enviar por WhatsApp porque la vivienda no tiene teléfono registrado.' });
+        }
+
+        const whatsappService = require('../services/whatsapp.service');
+        const status = whatsappService.getStatus();
+
+        const settings = dbService.getSettings();
+        const community = settings.communityName || 'nuestra comunidad';
+        const msg = `🏡 *VeciTurno (Invitación de Registro)*:\n\n¡Hola! Te invitamos a registrarte en el sistema de turnos de limpieza de *${community}*.\n\nPara configurar tu usuario y contraseña, accede al siguiente enlace:\n👉 ${inviteUrl}\n\n¡Gracias por colaborar! ✨`;
+
+        if (status.status !== 'connected') {
+          whatsappError = 'La pasarela de WhatsApp no está vinculada. Generado enlace sin enviar WhatsApp.';
+        } else {
+          const ok = await whatsappService.sendMessage(targetPhone, msg);
+          if (ok) {
+            whatsappSent = true;
+            dbService.addNotificationLog({
+              notificationType: 'registration_invite',
+              mode: 'manual',
+              channel: 'individual',
+              target: targetPhone,
+              status: 'sent',
+              error: '',
+              message: msg
+            });
+          } else {
+            whatsappError = whatsappService.getStatus().lastError || 'Error al enviar por WhatsApp.';
+            dbService.addNotificationLog({
+              notificationType: 'registration_invite',
+              mode: 'manual',
+              channel: 'individual',
+              target: targetPhone,
+              status: 'failed',
+              error: whatsappError,
+              message: msg
+            });
+          }
+        }
+      }
+
       res.json({
-        message: `Enlace de registro generado para la ${neighbor.floor}.`,
-        inviteUrl: `${req.protocol}://${req.get('host')}/#register?token=${token}`,
+        message: whatsappSent
+          ? `Invitación enviada por WhatsApp a la ${neighbor.floor}.`
+          : `Enlace de registro generado para la ${neighbor.floor}.${whatsappError ? ` Nota: ${whatsappError}` : ''}`,
+        inviteUrl,
         token,
-        floor: neighbor.floor
+        floor: neighbor.floor,
+        whatsappSent,
+        whatsappError
       });
     } catch (err) {
       res.status(500).json({ error: 'Error al generar enlace de invitación.' });
+    }
+  },
+
+  // Dar de baja / reinicializar un vecino (borrar credenciales)
+  resetNeighbor: (req, res) => {
+    try {
+      const { id } = req.params;
+      const neighbor = dbService.getNeighborById(id);
+      if (!neighbor) {
+        return res.status(404).json({ error: 'El vecino especificado no existe.' });
+      }
+
+      const oldUsername = neighbor.username;
+
+      dbService.updateNeighbor(id, {
+        username: null,
+        passwordHash: null,
+        twoFactorSecret: null,
+        twoFactorRegistered: false,
+        passkeys: []
+      });
+
+      // Si el vecino borrado era el administrador activo del sistema, lo limpiamos de settings
+      const settings = dbService.getSettings();
+      if (settings.adminUsername && oldUsername && settings.adminUsername.toLowerCase() === oldUsername.toLowerCase()) {
+        dbService.updateSettings({ adminUsername: '' });
+      }
+
+      res.json({
+        message: `Vecino de la ${neighbor.floor} dado de baja / reinicializado correctamente.`,
+        neighbor: dbService.getNeighborById(id)
+      });
+    } catch (err) {
+      res.status(500).json({ error: 'Error al dar de baja / reinicializar al vecino.' });
+    }
+  },
+
+  // Activar/desactivar exención de limpieza de una vivienda
+  toggleExemptNeighbor: (req, res) => {
+    try {
+      const { id } = req.params;
+      const neighbor = dbService.getNeighborById(id);
+      if (!neighbor) {
+        return res.status(404).json({ error: 'El vecino especificado no existe.' });
+      }
+
+      const nextExempt = !neighbor.exemptFromCleaning;
+      dbService.updateNeighbor(id, { exemptFromCleaning: nextExempt });
+
+      res.json({
+        message: nextExempt
+          ? `La ${neighbor.floor} ha sido eximida del turno de limpieza.`
+          : `La ${neighbor.floor} ha sido incluida en el turno de limpieza.`,
+        neighbor: dbService.getNeighborById(id)
+      });
+    } catch (err) {
+      res.status(500).json({ error: 'Error al cambiar estado de exención del vecino.' });
+    }
+  },
+
+  // Activar/desactivar el acceso de un vecino
+  toggleNeighborActive: (req, res) => {
+    try {
+      const { id } = req.params;
+      const neighbor = dbService.getNeighborById(id);
+      if (!neighbor) {
+        return res.status(404).json({ error: 'El vecino especificado no existe.' });
+      }
+
+      if (!neighbor.username) {
+        return res.status(400).json({ error: 'No se puede desactivar un vecino que no se ha registrado.' });
+      }
+
+      const nextDeactivated = !neighbor.deactivated;
+      dbService.updateNeighbor(id, { deactivated: nextDeactivated });
+
+      res.json({
+        message: nextDeactivated
+          ? `La cuenta de la ${neighbor.floor} ha sido desactivada temporalmente.`
+          : `La cuenta de la ${neighbor.floor} ha sido activada correctamente.`,
+        neighbor: dbService.getNeighborById(id)
+      });
+    } catch (err) {
+      res.status(500).json({ error: 'Error al cambiar estado de activación del vecino.' });
+    }
+  },
+
+  // Modificar detalles del vecino/vivienda (nombre, teléfono, tipo, cuota especial)
+  updateNeighborDetails: (req, res) => {
+    try {
+      const { id } = req.params;
+      const { name, phone, kind, monthlyFeeOverride } = req.body;
+
+      const neighbor = dbService.getNeighborById(id);
+      if (!neighbor) {
+        return res.status(404).json({ error: 'El vecino especificado no existe.' });
+      }
+
+      const updates = {};
+
+      if (phone !== undefined) {
+        const normalized = normalizeSpanishPhone(phone);
+        if (phone && !normalized) {
+          return res.status(400).json({ error: 'Teléfono inválido. Usa un número español (9 dígitos), con o sin +34.' });
+        }
+        updates.phone = normalized || '';
+      }
+
+      if (name !== undefined) {
+        updates.name = String(name || '').trim();
+      }
+
+      if (kind !== undefined) {
+        if (kind !== 'vivienda' && kind !== 'comercial') {
+          return res.status(400).json({ error: 'El tipo de unidad debe ser "vivienda" o "comercial".' });
+        }
+        updates.kind = kind;
+      }
+
+      if (monthlyFeeOverride !== undefined) {
+        const val = monthlyFeeOverride === null || monthlyFeeOverride === '' ? null : Number(monthlyFeeOverride);
+        if (val !== null && (!Number.isFinite(val) || val < 0)) {
+          return res.status(400).json({ error: 'La cuota especial debe ser un número positivo.' });
+        }
+        updates.monthlyFeeOverride = val;
+      }
+
+      const updated = dbService.updateNeighbor(id, updates);
+
+      res.json({
+        message: `Detalles de la ${updated.floor} actualizados correctamente.`,
+        neighbor: updated
+      });
+    } catch (err) {
+      res.status(500).json({ error: 'Error al actualizar los detalles del vecino.' });
+    }
+  },
+
+  // Cambiar manualmente el turno activo de limpieza
+  setActiveTurnFloor: (req, res) => {
+    try {
+      const { floorId } = req.body;
+      if (!floorId) {
+        return res.status(400).json({ error: 'Debes especificar la vivienda para el turno activo.' });
+      }
+
+      const neighbor = dbService.getNeighborById(floorId);
+      if (!neighbor) {
+        return res.status(404).json({ error: 'La vivienda especificada no existe.' });
+      }
+
+      if (neighbor.exemptFromCleaning) {
+        return res.status(400).json({ error: 'No se puede asignar el turno a una vivienda exenta de limpieza.' });
+      }
+
+      const state = dbService.setCurrentTurnFloorId(floorId);
+      
+      res.json({
+        message: `Turno de limpieza activo asignado manualmente a la ${neighbor.floor}.`,
+        state
+      });
+    } catch (err) {
+      res.status(500).json({ error: 'Error al asignar el turno de limpieza.' });
+    }
+  },
+
+  // Cambiar manualmente el mes activo de la limpieza
+  setActiveTurnMonth: (req, res) => {
+    try {
+      const { month } = req.body; // expected format 'YYYY-MM'
+      if (!month || !/^\d{4}-\d{2}$/.test(month)) {
+        return res.status(400).json({ error: 'Debes especificar un mes válido en formato YYYY-MM.' });
+      }
+
+      const data = dbService.readDB();
+      if (data.state) {
+        data.state.currentMonth = `${month}-01`;
+        dbService.writeDB(data);
+        
+        return res.json({
+          message: `Mes de limpieza activo cambiado manualmente a ${month}.`,
+          state: data.state
+        });
+      }
+      return res.status(500).json({ error: 'No se pudo actualizar el mes activo.' });
+    } catch (err) {
+      return res.status(500).json({ error: 'Error al cambiar el mes de limpieza.' });
     }
   },
 

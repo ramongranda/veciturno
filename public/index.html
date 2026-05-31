@@ -478,6 +478,75 @@
       </div>
     </section>
 
+    <!-- VISTA: MODIFICAR VECINO / VIVIENDA -->
+    <section id="view-edit-neighbor" class="app-view modal-like">
+      <div class="modal-card glass-card animate-zoom" style="max-width: 480px;">
+        <button class="modal-close" onclick="closeEditNeighborModal()">
+          <i data-lucide="x"></i>
+        </button>
+        <div class="modal-header">
+          <div class="modal-icon text-warning">
+            <i data-lucide="edit-3"></i>
+          </div>
+          <h2>Modificar Vivienda / Vecino</h2>
+          <p>Actualiza la información de la unidad de la comunidad</p>
+        </div>
+        <form id="edit-neighbor-form" class="auth-form" onsubmit="submitEditNeighbor(event)">
+          <input type="hidden" id="edit-neighbor-id">
+          
+          <div class="form-group">
+            <label for="edit-neighbor-name">Nombre Personalizado de la Unidad</label>
+            <div class="input-wrapper">
+              <i data-lucide="tag"></i>
+              <input type="text" id="edit-neighbor-name" placeholder="Ej. Ático Ana (dejar vacío para usar etiqueta estándar)">
+            </div>
+            <span class="input-hint">Sobrescribe el nombre por defecto (Portal · Planta · Puerta).</span>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-neighbor-kind">Tipo de Unidad</label>
+            <div class="input-wrapper">
+              <i data-lucide="home"></i>
+              <select id="edit-neighbor-kind" required>
+                <option value="vivienda">Vivienda</option>
+                <option value="comercial">Local Comercial</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-neighbor-phone">Teléfono (WhatsApp)</label>
+            <div class="input-wrapper">
+              <i data-lucide="phone"></i>
+              <input type="tel" id="edit-neighbor-phone" placeholder="Ej. 600112233 (España)">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-neighbor-fee">Cuota Mensual Especial (€/mes)</label>
+            <div class="input-wrapper">
+              <i data-lucide="wallet"></i>
+              <input type="number" step="0.01" min="0" id="edit-neighbor-fee" placeholder="Ej. 25.00 (dejar vacío para cuota base)">
+            </div>
+            <span class="input-hint">Override para aplicar una cuota distinta a la estándar de la comunidad.</span>
+          </div>
+
+          <div id="edit-neighbor-error" class="error-msg hidden"></div>
+          
+          <div class="button-row">
+            <button type="button" class="btn btn-secondary" onclick="closeEditNeighborModal()">
+              <i data-lucide="x"></i>
+              <span>Cancelar</span>
+            </button>
+            <button type="submit" class="btn btn-primary flex-grow">
+              <i data-lucide="save"></i>
+              <span>Guardar Cambios</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+
     <!-- VISTA: CONFIGURACIÓN DOBLE FACTOR BAJO DEMANDA -->
     <section id="view-setup-2fa" class="app-view modal-like">
       <div class="modal-card glass-card register-modal animate-zoom">
@@ -573,10 +642,6 @@
                 <i data-lucide="sliders-horizontal"></i>
                 <span>Configuración</span>
               </button>
-              <button class="btn btn-secondary" type="button" data-admin-panel-btn="security" onclick="adminShowPanel('security')">
-                <i data-lucide="shield-check"></i>
-                <span>Seguridad</span>
-              </button>
               <button class="btn btn-secondary" type="button" data-admin-panel-btn="fees" onclick="adminShowPanel('fees')">
                 <i data-lucide="wallet"></i>
                 <span>Cuotas</span>
@@ -587,7 +652,7 @@
               </button>
               <button class="btn btn-secondary" type="button" data-admin-panel-btn="users" onclick="adminShowPanel('users')">
                 <i data-lucide="users"></i>
-                <span>Usuarios</span>
+                <span>Usuarios y Seguridad</span>
               </button>
               <button class="btn btn-secondary" type="button" data-admin-panel-btn="visualization" onclick="adminShowPanel('visualization')">
                 <i data-lucide="building"></i>
@@ -629,6 +694,29 @@
               </button>
             </form>
           </div>
+
+          <div class="section-card" style="margin-bottom: 12px;">
+            <h3 style="font-size: 1rem;">Gestión de Turnos de Limpieza</h3>
+            <p class="box-desc">Asigna de forma manual qué vivienda tiene el turno activo actual de limpieza.</p>
+            <form id="admin-active-turn-form" class="auth-form" onsubmit="handleSetActiveTurn(event)">
+              <div class="form-group">
+                <label for="admin-active-turn-floor">Vivienda con Turno Activo</label>
+                <div class="input-wrapper">
+                  <i data-lucide="calendar"></i>
+                  <select id="admin-active-turn-floor" required>
+                    <option value="">Selecciona la vivienda activa...</option>
+                  </select>
+                </div>
+              </div>
+              <div id="admin-active-turn-success" class="success-msg hidden"></div>
+              <div id="admin-active-turn-error" class="error-msg hidden"></div>
+              <button type="submit" class="btn btn-warning" style="background: linear-gradient(135deg, var(--color-warning), #d97706); color: #fff; border: none;">
+                <i data-lucide="check"></i>
+                <span>Establecer Turno Activo</span>
+              </button>
+            </form>
+          </div>
+
           <div class="section-card" style="margin-bottom: 12px;">
             <h3 style="font-size: 1rem;">Constructor de Edificio</h3>
             <p class="box-desc">Añade viviendas y locales comerciales sin usar JSON.</p>
@@ -852,20 +940,19 @@
           </div>
         </section>
 
-        <section id="admin-section-security" class="section-card glass-card">
-          <h3>Seguridad</h3>
-          <p class="box-desc">Seguimiento del estado 2FA de vecinos. Aquí verás quién falta por activar doble factor.</p>
-          <div id="admin-security-summary" class="history-item" style="margin-bottom: 10px;">
-            <span>Cargando resumen de seguridad...</span>
-          </div>
-          <div id="admin-security-list" class="history-list">
-            <div class="history-item">Cargando estado de usuarios...</div>
-          </div>
-        </section>
-
         <div class="admin-grid">
           <!-- Formulario Generador -->
           <div id="admin-section-users" class="admin-action-box" style="display: flex; flex-direction: column; gap: 20px;">
+            <!-- Resumen de Seguridad Consolidado -->
+            <div class="section-card glass-card" style="padding: 14px 18px; margin-bottom: 5px; width: 100%;">
+              <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                <i data-lucide="shield-check" class="text-success" style="width: 18px; height: 18px; color: var(--color-success);"></i>
+                <span>Resumen de Seguridad 2FA de la Comunidad</span>
+              </h3>
+              <div id="admin-security-summary" class="history-item" style="background: rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.05); font-size: 0.85rem; width: 100%; display: flex; justify-content: space-between;">
+                <span>Cargando resumen de seguridad...</span>
+              </div>
+            </div>
             <div>
               <h3>Generar Invitación de Un Solo Uso</h3>
               <p class="box-desc">Crea un enlace exclusivo para permitir el registro de un vecino en un piso específico.</p>
@@ -960,6 +1047,34 @@
                   <span>Registrar y Activar Cuenta</span>
                 </button>
               </form>
+            </div>
+
+            <!-- Separador -->
+            <div style="border-top: 1px dashed var(--glass-border); margin: 5px 0;"></div>
+
+            <!-- Listado y Gestión de Vecinos -->
+            <div style="margin-top: 10px;">
+              <h3>Gestión de Usuarios y Viviendas</h3>
+              <p class="box-desc">Controla las cuentas de los vecinos, teléfonos, exenciones de limpieza y bajas de usuarios.</p>
+              
+              <div class="invite-table-container">
+                <table class="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Vivienda</th>
+                      <th>Estado</th>
+                      <th>Teléfono</th>
+                      <th>Limpieza</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="admin-neighbors-list">
+                    <tr>
+                      <td colspan="5" class="text-center">Cargando viviendas y usuarios...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
 
@@ -1085,7 +1200,43 @@
         </div>
 
         <section id="admin-section-visualization" class="section-card glass-card" style="margin-top: 18px;">
-          <h3>Visualización de Pisos</h3>
+          <div class="admin-force-turn-card">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+              <div>
+                <h3 style="margin: 0; display: flex; align-items: center; gap: 8px;">
+                  <i data-lucide="calendar" class="text-primary" style="color: var(--color-primary); width: 20px; height: 20px;"></i>
+                  <span>Visualización de Pisos y Control de Turnos</span>
+                </h3>
+                <p class="box-desc" style="margin: 4px 0 0 0;">Anula o fuerza manualmente el mes de limpieza y qué vecino tiene el turno activo en el calendario.</p>
+              </div>
+            </div>
+
+            <form id="admin-force-turn-form" class="admin-force-turn-form" onsubmit="handleForceTurnState(event)">
+              <div class="form-group">
+                <label for="admin-force-month" style="font-size: 0.8rem; font-weight: 600; color: var(--text-color); margin-bottom: 6px; display: block;">Mes del Turno</label>
+                <div class="input-wrapper">
+                  <i data-lucide="calendar-days"></i>
+                  <input type="month" id="admin-force-month" required>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="admin-force-floor" style="font-size: 0.8rem; font-weight: 600; color: var(--text-color); margin-bottom: 6px; display: block;">Vecino Activo en Turno</label>
+                <div class="input-wrapper">
+                  <i data-lucide="user"></i>
+                  <select id="admin-force-floor" required>
+                    <option value="">Cargando vecinos...</option>
+                  </select>
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary">
+                <i data-lucide="check-circle-2"></i>
+                <span>Aplicar Cambios</span>
+              </button>
+            </form>
+            <div id="admin-force-turn-success" class="success-msg hidden" style="margin: 0; padding: 10px 14px;"></div>
+            <div id="admin-force-turn-error" class="error-msg hidden" style="margin: 0; padding: 10px 14px;"></div>
+          </div>
+
           <div class="neighbors-list" id="neighbors-container">
             <div class="loading-spinner">Cargando vecinos...</div>
           </div>

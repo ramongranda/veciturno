@@ -24,6 +24,12 @@ router.delete('/finance/movement-assignments/:payerKey', authenticateToken, requ
 router.post('/create-neighbor', authenticateToken, requireAdmin, adminController.createNeighbor);
 router.post('/generate-invite', authenticateToken, requireAdmin, adminController.generateInvite);
 router.get('/invites', authenticateToken, requireAdmin, adminController.getInvites);
+router.post('/neighbors/:id/reset', authenticateToken, requireAdmin, adminController.resetNeighbor);
+router.post('/neighbors/:id/toggle-exempt', authenticateToken, requireAdmin, adminController.toggleExemptNeighbor);
+router.post('/neighbors/:id/toggle-active', authenticateToken, requireAdmin, adminController.toggleNeighborActive);
+router.post('/neighbors/:id/update', authenticateToken, requireAdmin, adminController.updateNeighborDetails);
+router.post('/turn/set-active', authenticateToken, requireAdmin, adminController.setActiveTurnFloor);
+router.post('/turn/set-month', authenticateToken, requireAdmin, adminController.setActiveTurnMonth);
 router.get('/notifications/logs', authenticateToken, requireAdmin, adminController.getNotificationLogs);
 router.get('/incidents', authenticateToken, requireAdmin, adminController.getIncidents);
 router.post('/send-test-whatsapp', authenticateToken, requireAdmin, adminController.sendTestWhatsApp);

@@ -158,6 +158,7 @@ async function loadCommunityStatus() {
     renderDashboard(data);
     if (state.token && state.user?.isAdmin) {
       renderSecurityPanel();
+      loadActiveTurnOptions();
     }
   } catch (err) {
     console.error('Error cargando estado:', err);
@@ -1932,7 +1933,10 @@ function adminShowPanel(panelKey) {
   if (invitesTable) invitesTable.style.display = '';
   if (invitesTitle) invitesTitle.style.display = '';
 
-  if (panelKey === 'config' && config) config.style.display = '';
+  if (panelKey === 'config' && config) {
+    config.style.display = '';
+    loadActiveTurnOptions();
+  }
   if (panelKey === 'fees' && fees) fees.style.display = '';
   if (panelKey === 'finance' && finance) {
     finance.style.display = '';
@@ -1941,13 +1945,18 @@ function adminShowPanel(panelKey) {
     loadFinanceContributions();
   }
   if (panelKey === 'security' && security) security.style.display = '';
-  if (panelKey === 'visualization' && visualization) visualization.style.display = '';
+  if (panelKey === 'visualization' && visualization) {
+    visualization.style.display = '';
+    loadForceTurnPanelOptions();
+  }
 
   if (panelKey === 'users' && grid && users) {
     grid.style.display = '';
     grid.classList.add('admin-grid-single-panel');
     users.style.display = 'flex';
     users.style.flexDirection = 'column';
+    loadAdminNeighborsManagement();
+    renderSecurityPanel();
   }
 
   if (panelKey === 'invites' && grid && invites) {
@@ -2167,13 +2176,15 @@ async function handleSaveAdminOwner(event) {
 
 function renderSecurityPanel() {
   const summaryEl = document.getElementById('admin-security-summary');
-  const listEl = document.getElementById('admin-security-list');
-  if (!summaryEl || !listEl) return;
+  if (!summaryEl) return;
   const neighbors = (state.statusData?.neighbors || []).filter(n => !n.isAdmin);
   const total = neighbors.length;
   const enabled = neighbors.filter(n => n.twoFactorRegistered).length;
   const pending = total - enabled;
   summaryEl.innerHTML = `<span>2FA Activo: <strong>${enabled}</strong> / ${total} vecinos · Pendientes: <strong>${pending}</strong></span>`;
+  
+  const listEl = document.getElementById('admin-security-list');
+  if (!listEl) return;
   if (!neighbors.length) {
     listEl.innerHTML = '<div class="history-item">No hay vecinos para evaluar seguridad.</div>';
     return;
@@ -2299,6 +2310,7 @@ async function handleGenerateInvite(event) {
     
     // Recargar tabla de invitaciones
     await loadAdminInvites();
+    await loadAdminNeighborsManagement();
   } catch (err) {
     alert(`Error: ${err.message}`);
   }
@@ -2380,6 +2392,374 @@ async function handleDirectRegister(event) {
     document.getElementById('admin-direct-reg-form').reset();
     
     // Recargar estado del dashboard para mostrar que ya está registrado
+    await loadCommunityStatus();
+    await loadAdminNeighborsManagement();
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.classList.remove('hidden');
+  }
+}
+
+// Cargar y renderizar la tabla de gestión de vecinos (usuarios, teléfonos, bajas, exención de limpieza)
+async function loadAdminNeighborsManagement() {
+  const container = document.getElementById('admin-neighbors-list');
+  if (!container) return;
+  
+  container.innerHTML = '<tr><td colspan="5" class="text-center">Cargando viviendas y usuarios...</td></tr>';
+  
+  try {
+    const res = await fetch(`${API_URL}/public/status?_t=${Date.now()}`);
+    if (!res.ok) throw new Error('Error al recargar estado de la comunidad');
+    const data = await res.json();
+    state.statusData = data;
+    
+    container.innerHTML = '';
+    
+    if (!data.neighbors || data.neighbors.length === 0) {
+      container.innerHTML = '<tr><td colspan="5" class="text-center">No hay viviendas registradas.</td></tr>';
+      return;
+    }
+    
+    data.neighbors.forEach(n => {
+      const isRegistered = !!n.username;
+      
+      let statusBadge = '';
+      if (n.isAdmin) {
+        statusBadge = `<span class="badge" style="background: rgba(59, 130, 246, 0.1); color: var(--color-primary); display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="shield" style="width: 12px; height: 12px;"></i>Admin</span>`;
+      } else if (isRegistered) {
+        let authType = 'Activo';
+        if (n.deactivated) {
+          authType = 'Desactivado';
+        } else if (n.twoFactorRegistered && n.passkeys?.length > 0) {
+          authType = '2FA + Huella';
+        } else if (n.twoFactorRegistered) {
+          authType = '2FA Activo';
+        } else if (n.passkeys?.length > 0) {
+          authType = 'Huella Activa';
+        }
+
+        if (n.deactivated) {
+          statusBadge = `<span class="badge" style="background: rgba(239, 68, 68, 0.1); color: #f87171; display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="user-x" style="width: 12px; height: 12px;"></i>Desactivado</span>`;
+        } else {
+          statusBadge = `<span class="badge badge-success" title="Registrado como @${n.username}" style="display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="user-check" style="width: 12px; height: 12px;"></i>${authType}</span>`;
+        }
+      } else {
+        statusBadge = `<span class="badge" style="background: rgba(245, 158, 11, 0.1); color: var(--color-warning); display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="user-x" style="width: 12px; height: 12px;"></i>Pendiente</span>`;
+      }
+      
+      const exemptBadge = n.exemptFromCleaning 
+        ? `<button class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.7rem; border-color: rgba(239, 68, 68, 0.2); background: rgba(239, 68, 68, 0.05); color: #f87171; display: inline-flex; align-items: center; gap: 4px; height: 26px;" onclick="toggleNeighborExempt('${n.id}', false)" title="Haga clic para INCLUIR en limpieza">
+            <i data-lucide="moon" style="width: 12px; height: 12px;"></i>Exento
+           </button>`
+        : `<button class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.7rem; border-color: rgba(16, 185, 129, 0.2); background: rgba(16, 185, 129, 0.05); color: #34d399; display: inline-flex; align-items: center; gap: 4px; height: 26px;" onclick="toggleNeighborExempt('${n.id}', true)" title="Haga clic para EXIMIR de limpieza">
+            <i data-lucide="sun" style="width: 12px; height: 12px;"></i>Activo
+           </button>`;
+
+      const phoneDisplay = n.phone 
+        ? `<span style="font-size: 0.8rem; font-family: monospace;">${n.phone}</span>`
+        : `<span style="color: var(--text-muted); font-style: italic; font-size: 0.75rem;">Sin número</span>`;
+      
+      const isSelf = state.user?.id === n.id;
+      const editButton = `
+        <button class="btn btn-secondary" style="padding: 4px 8px; border-color: rgba(255, 255, 255, 0.15); background: rgba(255, 255, 255, 0.02); color: var(--text-main); display: inline-flex; align-items: center; gap: 4px; height: 28px; margin-right: 4px;" onclick="openEditNeighborModal('${n.id}')" title="Modificar Vivienda / Vecino">
+          <i data-lucide="edit-3" style="width: 12px; height: 12px;"></i>
+          <span style="font-size: 0.72rem;">Modificar</span>
+        </button>
+      `;
+
+      let actions = '';
+      if (!isRegistered) {
+        actions = editButton + `
+          <button class="btn btn-primary" style="padding: 5px 10px; font-size: 0.72rem; display: inline-flex; align-items: center; gap: 4px; height: 28px;" onclick="inviteNeighborViaWhatsApp('${n.id}', '${n.phone || ''}')" title="Enviar enlace de invitación por WhatsApp">
+            <i data-lucide="message-square" style="width: 12px; height: 12px;"></i>
+            <span>Invitar</span>
+          </button>
+        `;
+      } else {
+        let toggleActiveButton = '';
+        if (!isSelf) {
+          if (n.deactivated) {
+            toggleActiveButton = `
+              <button class="btn btn-secondary" style="padding: 4px 8px; border-color: rgba(16, 185, 129, 0.25); background: rgba(16, 185, 129, 0.03); color: #34d399; display: inline-flex; align-items: center; gap: 4px; height: 28px; margin-right: 4px;" onclick="toggleNeighborActive('${n.id}', true)" title="Activar acceso de la cuenta">
+                <i data-lucide="user-check" style="width: 12px; height: 12px;"></i>
+                <span style="font-size: 0.72rem;">Activar</span>
+              </button>
+            `;
+          } else {
+            toggleActiveButton = `
+              <button class="btn btn-secondary" style="padding: 4px 8px; border-color: rgba(245, 158, 11, 0.25); background: rgba(245, 158, 11, 0.03); color: #fbbf24; display: inline-flex; align-items: center; gap: 4px; height: 28px; margin-right: 4px;" onclick="toggleNeighborActive('${n.id}', false)" title="Desactivar temporalmente el acceso">
+                <i data-lucide="user-x" style="width: 12px; height: 12px;"></i>
+                <span style="font-size: 0.72rem;">Desactivar</span>
+              </button>
+            `;
+          }
+        }
+
+        actions = editButton + toggleActiveButton + `
+          <button class="btn btn-secondary" style="padding: 4px 8px; border-color: rgba(239, 68, 68, 0.25); background: rgba(239, 68, 68, 0.03); color: #f87171; display: inline-flex; align-items: center; gap: 4px; height: 28px;" onclick="resetNeighbor('${n.id}', '${n.floor}', ${isSelf})" title="Dar de baja y restablecer cuenta (eliminar contraseña para que vuelva a meterla)">
+            <i data-lucide="rotate-ccw" style="width: 12px; height: 12px;"></i>
+            <span style="font-size: 0.72rem;">Reiniciar</span>
+          </button>
+        `;
+      }
+      
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td><strong>${n.floor}</strong></td>
+        <td>${statusBadge}</td>
+        <td>${phoneDisplay}</td>
+        <td>${exemptBadge}</td>
+        <td style="white-space: nowrap;">${actions}</td>
+      `;
+      container.appendChild(row);
+    });
+    
+    lucide.createIcons();
+    renderSecurityPanel();
+  } catch (err) {
+    container.innerHTML = `<tr><td colspan="5" class="text-center error-msg">${err.message}</td></tr>`;
+  }
+}
+
+// Generar una invitación y enviarla directamente por WhatsApp al móvil
+async function inviteNeighborViaWhatsApp(floorId, currentPhone) {
+  let phone = currentPhone;
+  if (!phone) {
+    const input = prompt("Introduce el número de teléfono móvil de España (9 dígitos, ej. 600112233) para enviar la invitación por WhatsApp:");
+    if (input === null) return; // Cancelado por usuario
+    phone = input.trim();
+    if (!phone) {
+      alert("Es necesario un número de teléfono móvil para enviar la invitación.");
+      return;
+    }
+  }
+
+  try {
+    const res = await fetch(`${API_URL}/admin/generate-invite`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${state.token}`
+      },
+      body: JSON.stringify({ floorId, phone, sendWhatsApp: true })
+    });
+    
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al procesar la invitación.');
+    
+    alert(data.message);
+    
+    // Recargar tabla de gestión, listado de invitaciones y estado general
+    await loadAdminNeighborsManagement();
+    await loadAdminInvites();
+    await loadCommunityStatus();
+  } catch (err) {
+    alert(`Error: ${err.message}`);
+  }
+}
+
+// Dar de baja/reinicializar a un vecino
+async function resetNeighbor(floorId, floorName, isSelf) {
+  if (isSelf) {
+    if (!confirm("⚠️ ¿Estás seguro de que deseas DAR DE BAJA tu propio usuario administrador?\n\nPerderás la sesión de forma inmediata y la cuenta quedará pendiente de registro nuevamente.")) {
+      return;
+    }
+  } else {
+    if (!confirm(`🚨 ¿Estás seguro de que deseas DAR DE BAJA al vecino de la ${floorName}?\n\nEsto borrará permanentemente su usuario, contraseña, doble factor (2FA) y huellas. Deberá volver a registrarse.`)) {
+      return;
+    }
+  }
+
+  try {
+    const res = await fetch(`${API_URL}/admin/neighbors/${floorId}/reset`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${state.token}`
+      }
+    });
+    
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al reiniciar vecino.');
+    
+    alert(data.message);
+    
+    if (isSelf) {
+      handleLogout();
+    } else {
+      await loadAdminNeighborsManagement();
+      await loadCommunityStatus();
+    }
+  } catch (err) {
+    alert(`Error: ${err.message}`);
+  }
+}
+
+// Cambiar participación en limpieza
+async function toggleNeighborExempt(floorId, exempt) {
+  try {
+    const res = await fetch(`${API_URL}/admin/neighbors/${floorId}/toggle-exempt`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${state.token}`
+      }
+    });
+    
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al cambiar participación de limpieza.');
+    
+    await loadAdminNeighborsManagement();
+    await loadCommunityStatus();
+  } catch (err) {
+    alert(`Error: ${err.message}`);
+  }
+}
+
+// Activar/desactivar el acceso de un vecino
+async function toggleNeighborActive(floorId, active) {
+  try {
+    const res = await fetch(`${API_URL}/admin/neighbors/${floorId}/toggle-active`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${state.token}`
+      }
+    });
+    
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al cambiar estado de acceso del vecino.');
+    
+    await loadAdminNeighborsManagement();
+    await loadCommunityStatus();
+  } catch (err) {
+    alert(`Error: ${err.message}`);
+  }
+}
+
+// Abrir modal para modificar los datos de un vecino/vivienda
+function openEditNeighborModal(floorId) {
+  if (!state.statusData || !state.statusData.neighbors) return;
+  const n = state.statusData.neighbors.find(x => x.id === floorId);
+  if (!n) return;
+
+  document.getElementById('edit-neighbor-id').value = n.id;
+  const structure = state.statusData.structure || [];
+  const structUnit = structure.find(u => u.id === floorId) || {};
+  document.getElementById('edit-neighbor-name').value = structUnit.name || n.name || '';
+  document.getElementById('edit-neighbor-kind').value = n.kind || 'vivienda';
+  document.getElementById('edit-neighbor-phone').value = n.phone || '';
+  document.getElementById('edit-neighbor-fee').value = n.monthlyFeeOverride !== null ? n.monthlyFeeOverride : '';
+
+  document.getElementById('edit-neighbor-error').classList.add('hidden');
+  showView('edit-neighbor');
+}
+
+// Cerrar el modal de edición
+function closeEditNeighborModal() {
+  document.getElementById('edit-neighbor-form').reset();
+  showView('admin'); // Volver a la consola de administración
+}
+
+// Enviar los cambios de edición al servidor
+async function submitEditNeighbor(event) {
+  event.preventDefault();
+  
+  const id = document.getElementById('edit-neighbor-id').value;
+  const name = document.getElementById('edit-neighbor-name').value.trim();
+  const kind = document.getElementById('edit-neighbor-kind').value;
+  const phone = document.getElementById('edit-neighbor-phone').value.trim();
+  const feeInput = document.getElementById('edit-neighbor-fee').value.trim();
+  const monthlyFeeOverride = feeInput === '' ? null : Number(feeInput);
+
+  const errorEl = document.getElementById('edit-neighbor-error');
+  errorEl.classList.add('hidden');
+
+  const normalizedPhone = normalizeSpanishPhoneInput(phone);
+  if (phone && !normalizedPhone) {
+    errorEl.textContent = 'Teléfono móvil inválido. Introduce 9 dígitos, con o sin +34.';
+    errorEl.classList.remove('hidden');
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_URL}/admin/neighbors/${id}/update`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${state.token}`
+      },
+      body: JSON.stringify({ name, kind, phone: normalizedPhone || '', monthlyFeeOverride })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al actualizar vecino.');
+
+    closeEditNeighborModal();
+    await loadAdminNeighborsManagement();
+    await loadCommunityStatus();
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.classList.remove('hidden');
+  }
+}
+
+// Rellenar las opciones de selección para cambiar el turno activo de limpieza
+function loadActiveTurnOptions() {
+  const select = document.getElementById('admin-active-turn-floor');
+  if (!select) return;
+
+  select.innerHTML = '<option value="">Selecciona la vivienda activa...</option>';
+
+  if (!state.statusData || !state.statusData.neighbors) return;
+
+  // Filtrar vecinos no exentos de limpieza
+  const eligible = state.statusData.neighbors.filter(n => !n.exemptFromCleaning);
+
+  eligible.forEach(n => {
+    const opt = document.createElement('option');
+    opt.value = n.id;
+    opt.textContent = `${n.floor} ${n.username ? `(@${n.username})` : '(Sin registrar)'}`;
+    select.appendChild(opt);
+  });
+  
+  // Seleccionar la actual si existe
+  const activeId = state.statusData.state?.currentTurnFloorId;
+  if (activeId) {
+    select.value = activeId;
+  }
+}
+
+// Cambiar manualmente el turno activo
+async function handleSetActiveTurn(event) {
+  event.preventDefault();
+
+  const floorId = document.getElementById('admin-active-turn-floor').value;
+  const successEl = document.getElementById('admin-active-turn-success');
+  const errorEl = document.getElementById('admin-active-turn-error');
+
+  successEl.classList.add('hidden');
+  errorEl.classList.add('hidden');
+
+  if (!floorId) {
+    errorEl.textContent = 'Debes seleccionar una vivienda.';
+    errorEl.classList.remove('hidden');
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_URL}/admin/turn/set-active`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${state.token}`
+      },
+      body: JSON.stringify({ floorId })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al cambiar el turno activo.');
+
+    successEl.textContent = data.message;
+    successEl.classList.remove('hidden');
+
     await loadCommunityStatus();
   } catch (err) {
     errorEl.textContent = err.message;
@@ -3044,4 +3424,98 @@ function escapeHtmlForJs(value) {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
+}
+
+async function loadForceTurnPanelOptions() {
+  if (!state.token || !state.user || !state.user.isAdmin) return;
+
+  if (!state.statusData) {
+    await loadCommunityStatus();
+  }
+  const data = state.statusData;
+  if (!data) return;
+
+  const monthInput = document.getElementById('admin-force-month');
+  if (monthInput && data.state && data.state.currentMonth) {
+    monthInput.value = data.state.currentMonth.slice(0, 7);
+  }
+
+  const floorSelect = document.getElementById('admin-force-floor');
+  if (floorSelect) {
+    const activeFloorId = data.state?.currentTurnFloorId || '';
+    const eligibleNeighbors = (data.neighbors || [])
+      .filter(n => !n.exemptFromCleaning)
+      .sort((a, b) => Number(a.id) - Number(b.id));
+
+    floorSelect.innerHTML = eligibleNeighbors
+      .map(n => `<option value="${n.id}" ${n.id === activeFloorId ? 'selected' : ''}>${n.floor}</option>`)
+      .join('');
+  }
+}
+
+async function handleForceTurnState(event) {
+  event.preventDefault();
+  
+  if (!state.token || !state.user || !state.user.isAdmin) return;
+
+  const successEl = document.getElementById('admin-force-turn-success');
+  const errorEl = document.getElementById('admin-force-turn-error');
+  const monthInput = document.getElementById('admin-force-month');
+  const floorSelect = document.getElementById('admin-force-floor');
+
+  if (successEl) successEl.classList.add('hidden');
+  if (errorEl) errorEl.classList.add('hidden');
+
+  const selectedMonth = monthInput.value;
+  const selectedFloorId = floorSelect.value;
+
+  if (!selectedMonth || !selectedFloorId) {
+    if (errorEl) {
+      errorEl.textContent = 'Debes seleccionar tanto el mes como el vecino en turno.';
+      errorEl.classList.remove('hidden');
+    }
+    return;
+  }
+
+  try {
+    const monthRes = await fetch(`${API_URL}/admin/turn/set-month`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${state.token}`
+      },
+      body: JSON.stringify({ month: selectedMonth })
+    });
+    const monthData = await monthRes.json();
+    if (!monthRes.ok) {
+      throw new Error(monthData.error || 'Error al cambiar el mes de limpieza.');
+    }
+
+    const floorRes = await fetch(`${API_URL}/admin/turn/set-active`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${state.token}`
+      },
+      body: JSON.stringify({ floorId: selectedFloorId })
+    });
+    const floorData = await floorRes.json();
+    if (!floorRes.ok) {
+      throw new Error(floorData.error || 'Error al cambiar el vecino activo.');
+    }
+
+    if (successEl) {
+      successEl.textContent = 'Mes y turno activo actualizados correctamente.';
+      successEl.classList.remove('hidden');
+    }
+
+    await loadCommunityStatus();
+    await loadForceTurnPanelOptions();
+
+  } catch (err) {
+    if (errorEl) {
+      errorEl.textContent = err.message;
+      errorEl.classList.remove('hidden');
+    }
+  }
 }

@@ -262,7 +262,8 @@ function ensureDataShape(data) {
       twoFactorRegistered: !!existing.twoFactorRegistered,
       passkeys: Array.isArray(existing.passkeys) ? existing.passkeys : [],
       phone: existing.phone || '',
-      isAdmin: existing.isAdmin === true
+      isAdmin: existing.isAdmin === true,
+      deactivated: !!existing.deactivated
     };
   });
 
@@ -439,6 +440,29 @@ const dbService = {
     const index = data.neighbors.findIndex(n => n.id === id);
     if (index !== -1) {
       data.neighbors[index] = { ...data.neighbors[index], ...updates };
+      
+      const structIndex = data.communityStructure.findIndex(u => u.id === id);
+      if (structIndex !== -1) {
+        if (updates && Object.prototype.hasOwnProperty.call(updates, 'exemptFromCleaning')) {
+          data.communityStructure[structIndex].exemptFromCleaning = !!updates.exemptFromCleaning;
+        }
+        if (updates && (Object.prototype.hasOwnProperty.call(updates, 'name') || Object.prototype.hasOwnProperty.call(updates, 'kind'))) {
+          const u = data.communityStructure[structIndex];
+          if (Object.prototype.hasOwnProperty.call(updates, 'name')) {
+            u.name = String(updates.name || '').trim();
+          }
+          if (Object.prototype.hasOwnProperty.call(updates, 'kind')) {
+            u.kind = updates.kind === 'comercial' ? 'comercial' : 'vivienda';
+          }
+          
+          const floorText = u.kind === 'comercial' ? `Bajo ${u.floor}` : `Planta ${u.floor}`;
+          const doorText = u.door ? (u.kind === 'comercial' ? `Local ${u.door}` : `Puerta ${u.door}`) : '';
+          const portalText = u.portal ? `Portal ${u.portal}` : '';
+          const generatedLabel = [portalText, floorText, doorText].filter(Boolean).join(' · ');
+          u.floorLabel = u.name || generatedLabel;
+        }
+      }
+      
       writeDB(data);
       return data.neighbors[index];
     }
@@ -464,6 +488,16 @@ const dbService = {
     return neighbor;
   },
   getState: () => readDB().state,
+  setCurrentTurnFloorId: (floorId) => {
+    const data = readDB();
+    if (data.state) {
+      data.state.currentTurnFloorId = String(floorId);
+      data.state.lastRotationDate = new Date().toISOString();
+      writeDB(data);
+      return data.state;
+    }
+    return null;
+  },
   getHistory: () => readDB().history,
   getInviteTokens: () => readDB().inviteTokens,
   getInviteToken: (token) => readDB().inviteTokens.find(t => t.token === token),
