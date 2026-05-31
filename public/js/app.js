@@ -35,6 +35,8 @@ function fmtEur(value) {
 // Configuración de la API
 const API_URL = '/api';
 
+let historyLimit = 10;
+
 function showToast(message, type = 'info') {
   let container = document.getElementById('toast-container');
   if (!container) {
@@ -44,14 +46,28 @@ function showToast(message, type = 'info') {
     document.body.appendChild(container);
   }
   const toast = document.createElement('div');
-  toast.className = `toast toast-${type}`;
-  toast.textContent = message;
+  toast.className = `toast-notification ${type}`;
+  
+  let iconName = 'info';
+  if (type === 'success') iconName = 'check-circle';
+  else if (type === 'error') iconName = 'alert-circle';
+  else if (type === 'warning') iconName = 'alert-triangle';
+
+  toast.innerHTML = `
+    <div class="toast-icon">
+      <i data-lucide="${iconName}"></i>
+    </div>
+    <div class="toast-message">${message}</div>
+  `;
+
   container.appendChild(toast);
+  lucide.createIcons();
+
   requestAnimationFrame(() => toast.classList.add('show'));
   setTimeout(() => {
     toast.classList.remove('show');
-    setTimeout(() => toast.remove(), 220);
-  }, 3200);
+    setTimeout(() => toast.remove(), 400);
+  }, 4000);
 }
 
 function b64urlToBuffer(b64url) {
@@ -155,6 +171,7 @@ async function loadCommunityStatus() {
     const data = await res.json();
     state.statusData = data;
     
+    historyLimit = 10;
     renderDashboard(data);
     if (state.token && state.user?.isAdmin) {
       renderSecurityPanel();
@@ -305,7 +322,8 @@ function renderDashboard(data) {
   if (data.history.length === 0) {
     historyContainer.innerHTML = '<div class="history-item text-center">Aún no hay turnos completados en el historial.</div>';
   } else {
-    data.history.forEach(item => {
+    const visibleHistory = data.history.slice(0, historyLimit);
+    visibleHistory.forEach(item => {
       const neighbor = data.neighbors.find(n => n.id === item.floorId);
       const date = new Date(item.completedAt);
       
@@ -321,6 +339,18 @@ function renderDashboard(data) {
       
       historyContainer.appendChild(historyItem);
     });
+
+    if (data.history.length > historyLimit) {
+      const loadMoreBtn = document.createElement('button');
+      loadMoreBtn.className = 'btn btn-secondary glass btn-full';
+      loadMoreBtn.style.marginTop = '12px';
+      loadMoreBtn.innerHTML = '<i data-lucide="chevron-down"></i><span>Ver más turnos</span>';
+      loadMoreBtn.onclick = () => {
+        historyLimit += 10;
+        renderDashboard(state.statusData);
+      };
+      historyContainer.appendChild(loadMoreBtn);
+    }
   }
 
   // Recargar iconos insertados dinámicamente
@@ -350,6 +380,9 @@ function renderAdminUnitSelectors() {
 
 // Mostrar u ocultar vistas / modales
 function showView(viewName) {
+  // Sincronizar barra de navegación inferior móvil
+  updateBottomNavActive(viewName);
+
   // Mostrar dashboard por defecto
   const dashboardView = document.getElementById('view-dashboard');
   if (dashboardView) {
@@ -395,10 +428,11 @@ function showView(viewName) {
 // Renderizar la cabecera y el botón de sesión según el estado de auth
 function renderAuthHeader() {
   const authHeaderBtn = document.getElementById('auth-header-btn');
+  const headerDropdown = document.getElementById('header-dropdown');
   const displayName = (state.user && state.user.username) ? state.user.username : (state.user ? state.user.floor : '');
   
   if (state.token && state.user) {
-    authHeaderBtn.innerHTML = `
+    const desktopHtml = `
       <div class="session-dropdown-container" style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: flex-end;">
         ${state.user.isAdmin ? `
           <button class="btn btn-secondary glass" onclick="openAdminPanel()" title="Consola Administrador">
@@ -423,19 +457,145 @@ function renderAuthHeader() {
         </button>
       </div>
     `;
+
+    const mobileHtml = `
+      ${state.user.isAdmin ? `
+        <button class="btn btn-secondary glass" onclick="openAdminPanel(); toggleHeaderDropdown(false);" title="Consola Administrador">
+          <i data-lucide="shield-alert" class="text-warning"></i>
+          <span>Administrar</span>
+        </button>
+      ` : ''}
+      <button class="btn btn-secondary glass" onclick="openFinancePage(); toggleHeaderDropdown(false);" title="Estado de Cuentas">
+        <i data-lucide="line-chart"></i>
+        <span>Finanzas</span>
+      </button>
+      <button class="btn btn-secondary glass" onclick="openCertificatesPage(); toggleHeaderDropdown(false);" title="Certificados">
+        <i data-lucide="file-text"></i>
+        <span>Certificados</span>
+      </button>
+      <button class="btn btn-secondary glass" onclick="openProfileModal(); toggleHeaderDropdown(false);">
+        <i data-lucide="user"></i>
+        <span>${displayName}</span>
+      </button>
+      <button class="btn btn-secondary glass" onclick="handleLogout(); toggleHeaderDropdown(false);" title="Cerrar Sesión">
+        <i data-lucide="log-out"></i>
+        <span>Cerrar Sesión</span>
+      </button>
+    `;
+
+    if (authHeaderBtn) authHeaderBtn.innerHTML = desktopHtml;
+    if (headerDropdown) headerDropdown.innerHTML = mobileHtml;
   } else {
-    authHeaderBtn.innerHTML = `
-      <button class="btn btn-secondary glass" onclick="showView('login')">
+    const defaultHtml = `
+      <button class="btn btn-secondary glass" onclick="showView('login'); toggleHeaderDropdown(false);">
         <i data-lucide="user-check"></i>
         <span>Acceso Vecino</span>
       </button>
     `;
+    if (authHeaderBtn) authHeaderBtn.innerHTML = defaultHtml;
+    if (headerDropdown) headerDropdown.innerHTML = defaultHtml;
+  }
+  
+  // Renderizar también la barra de navegación inferior móvil
+  renderMobileBottomNav();
+  lucide.createIcons();
+}
+
+function toggleHeaderDropdown(forceState) {
+  const dropdown = document.getElementById('header-dropdown');
+  const overlay = document.getElementById('header-dropdown-overlay');
+  if (!dropdown || !overlay) return;
+  
+  const show = typeof forceState === 'boolean' ? forceState : !dropdown.classList.contains('open');
+  
+  if (show) {
+    dropdown.classList.add('open');
+    overlay.classList.add('active');
+  } else {
+    dropdown.classList.remove('open');
+    overlay.classList.remove('active');
+  }
+}
+
+function toggleAdminSidebar(forceState) {
+  const sidebar = document.getElementById('admin-sidebar');
+  const overlay = document.getElementById('admin-sidebar-overlay');
+  if (!sidebar || !overlay) return;
+  
+  const show = typeof forceState === 'boolean' ? forceState : !sidebar.classList.contains('open');
+  
+  if (show) {
+    sidebar.classList.add('open');
+    overlay.classList.add('active');
+  } else {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('active');
+  }
+}
+
+function renderMobileBottomNav() {
+  const bottomNav = document.getElementById('mobile-bottom-nav');
+  if (!bottomNav) return;
+  
+  if (state.token && state.user) {
+    bottomNav.innerHTML = `
+      <button onclick="showView('dashboard'); updateBottomNavActive('dashboard');" id="bottom-btn-dashboard" class="active">
+        <i data-lucide="home"></i>
+        <span>Inicio</span>
+      </button>
+      <button onclick="openFinancePage(); updateBottomNavActive('finance');" id="bottom-btn-finance">
+        <i data-lucide="line-chart"></i>
+        <span>Finanzas</span>
+      </button>
+      <button onclick="openCertificatesPage(); updateBottomNavActive('certificates');" id="bottom-btn-certificates">
+        <i data-lucide="file-text"></i>
+        <span>Certificados</span>
+      </button>
+      ${state.user.isAdmin ? `
+        <button onclick="openAdminPanel(); updateBottomNavActive('admin');" id="bottom-btn-admin">
+          <i data-lucide="shield-alert" class="text-warning"></i>
+          <span>Admin</span>
+        </button>
+      ` : ''}
+      <button onclick="openProfileModal(); updateBottomNavActive('profile');" id="bottom-btn-profile">
+        <i data-lucide="user"></i>
+        <span>Perfil</span>
+      </button>
+    `;
+    bottomNav.style.display = 'flex';
+  } else {
+    bottomNav.innerHTML = `
+      <button onclick="showView('dashboard'); updateBottomNavActive('dashboard');" id="bottom-btn-dashboard" class="active">
+        <i data-lucide="home"></i>
+        <span>Inicio</span>
+      </button>
+      <button onclick="showView('login'); updateBottomNavActive('login');" id="bottom-btn-login">
+        <i data-lucide="user-check"></i>
+        <span>Acceso</span>
+      </button>
+    `;
+    bottomNav.style.display = 'flex';
   }
   lucide.createIcons();
 }
 
+function updateBottomNavActive(viewName) {
+  const bottomNav = document.getElementById('mobile-bottom-nav');
+  if (!bottomNav) return;
+  
+  bottomNav.querySelectorAll('button').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  
+  const activeBtn = document.getElementById(`bottom-btn-${viewName}`);
+  if (activeBtn) {
+    activeBtn.classList.add('active');
+  }
+}
+
 async function openFinancePage() {
   if (!state.token || !state.user) return;
+  updateBottomNavActive('finance');
   const financeView = document.getElementById('view-finance');
   const dashboardView = document.getElementById('view-dashboard');
   if (!financeView) {
@@ -1909,6 +2069,9 @@ function adminGoTo(sectionId) {
 }
 
 function adminShowPanel(panelKey) {
+  // Cerrar sidebar en móvil al cambiar de panel
+  toggleAdminSidebar(false);
+
   const config = document.getElementById('admin-section-config');
   const fees = document.getElementById('admin-section-fees');
   const finance = document.getElementById('admin-section-finance');
@@ -3004,7 +3167,13 @@ function startWhatsAppPolling() {
 
 // Comprobar el estado en vivo de WhatsApp en el backend
 async function pollWhatsAppStatus() {
-  if (!state.token || !state.user || !state.user.isAdmin) return;
+  if (!state.token || !state.user || !state.user.isAdmin) {
+    if (adminWaPollInterval) {
+      clearInterval(adminWaPollInterval);
+      adminWaPollInterval = null;
+    }
+    return;
+  }
 
   const descEl = document.getElementById('admin-wa-desc');
   const spinnerEl = document.getElementById('admin-wa-spinner');
@@ -3013,12 +3182,24 @@ async function pollWhatsAppStatus() {
   const connectedBox = document.getElementById('admin-wa-connected-box');
   const phoneSpan = document.getElementById('admin-wa-phone-span');
 
+  if (!descEl || !spinnerEl || !qrBox || !qrImg || !connectedBox || !phoneSpan) {
+    if (adminWaPollInterval) {
+      clearInterval(adminWaPollInterval);
+      adminWaPollInterval = null;
+    }
+    return;
+  }
+
   try {
     const res = await fetch(`${API_URL}/admin/whatsapp/status`, {
       headers: {
         'Authorization': `Bearer ${state.token}`
       }
     });
+
+    if (!state.token || !state.user || !state.user.isAdmin) return;
+    const currentDescEl = document.getElementById('admin-wa-desc');
+    if (!currentDescEl) return;
 
     const data = await res.json();
 
@@ -3068,7 +3249,10 @@ async function pollWhatsAppStatus() {
     }
   } catch (err) {
     console.error('Error al sondear WhatsApp status:', err);
-    descEl.textContent = 'Estado: Error al comunicar con el servidor.';
+    const retryDescEl = document.getElementById('admin-wa-desc');
+    if (retryDescEl) {
+      retryDescEl.textContent = 'Estado: Error al comunicar con el servidor.';
+    }
   }
 }
 
@@ -3105,12 +3289,7 @@ async function loadWhatsAppGroupsAndConfig() {
 async function saveWhatsAppGroupConfig() {
   if (!state.token || !state.user || !state.user.isAdmin) return;
   const selectEl = document.getElementById('admin-wa-group-select');
-  const successEl = document.getElementById('admin-wa-success');
-  const errorEl = document.getElementById('admin-wa-error');
-  if (!selectEl || !successEl || !errorEl) return;
-
-  successEl.classList.add('hidden');
-  errorEl.classList.add('hidden');
+  if (!selectEl) return;
 
   try {
     const res = await fetch(`${API_URL}/admin/whatsapp/config`, {
@@ -3123,11 +3302,9 @@ async function saveWhatsAppGroupConfig() {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'No se pudo guardar el grupo.');
-    successEl.textContent = data.message || 'Grupo guardado correctamente.';
-    successEl.classList.remove('hidden');
+    showToast(data.message || 'Grupo guardado correctamente.', 'success');
   } catch (err) {
-    errorEl.textContent = err.message;
-    errorEl.classList.remove('hidden');
+    showToast(err.message, 'error');
   }
 }
 
@@ -3135,11 +3312,6 @@ async function forceTurnStartNotification() {
   if (!state.token || !state.user || !state.user.isAdmin) return;
   const confirmed = confirm('¿Seguro que quieres forzar el aviso del turno actual?');
   if (!confirmed) return;
-  const successEl = document.getElementById('admin-wa-success');
-  const errorEl = document.getElementById('admin-wa-error');
-  if (!successEl || !errorEl) return;
-  successEl.classList.add('hidden');
-  errorEl.classList.add('hidden');
 
   try {
     const res = await fetch(`${API_URL}/admin/notifications/force-turn-start`, {
@@ -3150,11 +3322,9 @@ async function forceTurnStartNotification() {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'No se pudo forzar el aviso.');
-    successEl.textContent = data.message || 'Aviso forzado enviado.';
-    successEl.classList.remove('hidden');
+    showToast(data.message || 'Aviso forzado enviado.', 'success');
   } catch (err) {
-    errorEl.textContent = err.message;
-    errorEl.classList.remove('hidden');
+    showToast(err.message, 'error');
   } finally {
     loadNotificationLogs();
   }

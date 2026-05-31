@@ -4,6 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VeciTurno - Comunidad de Vecinos</title>
+  <meta name="description" content="VeciTurno es la plataforma inteligente para comunidades de vecinos. Gestiona turnos de limpieza, cuotas, finanzas e incidencias de forma transparente y automatizada con integración de WhatsApp.">
+  <meta name="keywords" content="veciturno, comunidad de vecinos, turnos de limpieza, administracion de fincas, control de cuotas, whatsapp bot vecinos">
+  
+  <!-- OpenGraph Tags -->
+  <meta property="og:title" content="VeciTurno - Portal de tu Comunidad de Vecinos">
+  <meta property="og:description" content="Gestiona turnos de limpieza, cuotas, finanzas e incidencias de forma transparente y automatizada.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="favicon.svg">
+
+  <!-- Inline SVG Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%233b82f6%22/><path d=%22M50 20 L25 45 H75 Z M35 45 V75 H65 V45%22 fill=%22none%22 stroke=%22%23ffffff%22 stroke-width=%228%22 stroke-linejoin=%22round%22/><circle cx=%2250%22 cy=%2255%22 r=%228%22 fill=%22%23ffffff%22/></svg>">
+
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -40,13 +52,24 @@
           <span>En vivo</span>
         </div>
         
-        <!-- Botón de Acceso / Sesión -->
-        <div id="auth-header-btn">
+        <!-- Botón de Acceso / Sesión - Desktop -->
+        <div id="auth-header-btn" class="session-buttons-desktop">
           <button class="btn btn-secondary glass" onclick="showView('login')">
             <i data-lucide="user-check"></i>
             <span>Acceso Vecino</span>
           </button>
         </div>
+
+        <!-- Botón hamburguesa móvil -->
+        <button id="mobile-menu-btn" class="mobile-menu-toggle" aria-label="Abrir menú" onclick="toggleHeaderDropdown()">
+          <i data-lucide="menu"></i>
+        </button>
+
+        <!-- Overlay para cerrar dropdown al hacer clic fuera -->
+        <div id="header-dropdown-overlay" class="header-dropdown-overlay" onclick="toggleHeaderDropdown(false)"></div>
+
+        <!-- Menú Dropdown móvil -->
+        <div id="header-dropdown" class="header-dropdown"></div>
       </div>
     </header>
 
@@ -54,17 +77,17 @@
     <main id="view-dashboard" class="app-view active">
       
       <!-- Recomendación 2FA (Visible si no tiene 2FA y está logueado) -->
-      <div id="banner-2fa-recommendation" class="warning-banner glass-card hidden" style="margin-bottom: 24px; border-color: rgba(245, 158, 11, 0.2); background: radial-gradient(circle at top right, rgba(245, 158, 11, 0.05), transparent), var(--glass-bg); display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap;">
-        <div style="display: flex; align-items: center; gap: 16px;">
-          <div class="modal-icon text-warning" style="margin: 0; width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+      <div id="banner-2fa-recommendation" class="warning-banner glass-card recommendation-banner hidden">
+        <div class="banner-content">
+          <div class="modal-icon text-warning banner-icon">
             <i data-lucide="shield-alert"></i>
           </div>
           <div>
-            <h4 style="font-family: var(--font-title); font-size: 1.05rem; font-weight: 700;">🔐 Protege tu cuenta con Doble Factor (Recomendado)</h4>
-            <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 2px;">Actualmente tu cuenta de vecino no tiene activada la autenticación 2FA. Te recomendamos activarla para mayor seguridad.</p>
+            <h4 class="banner-title">🔐 Protege tu cuenta con Doble Factor (Recomendado)</h4>
+            <p class="banner-desc">Actualmente tu cuenta de vecino no tiene activada la autenticación 2FA. Te recomendamos activarla para mayor seguridad.</p>
           </div>
         </div>
-        <button class="btn btn-primary animate-hover" onclick="open2FASetupModal()" style="padding: 8px 16px; font-size: 0.85rem; background: linear-gradient(135deg, var(--color-warning), #d97706); box-shadow: 0 4px 15px rgba(245, 158, 11, 0.2); border: none;">Activar 2FA</button>
+        <button class="btn btn-primary animate-hover" onclick="open2FASetupModal()">Activar 2FA</button>
       </div>
 
       <!-- GRID PRINCIPAL -->
@@ -614,11 +637,18 @@
 
     <!-- VISTA: PANEL DE ADMINISTRADOR (PÁGINA COMPLETA) -->
     <section id="view-admin" class="app-view page-view">
+      <!-- Overlay para el sidebar de administración en móviles -->
+      <div id="admin-sidebar-overlay" class="admin-sidebar-overlay" onclick="toggleAdminSidebar(false)"></div>
+
       <div class="glass-card admin-page-shell">
         <div class="admin-page-topbar">
           <button class="btn btn-secondary" onclick="closeAdminPanel()">
             <i data-lucide="arrow-left"></i>
             <span>Volver a Inicio</span>
+          </button>
+          <button class="btn btn-secondary admin-mobile-menu-btn" onclick="toggleAdminSidebar(true)">
+            <i data-lucide="menu"></i>
+            <span>Menú</span>
           </button>
           <button class="btn btn-secondary" onclick="handleLogout()">
             <i data-lucide="log-out"></i>
@@ -635,8 +665,13 @@
         </div>
 
         <div class="admin-workspace">
-          <aside class="admin-sidebar glass-card">
-            <h3>Menú Admin</h3>
+          <aside class="admin-sidebar glass-card" id="admin-sidebar">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <h3 style="margin: 0;">Menú Admin</h3>
+              <button class="btn btn-secondary btn-icon admin-mobile-menu-btn" onclick="toggleAdminSidebar(false)" style="padding: 4px 8px; width: auto; min-width: auto; height: auto;">
+                <i data-lucide="x"></i>
+              </button>
+            </div>
             <nav class="admin-menu-nav">
               <button class="btn btn-secondary" type="button" data-admin-panel-btn="config" onclick="adminShowPanel('config')">
                 <i data-lucide="sliders-horizontal"></i>
@@ -808,7 +843,7 @@
         <section id="admin-section-fees" class="section-card glass-card">
           <h3>Cuotas</h3>
           <p class="box-desc">Gestiona cuotas base y overrides por unidad por separado de la estructura del edificio.</p>
-          <div class="section-card" style="margin-bottom: 12px;">
+          <div class="section-card admin-subsection">
             <h3 style="font-size: 1rem;">Cuotas de Comunidad</h3>
             <p class="box-desc">Define cuotas distintas para viviendas y bajos comerciales, con override por unidad si hace falta.</p>
             <form id="admin-fee-config-form" class="auth-form" onsubmit="handleSaveFeeConfig(event)">
@@ -845,7 +880,7 @@
         <section id="admin-section-finance" class="section-card glass-card">
           <h3>Finanzas</h3>
           <p class="box-desc">Carga y actualiza datos financieros sin mezclarlo con la gestión de estructura o cuotas.</p>
-          <div class="section-card" style="margin-bottom: 12px;">
+          <div class="section-card admin-subsection">
             <h3 style="font-size: 1rem;">Carga de Finanzas por Excel</h3>
             <p class="box-desc">Sube un .xlsx con columnas: <code>month</code> (YYYY-MM), <code>incomeFees</code>, <code>expenseElectricity</code>, <code>expenseInsurance</code>, <code>notes</code>.</p>
             <form id="admin-finance-excel-form" class="auth-form" onsubmit="handleFinanceExcelImport(event)">
@@ -868,7 +903,7 @@
               </button>
             </form>
           </div>
-          <div class="section-card" style="margin-bottom: 12px;">
+          <div class="section-card admin-subsection">
             <h3 style="font-size: 1rem;">Asignaciones de Remitentes</h3>
             <p class="box-desc">El sistema recuerda qué nombre de movimiento corresponde a cada unidad. Aquí puedes corregirlo manualmente.</p>
             <form class="auth-form" onsubmit="handleAddMovementAssignment(event)">
@@ -901,7 +936,7 @@
               </div>
             </div>
           </div>
-          <div class="section-card" style="margin-bottom: 12px;">
+          <div class="section-card admin-subsection">
             <h3 style="font-size: 1rem;">Histórico Importado</h3>
             <p class="box-desc">Resumen mensual de ingresos por cuotas y gastos detectados en las importaciones.</p>
             <div class="form-group" style="max-width: 320px; margin-bottom: 8px;">
@@ -921,7 +956,7 @@
               <div class="history-item">Cargando registros...</div>
             </div>
           </div>
-          <div class="section-card" style="margin-bottom: 12px;">
+          <div class="section-card admin-subsection">
             <h3 style="font-size: 1rem;">Desglose de Aportaciones</h3>
             <p class="box-desc">Cada cuota recibida con su fecha, importe, concepto y unidad asociada.</p>
             <div class="form-group" style="max-width: 320px; margin-bottom: 8px;">
@@ -1093,19 +1128,14 @@
                 <tbody id="admin-invites-list">
                   <!-- Render dinámico -->
                   <tr>
-                    <td colspan="3" class="text-center">Cargando invitaciones...</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <!-- Configuración / Panel de Control de WhatsApp Propio -->
-            <div id="admin-section-whatsapp" style="margin-top: 20px; border-top: 1px dashed var(--glass-border); padding-top: 16px;">
-              <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
-                <i data-lucide="message-square" class="text-success" style="width: 16px; height: 16px;"></i>
+                    <td colspan="3" cla            <!-- Configuración / Panel de Control de WhatsApp Propio -->
+            <div id="admin-section-whatsapp" class="admin-subsection" style="margin-top: 20px; border-top: 1px dashed var(--glass-border); padding-top: 16px;">
+              <h3 class="admin-subsection-title">
+                <i data-lucide="message-square" class="text-success"></i>
                 <span>Panel de WhatsApp Servidor de la Comunidad</span>
               </h3>
               <p class="box-desc" id="admin-wa-desc">Estado: Cargando pasarela de WhatsApp propia...</p>
+              
               <div class="form-group" style="margin-bottom: 10px;">
                 <label for="admin-wa-group-select">Grupo para Notificaciones de Turnos</label>
                 <div class="input-wrapper">
@@ -1116,45 +1146,83 @@
                 </div>
                 <span class="input-hint">Selecciona el grupo de WhatsApp donde se enviarán los avisos automáticos de rotación.</span>
               </div>
-              <button type="button" class="btn btn-primary btn-full" onclick="saveWhatsAppGroupConfig()" style="padding: 10px; font-size: 0.8rem; width: 100%; margin-bottom: 10px;">
-                <i data-lucide="save"></i>
-                <span>Guardar Grupo de Notificaciones</span>
-              </button>
-              <button type="button" class="btn btn-warning btn-full" onclick="forceTurnStartNotification()" style="padding: 10px; font-size: 0.8rem; width: 100%; margin-bottom: 10px; background: linear-gradient(135deg, var(--color-warning), #d97706); color: #fff;">
-                <i data-lucide="megaphone"></i>
-                <span>Forzar Aviso de Turno Actual</span>
-              </button>
-              <button type="button" class="btn btn-secondary btn-full" onclick="runWhatsAppRemindersNow()" style="padding: 10px; font-size: 0.8rem; width: 100%; margin-bottom: 10px;">
-                <i data-lucide="bell-ring"></i>
-                <span>Ejecutar Recordatorios Ahora</span>
-              </button>
-              <button type="button" class="btn btn-secondary btn-full" onclick="sendMonthlySummaryNow()" style="padding: 10px; font-size: 0.8rem; width: 100%; margin-bottom: 10px;">
-                <i data-lucide="bar-chart-3"></i>
-                <span>Enviar Resumen Mensual</span>
-              </button>
-              <button type="button" class="btn btn-secondary btn-full" onclick="sendFinanceSummaryNow()" style="padding: 10px; font-size: 0.8rem; width: 100%; margin-bottom: 10px;">
-                <i data-lucide="wallet"></i>
-                <span>Enviar Estado de Cuotas</span>
-              </button>
-              <button type="button" class="btn btn-secondary btn-full" onclick="createQuickPoll()" style="padding: 10px; font-size: 0.8rem; width: 100%; margin-bottom: 10px;">
-                <i data-lucide="list-checks"></i>
-                <span>Crear Encuesta Rápida</span>
-              </button>
-              <button type="button" class="btn btn-secondary btn-full" onclick="sendSegmentedMessageNow()" style="padding: 10px; font-size: 0.8rem; width: 100%; margin-bottom: 10px;">
-                <i data-lucide="send"></i>
-                <span>Enviar Difusión Segmentada</span>
-              </button>
-              <button type="button" class="btn btn-secondary btn-full" onclick="restartSystemWhatsApp()" style="padding: 10px; font-size: 0.8rem; width: 100%; margin-bottom: 10px;">
-                <i data-lucide="refresh-cw"></i>
-                <span>Reiniciar Cliente WhatsApp</span>
-              </button>
-              <div style="margin-top: 10px; border-top: 1px dashed var(--glass-border); padding-top: 10px;">
+
+              <div class="admin-grid" style="gap: 16px; margin-top: 10px; margin-bottom: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                <!-- Categoría 1: Configuración de Envíos -->
+                <div class="action-group">
+                  <div class="action-group-title">
+                    <i data-lucide="sliders-horizontal" class="section-icon"></i>
+                    <span>Configuración de Envíos</span>
+                  </div>
+                  <button type="button" class="btn btn-primary wa-action-btn" onclick="saveWhatsAppGroupConfig()">
+                    <i data-lucide="save"></i>
+                    <span>Guardar Grupo</span>
+                  </button>
+                  <button type="button" class="btn btn-warning-solid wa-action-btn" onclick="forceTurnStartNotification()">
+                    <i data-lucide="megaphone"></i>
+                    <span>Forzar Aviso Turno</span>
+                  </button>
+                </div>
+
+                <!-- Categoría 2: Tareas y Recordatorios -->
+                <div class="action-group">
+                  <div class="action-group-title">
+                    <i data-lucide="bell" class="section-icon"></i>
+                    <span>Tareas y Avisos</span>
+                  </div>
+                  <button type="button" class="btn btn-secondary wa-action-btn" onclick="runWhatsAppRemindersNow()">
+                    <i data-lucide="bell-ring"></i>
+                    <span>Recordatorios Ahora</span>
+                  </button>
+                  <button type="button" class="btn btn-secondary wa-action-btn" onclick="sendMonthlySummaryNow()">
+                    <i data-lucide="bar-chart-3"></i>
+                    <span>Resumen Mensual</span>
+                  </button>
+                  <button type="button" class="btn btn-secondary wa-action-btn" onclick="sendFinanceSummaryNow()">
+                    <i data-lucide="wallet"></i>
+                    <span>Estado de Cuotas</span>
+                  </button>
+                </div>
+
+                <!-- Categoría 3: Difusión e Interacción -->
+                <div class="action-group">
+                  <div class="action-group-title">
+                    <i data-lucide="message-circle" class="section-icon"></i>
+                    <span>Difusión y Encuestas</span>
+                  </div>
+                  <button type="button" class="btn btn-secondary wa-action-btn" onclick="createQuickPoll()">
+                    <i data-lucide="list-checks"></i>
+                    <span>Encuesta Rápida</span>
+                  </button>
+                  <button type="button" class="btn btn-secondary wa-action-btn" onclick="sendSegmentedMessageNow()">
+                    <i data-lucide="send"></i>
+                    <span>Difusión Segmentada</span>
+                  </button>
+                </div>
+
+                <!-- Categoría 4: Soporte del Sistema -->
+                <div class="action-group">
+                  <div class="action-group-title">
+                    <i data-lucide="cpu" class="section-icon"></i>
+                    <span>Soporte del Sistema</span>
+                  </div>
+                  <button type="button" class="btn btn-secondary wa-action-btn" onclick="restartSystemWhatsApp()">
+                    <i data-lucide="refresh-cw"></i>
+                    <span>Reiniciar Cliente</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Registro de Notificaciones -->
+              <div style="margin-top: 16px; border-top: 1px dashed var(--glass-border); padding-top: 10px;">
                 <h4 style="font-size: 0.85rem; margin-bottom: 8px;">Registro de Notificaciones</h4>
                 <div id="admin-notification-logs" class="history-list">
                   <div class="history-item">Cargando registro...</div>
                 </div>
               </div>
-              <div style="margin-top: 10px; border-top: 1px dashed var(--glass-border); padding-top: 10px;">
+
+              <!-- Incidencias desde WhatsApp -->
+              <div style="margin-top: 16px; border-top: 1px dashed var(--glass-border); padding-top: 10px;">
                 <h4 style="font-size: 0.85rem; margin-bottom: 8px;">Incidencias desde WhatsApp</h4>
                 <div id="admin-incidents-list" class="history-list">
                   <div class="history-item">Cargando incidencias...</div>
@@ -1162,7 +1230,7 @@
               </div>
               
               <!-- Contenedor del Estado / Vinculación por QR -->
-              <div id="admin-wa-wrapper" class="qr-container" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 14px; min-height: 180px; margin-bottom: 12px; background: rgba(255,255,255,0.01);">
+              <div id="admin-wa-wrapper" class="qr-container" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 14px; min-height: 180px; margin-top: 16px; margin-bottom: 12px; background: rgba(255,255,255,0.01);">
                 <div class="loading-spinner" id="admin-wa-spinner">Cargando estado...</div>
                 
                 <!-- Área de Vinculación QR (Oculta por defecto) -->
@@ -1175,7 +1243,7 @@
                 
                 <!-- Área Conectada (Oculta por defecto) -->
                 <div id="admin-wa-connected-box" class="hidden" style="text-align: center; width: 100%;">
-                  <div class="success-msg" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; padding: 6px 12px; margin-bottom: 10px; width: 100%; justify-content: center; border-radius: 8px;">
+                  <div class="success-msg wa-connected-status">
                     <i data-lucide="shield-check" style="width: 14px; height: 14px;"></i>
                     <span id="admin-wa-phone-span">Conectado</span>
                   </div>
@@ -1188,8 +1256,8 @@
                       <i data-lucide="send"></i>
                       <span>Enviar Notificación de Prueba</span>
                     </button>
-                    <button type="button" class="btn btn-secondary btn-full" onclick="disconnectSystemWhatsApp()" style="padding: 10px; font-size: 0.8rem; width: 100%; color: var(--color-danger); border-color: rgba(239, 68, 68, 0.2); background: rgba(239, 68, 68, 0.02);">
-                      <i data-lucide="log-out" style="color: var(--color-danger);"></i>
+                    <button type="button" class="btn btn-danger-outline btn-full" onclick="disconnectSystemWhatsApp()" style="padding: 10px; font-size: 0.8rem; width: 100%;">
+                      <i data-lucide="log-out"></i>
                       <span>Desvincular Dispositivo</span>
                     </button>
                   </div>
@@ -1238,7 +1306,9 @@
           </div>
 
           <div class="neighbors-list" id="neighbors-container">
-            <div class="loading-spinner">Cargando vecinos...</div>
+            <div class="skeleton-card skeleton"></div>
+            <div class="skeleton-card skeleton"></div>
+            <div class="skeleton-card skeleton"></div>
           </div>
         </section>
 
@@ -1265,12 +1335,12 @@
                 <h4 style="font-size: 0.85rem; font-weight: 700; border-bottom: 1px dashed var(--glass-border); padding-bottom: 6px; margin: 0;">Notificaciones de Turnos</h4>
                 
                 <div class="form-group">
-                  <label for="template-turn-start-general" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: 600; color: var(--text-color); margin-bottom: 6px;">
+                  <label for="template-turn-start-general" class="template-label">
                     <span>Inicio Turno (General / Grupo)</span>
-                    <span style="font-size: 0.7rem; opacity: 0.6; font-family: monospace;">turn_start_general</span>
+                    <span class="template-key">turn_start_general</span>
                   </label>
-                  <textarea id="template-turn-start-general" rows="4" class="form-control" style="background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text-color); font-family: monospace; font-size: 0.8rem; padding: 10px; resize: vertical; width: 100%;" required></textarea>
-                  <div class="template-placeholders" style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px;">
+                  <textarea id="template-turn-start-general" rows="4" class="form-textarea" required></textarea>
+                  <div class="template-placeholders">
                     <button type="button" class="btn-xs" onclick="insertPlaceholder('template-turn-start-general', '{mes}')">{mes}</button>
                     <button type="button" class="btn-xs" onclick="insertPlaceholder('template-turn-start-general', '{vecino}')">{vecino}</button>
                     <button type="button" class="btn-xs" onclick="insertPlaceholder('template-turn-start-general', '{comunidad}')">{comunidad}</button>
@@ -1278,12 +1348,12 @@
                 </div>
 
                 <div class="form-group" style="margin-top: 10px;">
-                  <label for="template-turn-start-individual" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: 600; color: var(--text-color); margin-bottom: 6px;">
+                  <label for="template-turn-start-individual" class="template-label">
                     <span>Inicio Turno (Individual / Vecino)</span>
-                    <span style="font-size: 0.7rem; opacity: 0.6; font-family: monospace;">turn_start_individual</span>
+                    <span class="template-key">turn_start_individual</span>
                   </label>
-                  <textarea id="template-turn-start-individual" rows="4" class="form-control" style="background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text-color); font-family: monospace; font-size: 0.8rem; padding: 10px; resize: vertical; width: 100%;" required></textarea>
-                  <div class="template-placeholders" style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px;">
+                  <textarea id="template-turn-start-individual" rows="4" class="form-textarea" required></textarea>
+                  <div class="template-placeholders">
                     <button type="button" class="btn-xs" onclick="insertPlaceholder('template-turn-start-individual', '{mes}')">{mes}</button>
                     <button type="button" class="btn-xs" onclick="insertPlaceholder('template-turn-start-individual', '{vecino}')">{vecino}</button>
                     <button type="button" class="btn-xs" onclick="insertPlaceholder('template-turn-start-individual', '{comunidad}')">{comunidad}</button>
@@ -1291,12 +1361,12 @@
                 </div>
 
                 <div class="form-group" style="margin-top: 10px;">
-                  <label for="template-turn-reminder-general" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: 600; color: var(--text-color); margin-bottom: 6px;">
+                  <label for="template-turn-reminder-general" class="template-label">
                     <span>Recordatorio Turno (General / Grupo)</span>
-                    <span style="font-size: 0.7rem; opacity: 0.6; font-family: monospace;">turn_reminder_general</span>
+                    <span class="template-key">turn_reminder_general</span>
                   </label>
-                  <textarea id="template-turn-reminder-general" rows="3" class="form-control" style="background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text-color); font-family: monospace; font-size: 0.8rem; padding: 10px; resize: vertical; width: 100%;" required></textarea>
-                  <div class="template-placeholders" style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px;">
+                  <textarea id="template-turn-reminder-general" rows="3" class="form-textarea" required></textarea>
+                  <div class="template-placeholders">
                     <button type="button" class="btn-xs" onclick="insertPlaceholder('template-turn-reminder-general', '{vecino}')">{vecino}</button>
                     <button type="button" class="btn-xs" onclick="insertPlaceholder('template-turn-reminder-general', '{tiempo}')">{tiempo}</button>
                     <button type="button" class="btn-xs" onclick="insertPlaceholder('template-turn-reminder-general', '{comunidad}')">{comunidad}</button>
@@ -1304,12 +1374,12 @@
                 </div>
 
                 <div class="form-group" style="margin-top: 10px;">
-                  <label for="template-turn-reminder-individual" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: 600; color: var(--text-color); margin-bottom: 6px;">
+                  <label for="template-turn-reminder-individual" class="template-label">
                     <span>Recordatorio Turno (Individual / Vecino)</span>
-                    <span style="font-size: 0.7rem; opacity: 0.6; font-family: monospace;">turn_reminder_individual</span>
+                    <span class="template-key">turn_reminder_individual</span>
                   </label>
-                  <textarea id="template-turn-reminder-individual" rows="3" class="form-control" style="background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text-color); font-family: monospace; font-size: 0.8rem; padding: 10px; resize: vertical; width: 100%;" required></textarea>
-                  <div class="template-placeholders" style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px;">
+                  <textarea id="template-turn-reminder-individual" rows="3" class="form-textarea" required></textarea>
+                  <div class="template-placeholders">
                     <button type="button" class="btn-xs" onclick="insertPlaceholder('template-turn-reminder-individual', '{vecino}')">{vecino}</button>
                     <button type="button" class="btn-xs" onclick="insertPlaceholder('template-turn-reminder-individual', '{tiempo}')">{tiempo}</button>
                     <button type="button" class="btn-xs" onclick="insertPlaceholder('template-turn-reminder-individual', '{comunidad}')">{comunidad}</button>
@@ -1322,12 +1392,12 @@
                 <h4 style="font-size: 0.85rem; font-weight: 700; border-bottom: 1px dashed var(--glass-border); padding-bottom: 6px; margin: 0;">Finanzas, Resúmenes e Invitaciones</h4>
                 
                 <div class="form-group">
-                  <label for="template-monthly-summary" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: 600; color: var(--text-color); margin-bottom: 6px;">
+                  <label for="template-monthly-summary" class="template-label">
                     <span>Resumen Mensual de Turnos</span>
-                    <span style="font-size: 0.7rem; opacity: 0.6; font-family: monospace;">monthly_summary</span>
+                    <span class="template-key">monthly_summary</span>
                   </label>
-                  <textarea id="template-monthly-summary" rows="4" class="form-control" style="background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text-color); font-family: monospace; font-size: 0.8rem; padding: 10px; resize: vertical; width: 100%;" required></textarea>
-                  <div class="template-placeholders" style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px;">
+                  <textarea id="template-monthly-summary" rows="4" class="form-textarea" required></textarea>
+                  <div class="template-placeholders">
                     <button type="button" class="btn-xs" onclick="insertPlaceholder('template-monthly-summary', '{vecino}')">{vecino}</button>
                     <button type="button" class="btn-xs" onclick="insertPlaceholder('template-monthly-summary', '{mes}')">{mes}</button>
                     <button type="button" class="btn-xs" onclick="insertPlaceholder('template-monthly-summary', '{historial}')">{historial}</button>
@@ -1336,12 +1406,12 @@
                 </div>
 
                 <div class="form-group" style="margin-top: 10px;">
-                  <label for="template-finance-summary" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: 600; color: var(--text-color); margin-bottom: 6px;">
+                  <label for="template-finance-summary" class="template-label">
                     <span>Resumen de Cuotas y Finanzas</span>
-                    <span style="font-size: 0.7rem; opacity: 0.6; font-family: monospace;">finance_summary</span>
+                    <span class="template-key">finance_summary</span>
                   </label>
-                  <textarea id="template-finance-summary" rows="4" class="form-control" style="background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text-color); font-family: monospace; font-size: 0.8rem; padding: 10px; resize: vertical; width: 100%;" required></textarea>
-                  <div class="template-placeholders" style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px;">
+                  <textarea id="template-finance-summary" rows="4" class="form-textarea" required></textarea>
+                  <div class="template-placeholders">
                     <button type="button" class="btn-xs" onclick="insertPlaceholder('template-finance-summary', '{mes}')">{mes}</button>
                     <button type="button" class="btn-xs" onclick="insertPlaceholder('template-finance-summary', '{ingresos}')">{ingresos}</button>
                     <button type="button" class="btn-xs" onclick="insertPlaceholder('template-finance-summary', '{gasto_seguro}')">{gasto_seguro}</button>
@@ -1353,12 +1423,12 @@
                 </div>
 
                 <div class="form-group" style="margin-top: 10px;">
-                  <label for="template-invite-neighbor" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: 600; color: var(--text-color); margin-bottom: 6px;">
+                  <label for="template-invite-neighbor" class="template-label">
                     <span>Invitación de Registro a Vecino</span>
-                    <span style="font-size: 0.7rem; opacity: 0.6; font-family: monospace;">invite_neighbor</span>
+                    <span class="template-key">invite_neighbor</span>
                   </label>
-                  <textarea id="template-invite-neighbor" rows="4" class="form-control" style="background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text-color); font-family: monospace; font-size: 0.8rem; padding: 10px; resize: vertical; width: 100%;" required></textarea>
-                  <div class="template-placeholders" style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px;">
+                  <textarea id="template-invite-neighbor" rows="4" class="form-textarea" required></textarea>
+                  <div class="template-placeholders">
                     <button type="button" class="btn-xs" onclick="insertPlaceholder('template-invite-neighbor', '{enlace}')">{enlace}</button>
                     <button type="button" class="btn-xs" onclick="insertPlaceholder('template-invite-neighbor', '{comunidad}')">{comunidad}</button>
                   </div>
@@ -1501,6 +1571,9 @@
     </section>
 
   </div>
+
+  <!-- Barra de navegación inferior móvil -->
+  <nav id="mobile-bottom-nav" class="mobile-bottom-nav"></nav>
 
   <!-- SCRIPT DEL FRONTEND -->
   <script src="js/app.js"></script>
