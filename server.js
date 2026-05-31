@@ -61,7 +61,7 @@ app.use(
 // 🛡️ Control de tasa (Rate Limiting) para prevenir DoS y fuerza bruta
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 150, // Límite razonable para la SPA por IP
+  max: config.NODE_ENV === 'development' ? 5000 : 1000, // Límite amplio de 5000 en dev y 1000 en prod para evitar bloqueos del administrador
   standardHeaders: true,
   legacyHeaders: false,
   message: {
