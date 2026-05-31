@@ -98,12 +98,6 @@ async function startServer() {
   // 🔌 Inicializar la base de datos híbrida (in-memory con Postgres/Supabase de respaldo)
   await dbService.initialize();
 
-  // 💬 Inicializar la pasarela de WhatsApp en segundo plano
-  whatsappService.initialize();
-  setInterval(() => {
-    whatsappService.runDailyReminders().catch(() => {});
-  }, 6 * 60 * 60 * 1000);
-
   // Levantar el servidor en el puerto configurado (según disponibilidad de SSL)
   if (sslOptions) {
     const secureServer = https.createServer(sslOptions, app);
@@ -115,6 +109,8 @@ async function startServer() {
       console.log(` Entorno actual: ${config.NODE_ENV}`);
       console.log(` Listo para desplegar en Hugging Face Spaces`);
       console.log(`====================================================`);
+      
+      initializeBackgroundServices();
     });
   } else {
     app.listen(config.PORT, () => {
@@ -125,7 +121,21 @@ async function startServer() {
       console.log(` Entorno actual: ${config.NODE_ENV}`);
       console.log(` Listo para desplegar en Hugging Face Spaces`);
       console.log(`====================================================`);
+      
+      initializeBackgroundServices();
     });
+  }
+}
+
+function initializeBackgroundServices() {
+  try {
+    console.log('🤖 Inicializando servicios en segundo plano (WhatsApp Bot)...');
+    whatsappService.initialize();
+    setInterval(() => {
+      whatsappService.runDailyReminders().catch(() => {});
+    }, 6 * 60 * 60 * 1000);
+  } catch (err) {
+    console.error('⚠️ No se pudieron arrancar los servicios en segundo plano:', err.message);
   }
 }
 
