@@ -2,7 +2,7 @@ require('dotenv').config();
 
 // Lista de variables requeridas y sus valores por defecto
 const config = {
-  PORT: parseInt(process.env.PORT || '3000', 10),
+  PORT: parseInt(process.env.PORT || '7860', 10),
   JWT_SECRET: process.env.JWT_SECRET,
   COMMUNITY_NAME: process.env.COMMUNITY_NAME || 'Comunidad VeciTurno',
   START_MONTH: process.env.START_MONTH || '2026-06-01',
