@@ -1930,3 +1930,22 @@ input[type='number'] {
     transform: translateY(0);
   }
 }
+
+/* WhatsApp Template Placeholder Button */
+.btn-xs {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  padding: 4px 8px;
+  transition: var(--transition-smooth);
+}
+
+.btn-xs:hover {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: var(--color-primary);
+}

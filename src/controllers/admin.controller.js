@@ -845,9 +845,9 @@ const adminController = {
         const whatsappService = require('../services/whatsapp.service');
         const status = whatsappService.getStatus();
 
-        const settings = dbService.getSettings();
-        const community = settings.communityName || 'nuestra comunidad';
-        const msg = `🏡 *VeciTurno (Invitación de Registro)*:\n\n¡Hola! Te invitamos a registrarte en el sistema de turnos de limpieza de *${community}*.\n\nPara configurar tu usuario y contraseña, accede al siguiente enlace:\n👉 ${inviteUrl}\n\n¡Gracias por colaborar! ✨`;
+        const msg = whatsappService.resolveTemplate('invite_neighbor', {
+          enlace: inviteUrl
+        });
 
         if (status.status !== 'connected') {
           whatsappError = 'La pasarela de WhatsApp no está vinculada. Generado enlace sin enviar WhatsApp.';
@@ -1179,10 +1179,20 @@ const adminController = {
       let formattedMonth = monthDate.toLocaleDateString('es-ES', monthOptions);
       formattedMonth = formattedMonth.charAt(0).toUpperCase() + formattedMonth.slice(1);
 
+      const message = whatsappService.resolveTemplate('turn_start_general', {
+        mes: formattedMonth,
+        vecino: currentNeighbor.floor
+      });
+      const individualMessage = whatsappService.resolveTemplate('turn_start_individual', {
+        mes: formattedMonth,
+        vecino: currentNeighbor.floor
+      });
+
       const result = await whatsappService.sendTurnStartNotifications({
         nextFloorName: currentNeighbor.floor,
         formattedMonth,
-        message: `🏡 *VeciTurno (Aviso Forzado por Admin)*:\n\nSe envía recordatorio de inicio de turno de limpieza de *${formattedMonth}*.\n\nTurno actual: *${currentNeighbor.floor}*.\n\nGracias por colaborar.`,
+        message,
+        individualMessage,
         groupId: settings.whatsappGroupId || '',
         individualPhone: currentNeighbor.phone || '',
         mode: 'manual'
@@ -1295,6 +1305,54 @@ const adminController = {
       res.json({ message: 'Dispositivo desvinculado con éxito del servidor.' });
     } catch (err) {
       res.status(500).json({ error: 'Error al desvincular el dispositivo de WhatsApp.' });
+    }
+  },
+
+  getWhatsAppTemplates: (req, res) => {
+    try {
+      const settings = dbService.getSettings();
+      return res.json({
+        templates: settings.whatsappTemplates || {}
+      });
+    } catch (err) {
+      return res.status(500).json({ error: 'No se pudieron cargar las plantillas de WhatsApp.' });
+    }
+  },
+
+  updateWhatsAppTemplates: (req, res) => {
+    try {
+      const { templates } = req.body || {};
+      if (!templates || typeof templates !== 'object') {
+        return res.status(400).json({ error: 'Debes enviar un objeto de plantillas válido.' });
+      }
+
+      const allowedKeys = [
+        'turn_start_general',
+        'turn_start_individual',
+        'turn_reminder_general',
+        'turn_reminder_individual',
+        'monthly_summary',
+        'finance_summary',
+        'invite_neighbor'
+      ];
+
+      const current = dbService.getSettings().whatsappTemplates || {};
+      const updatedTemplates = { ...current };
+
+      for (const key of allowedKeys) {
+        if (typeof templates[key] === 'string') {
+          updatedTemplates[key] = templates[key];
+        }
+      }
+
+      dbService.updateSettings({ whatsappTemplates: updatedTemplates });
+
+      return res.json({
+        message: 'Plantillas de WhatsApp actualizadas correctamente.',
+        templates: updatedTemplates
+      });
+    } catch (err) {
+      return res.status(500).json({ error: 'No se pudieron guardar las plantillas de WhatsApp.' });
     }
   },
 

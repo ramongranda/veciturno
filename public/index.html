@@ -1241,7 +1241,140 @@
             <div class="loading-spinner">Cargando vecinos...</div>
           </div>
         </section>
+
+        <!-- Personalización de Plantillas de WhatsApp -->
+        <section id="admin-section-whatsapp-templates" class="section-card glass-card" style="margin-top: 18px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 14px;">
+            <div>
+              <h3 style="margin: 0; display: flex; align-items: center; gap: 8px; border-bottom: none; padding-bottom: 0;">
+                <i data-lucide="layout-template" class="text-primary" style="color: var(--color-primary); width: 20px; height: 20px;"></i>
+                <span>Personalización de Plantillas de WhatsApp</span>
+              </h3>
+              <p class="box-desc" style="margin: 4px 0 0 0;">Configura y personaliza los textos que se envían automáticamente por WhatsApp usando placeholders dinámicos.</p>
+            </div>
+            <button type="button" class="btn btn-secondary" onclick="resetWhatsAppTemplatesToDefault()" style="padding: 6px 12px; font-size: 0.75rem;">
+              <i data-lucide="rotate-ccw" style="width: 14px; height: 14px;"></i>
+              <span>Valores por Defecto</span>
+            </button>
           </div>
+
+          <form id="admin-whatsapp-templates-form" onsubmit="handleSaveWhatsAppTemplates(event)" style="display: flex; flex-direction: column; gap: 16px;">
+            <div class="admin-grid" style="gap: 16px; margin-top: 10px;">
+              <!-- Columna Izquierda: Notificaciones de Turnos -->
+              <div style="display: flex; flex-direction: column; gap: 14px;">
+                <h4 style="font-size: 0.85rem; font-weight: 700; border-bottom: 1px dashed var(--glass-border); padding-bottom: 6px; margin: 0;">Notificaciones de Turnos</h4>
+                
+                <div class="form-group">
+                  <label for="template-turn-start-general" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: 600; color: var(--text-color); margin-bottom: 6px;">
+                    <span>Inicio Turno (General / Grupo)</span>
+                    <span style="font-size: 0.7rem; opacity: 0.6; font-family: monospace;">turn_start_general</span>
+                  </label>
+                  <textarea id="template-turn-start-general" rows="4" class="form-control" style="background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text-color); font-family: monospace; font-size: 0.8rem; padding: 10px; resize: vertical; width: 100%;" required></textarea>
+                  <div class="template-placeholders" style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px;">
+                    <button type="button" class="btn-xs" onclick="insertPlaceholder('template-turn-start-general', '{mes}')">{mes}</button>
+                    <button type="button" class="btn-xs" onclick="insertPlaceholder('template-turn-start-general', '{vecino}')">{vecino}</button>
+                    <button type="button" class="btn-xs" onclick="insertPlaceholder('template-turn-start-general', '{comunidad}')">{comunidad}</button>
+                  </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 10px;">
+                  <label for="template-turn-start-individual" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: 600; color: var(--text-color); margin-bottom: 6px;">
+                    <span>Inicio Turno (Individual / Vecino)</span>
+                    <span style="font-size: 0.7rem; opacity: 0.6; font-family: monospace;">turn_start_individual</span>
+                  </label>
+                  <textarea id="template-turn-start-individual" rows="4" class="form-control" style="background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text-color); font-family: monospace; font-size: 0.8rem; padding: 10px; resize: vertical; width: 100%;" required></textarea>
+                  <div class="template-placeholders" style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px;">
+                    <button type="button" class="btn-xs" onclick="insertPlaceholder('template-turn-start-individual', '{mes}')">{mes}</button>
+                    <button type="button" class="btn-xs" onclick="insertPlaceholder('template-turn-start-individual', '{vecino}')">{vecino}</button>
+                    <button type="button" class="btn-xs" onclick="insertPlaceholder('template-turn-start-individual', '{comunidad}')">{comunidad}</button>
+                  </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 10px;">
+                  <label for="template-turn-reminder-general" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: 600; color: var(--text-color); margin-bottom: 6px;">
+                    <span>Recordatorio Turno (General / Grupo)</span>
+                    <span style="font-size: 0.7rem; opacity: 0.6; font-family: monospace;">turn_reminder_general</span>
+                  </label>
+                  <textarea id="template-turn-reminder-general" rows="3" class="form-control" style="background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text-color); font-family: monospace; font-size: 0.8rem; padding: 10px; resize: vertical; width: 100%;" required></textarea>
+                  <div class="template-placeholders" style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px;">
+                    <button type="button" class="btn-xs" onclick="insertPlaceholder('template-turn-reminder-general', '{vecino}')">{vecino}</button>
+                    <button type="button" class="btn-xs" onclick="insertPlaceholder('template-turn-reminder-general', '{tiempo}')">{tiempo}</button>
+                    <button type="button" class="btn-xs" onclick="insertPlaceholder('template-turn-reminder-general', '{comunidad}')">{comunidad}</button>
+                  </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 10px;">
+                  <label for="template-turn-reminder-individual" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: 600; color: var(--text-color); margin-bottom: 6px;">
+                    <span>Recordatorio Turno (Individual / Vecino)</span>
+                    <span style="font-size: 0.7rem; opacity: 0.6; font-family: monospace;">turn_reminder_individual</span>
+                  </label>
+                  <textarea id="template-turn-reminder-individual" rows="3" class="form-control" style="background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text-color); font-family: monospace; font-size: 0.8rem; padding: 10px; resize: vertical; width: 100%;" required></textarea>
+                  <div class="template-placeholders" style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px;">
+                    <button type="button" class="btn-xs" onclick="insertPlaceholder('template-turn-reminder-individual', '{vecino}')">{vecino}</button>
+                    <button type="button" class="btn-xs" onclick="insertPlaceholder('template-turn-reminder-individual', '{tiempo}')">{tiempo}</button>
+                    <button type="button" class="btn-xs" onclick="insertPlaceholder('template-turn-reminder-individual', '{comunidad}')">{comunidad}</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Columna Derecha: Finanzas e Invitación -->
+              <div style="display: flex; flex-direction: column; gap: 14px;">
+                <h4 style="font-size: 0.85rem; font-weight: 700; border-bottom: 1px dashed var(--glass-border); padding-bottom: 6px; margin: 0;">Finanzas, Resúmenes e Invitaciones</h4>
+                
+                <div class="form-group">
+                  <label for="template-monthly-summary" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: 600; color: var(--text-color); margin-bottom: 6px;">
+                    <span>Resumen Mensual de Turnos</span>
+                    <span style="font-size: 0.7rem; opacity: 0.6; font-family: monospace;">monthly_summary</span>
+                  </label>
+                  <textarea id="template-monthly-summary" rows="4" class="form-control" style="background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text-color); font-family: monospace; font-size: 0.8rem; padding: 10px; resize: vertical; width: 100%;" required></textarea>
+                  <div class="template-placeholders" style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px;">
+                    <button type="button" class="btn-xs" onclick="insertPlaceholder('template-monthly-summary', '{vecino}')">{vecino}</button>
+                    <button type="button" class="btn-xs" onclick="insertPlaceholder('template-monthly-summary', '{mes}')">{mes}</button>
+                    <button type="button" class="btn-xs" onclick="insertPlaceholder('template-monthly-summary', '{historial}')">{historial}</button>
+                    <button type="button" class="btn-xs" onclick="insertPlaceholder('template-monthly-summary', '{comunidad}')">{comunidad}</button>
+                  </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 10px;">
+                  <label for="template-finance-summary" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: 600; color: var(--text-color); margin-bottom: 6px;">
+                    <span>Resumen de Cuotas y Finanzas</span>
+                    <span style="font-size: 0.7rem; opacity: 0.6; font-family: monospace;">finance_summary</span>
+                  </label>
+                  <textarea id="template-finance-summary" rows="4" class="form-control" style="background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text-color); font-family: monospace; font-size: 0.8rem; padding: 10px; resize: vertical; width: 100%;" required></textarea>
+                  <div class="template-placeholders" style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px;">
+                    <button type="button" class="btn-xs" onclick="insertPlaceholder('template-finance-summary', '{mes}')">{mes}</button>
+                    <button type="button" class="btn-xs" onclick="insertPlaceholder('template-finance-summary', '{ingresos}')">{ingresos}</button>
+                    <button type="button" class="btn-xs" onclick="insertPlaceholder('template-finance-summary', '{gasto_seguro}')">{gasto_seguro}</button>
+                    <button type="button" class="btn-xs" onclick="insertPlaceholder('template-finance-summary', '{gasto_luz}')">{gasto_luz}</button>
+                    <button type="button" class="btn-xs" onclick="insertPlaceholder('template-finance-summary', '{balance}')">{balance}</button>
+                    <button type="button" class="btn-xs" onclick="insertPlaceholder('template-finance-summary', '{notas}')">{notas}</button>
+                    <button type="button" class="btn-xs" onclick="insertPlaceholder('template-finance-summary', '{comunidad}')">{comunidad}</button>
+                  </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 10px;">
+                  <label for="template-invite-neighbor" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: 600; color: var(--text-color); margin-bottom: 6px;">
+                    <span>Invitación de Registro a Vecino</span>
+                    <span style="font-size: 0.7rem; opacity: 0.6; font-family: monospace;">invite_neighbor</span>
+                  </label>
+                  <textarea id="template-invite-neighbor" rows="4" class="form-control" style="background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text-color); font-family: monospace; font-size: 0.8rem; padding: 10px; resize: vertical; width: 100%;" required></textarea>
+                  <div class="template-placeholders" style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px;">
+                    <button type="button" class="btn-xs" onclick="insertPlaceholder('template-invite-neighbor', '{enlace}')">{enlace}</button>
+                    <button type="button" class="btn-xs" onclick="insertPlaceholder('template-invite-neighbor', '{comunidad}')">{comunidad}</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; width: 100%;">
+              <button type="submit" class="btn btn-success" style="padding: 12px 24px; min-width: 220px; display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
+                <i data-lucide="save" style="width: 16px; height: 16px;"></i>
+                <span>Guardar Plantillas</span>
+              </button>
+            </div>
+          </form>
+        </section>
+      </div>
         </div>
       </div>
     </section>

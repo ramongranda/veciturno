@@ -159,6 +159,42 @@ const whatsappService = {
   },
 
   /**
+   * Resuelve una plantilla de WhatsApp dinámica utilizando placeholders
+   */
+  resolveTemplate: (templateKey, placeholders = {}) => {
+    const dbService = require('./db.service');
+    const settings = dbService.getSettings();
+    const templates = settings.whatsappTemplates || {};
+    
+    let templateStr = templates[templateKey];
+    if (typeof templateStr !== 'string') {
+      const defaults = {
+        turn_start_general: '🏡 *VeciTurno (Notificación General)*:\n\n¡Atención comunidad! Ha comenzado el turno de limpieza de *{mes}*.\n\nLe corresponde limpiar de forma automática a: *{vecino}*.\n\n¡Gracias por colaborar con la limpieza y mantenimiento del portal! ✨',
+        turn_start_individual: '🏡 *VeciTurno (Aviso Forzado por Admin)*:\n\nSe envía recordatorio de inicio de turno de limpieza de *{mes}*.\n\nTurno actual: *{vecino}*.\n\nGracias por colaborar.',
+        turn_reminder_general: '🧹 *Recordatorio de turno de limpieza*\n\nEl turno de *{vecino}* comienza *{tiempo}*.',
+        turn_reminder_individual: '🧹 *Recordatorio de turno de limpieza*\n\nTu turno ({vecino}) comienza *{tiempo}*.\nPor favor confirma respondiendo: *OK TURNO*',
+        monthly_summary: '📊 *Resumen mensual VeciTurno*\n\nTurno actual: *{vecino}*\nMes: *{mes}*\n\nÚltimos turnos:\n{historial}\n\nGracias por colaborar.',
+        finance_summary: '💶 *Estado de cuotas y gastos ({mes})*\n\nIngresos por cuotas: {ingresos} €\nGasto seguro: {gasto_seguro} €\nGasto luz: {gasto_luz} €\nBalance: {balance} €\n{notas}',
+        invite_neighbor: '🏡 *VeciTurno (Invitación de Registro)*:\n\n¡Hola! Te invitamos a registrarte en el sistema de turnos de limpieza de *{comunidad}*.\n\nPara configurar tu usuario y contraseña, accede al siguiente enlace:\n👉 {enlace}\n\n¡Gracias por colaborar! ✨'
+      };
+      templateStr = defaults[templateKey] || '';
+    }
+
+    const allPlaceholders = {
+      comunidad: settings.communityName || 'Mi Comunidad',
+      ...placeholders
+    };
+
+    let resolved = templateStr;
+    for (const [key, val] of Object.entries(allPlaceholders)) {
+      const regex = new RegExp(`{${key}}`, 'g');
+      resolved = resolved.replace(regex, val !== undefined && val !== null ? String(val) : '');
+    }
+
+    return resolved;
+  },
+
+  /**
    * Envía un mensaje de WhatsApp a un número
    * @param {string} phone Teléfono del destinatario
    * @param {string} text Texto del mensaje
@@ -282,7 +318,13 @@ const whatsappService = {
       const neigh = neighbors.find(n => n.id === h.floorId);
       return `${idx + 1}. ${neigh ? neigh.floor : 'Desconocido'} - ${new Date(h.completedAt).toLocaleDateString('es-ES')}`;
     });
-    const msg = `📊 *Resumen mensual VeciTurno*\n\nTurno actual: *${current ? current.floor : 'N/D'}*\nMes: *${new Date(state.currentMonth).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}*\n\nÚltimos turnos:\n${lines.join('\n') || '- Sin historial'}\n\nGracias por colaborar.`;
+
+    const msg = whatsappService.resolveTemplate('monthly_summary', {
+      vecino: current ? current.floor : 'N/D',
+      mes: new Date(state.currentMonth).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }),
+      historial: lines.join('\n') || '- Sin historial'
+    });
+
     const groupId = settings.whatsappGroupId || '';
     const ok = groupId ? await whatsappService.sendMessageToGroup(groupId, msg) : false;
     return {
@@ -308,7 +350,16 @@ const whatsappService = {
       return { ok: false, error: 'No hay datos financieros cargados.' };
     }
     const balance = Number(rec.incomeFees || 0) - Number(rec.expenseInsurance || 0) - Number(rec.expenseElectricity || 0);
-    const message = `💶 *Estado de cuotas y gastos (${rec.month})*\n\nIngresos por cuotas: ${Number(rec.incomeFees || 0).toFixed(2)} €\nGasto seguro: ${Number(rec.expenseInsurance || 0).toFixed(2)} €\nGasto luz: ${Number(rec.expenseElectricity || 0).toFixed(2)} €\nBalance: ${balance.toFixed(2)} €\n${rec.notes ? `\nNotas: ${rec.notes}` : ''}`;
+
+    const message = whatsappService.resolveTemplate('finance_summary', {
+      mes: rec.month,
+      ingresos: Number(rec.incomeFees || 0).toFixed(2),
+      gasto_seguro: Number(rec.expenseInsurance || 0).toFixed(2),
+      gasto_luz: Number(rec.expenseElectricity || 0).toFixed(2),
+      balance: balance.toFixed(2),
+      notas: rec.notes ? `\nNotas: ${rec.notes}` : ''
+    });
+
     if (targetType === 'group') {
       const ok = await whatsappService.sendMessageToGroup(settings.whatsappGroupId || '', message);
       return { ok, log: { notificationType: 'finance_summary', mode: 'manual', channel: 'group', target: settings.whatsappGroupId || '', status: ok ? 'sent' : 'failed', error: ok ? '' : lastSendError, message } };
@@ -345,8 +396,15 @@ const whatsappService = {
     }
 
     const label = diffDays === 0 ? 'hoy' : `en ${diffDays} día(s)`;
-    const message = `🧹 *Recordatorio de turno de limpieza*\n\nEl turno de *${current.floor}* comienza *${label}*.`;
-    const individualMessage = `🧹 *Recordatorio de turno de limpieza*\n\nTu turno (${current.floor}) comienza *${label}*.\nPor favor confirma respondiendo: *OK TURNO*`;
+    const message = whatsappService.resolveTemplate('turn_reminder_general', {
+      vecino: current.floor,
+      tiempo: label
+    });
+    const individualMessage = whatsappService.resolveTemplate('turn_reminder_individual', {
+      vecino: current.floor,
+      tiempo: label
+    });
+
     const result = await whatsappService.sendTurnStartNotifications({
       nextFloorName: current.floor,
       formattedMonth: monthDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }),
@@ -531,12 +589,21 @@ const whatsappService = {
   sendRotationNotification: async (nextFloorName, formattedMonth, options = {}) => {
     const groupId = typeof options?.groupId === 'string' ? options.groupId : '';
     const individualPhone = typeof options?.individualPhone === 'string' ? options.individualPhone : '';
-    const message = `🏡 *VeciTurno (Notificación General)*:\n\n¡Atención comunidad! Ha comenzado el turno de limpieza de *${formattedMonth}*.\n\nLe corresponde limpiar de forma automática a: *${nextFloorName}*.\n\n¡Gracias por colaborar con la limpieza y mantenimiento del portal! ✨`;
+
+    const message = whatsappService.resolveTemplate('turn_start_general', {
+      mes: formattedMonth,
+      vecino: nextFloorName
+    });
+    const individualMessage = whatsappService.resolveTemplate('turn_start_individual', {
+      mes: formattedMonth,
+      vecino: nextFloorName
+    });
 
     return whatsappService.sendTurnStartNotifications({
       nextFloorName,
       formattedMonth,
       message,
+      individualMessage,
       groupId,
       individualPhone,
       mode: 'automatic'

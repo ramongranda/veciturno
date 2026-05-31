@@ -1498,6 +1498,7 @@ async function openAdminPanel() {
   // Cargar lista de invitaciones existentes
   await loadAdminInvites();
   await loadWhatsAppGroupsAndConfig();
+  await loadWhatsAppTemplates();
   await loadNotificationLogs();
   await loadIncidents();
 
@@ -3240,6 +3241,118 @@ async function sendSegmentedMessageNow() {
   if (!res.ok) return alert(data.error || 'No se pudo enviar la difusión.');
   alert(data.message || 'Difusión enviada.');
   loadNotificationLogs();
+}
+
+/* ==========================================================================
+   GESTOR DE PLANTILLAS DE WHATSAPP
+   ========================================================================== */
+
+function insertPlaceholder(textareaId, placeholderText) {
+  const el = document.getElementById(textareaId);
+  if (!el) return;
+  const start = el.selectionStart;
+  const end = el.selectionEnd;
+  const text = el.value;
+  el.value = text.slice(0, start) + placeholderText + text.slice(end);
+  el.focus();
+  el.selectionStart = el.selectionEnd = start + placeholderText.length;
+}
+
+async function loadWhatsAppTemplates() {
+  if (!state.token || !state.user || !state.user.isAdmin) return;
+  try {
+    const res = await fetch(`${API_URL}/admin/whatsapp/templates`, {
+      headers: { 'Authorization': `Bearer ${state.token}` }
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'No se pudieron cargar las plantillas.');
+
+    const templates = data.templates || {};
+    
+    const keys = [
+      'turn_start_general',
+      'turn_start_individual',
+      'turn_reminder_general',
+      'turn_reminder_individual',
+      'monthly_summary',
+      'finance_summary',
+      'invite_neighbor'
+    ];
+
+    keys.forEach((key) => {
+      const textarea = document.getElementById(`template-${key.replace(/_/g, '-')}`);
+      if (textarea) {
+        textarea.value = templates[key] || '';
+      }
+    });
+  } catch (err) {
+    showToast(`Error al cargar plantillas: ${err.message}`, 'error');
+  }
+}
+
+async function handleSaveWhatsAppTemplates(event) {
+  if (event) event.preventDefault();
+  if (!state.token || !state.user || !state.user.isAdmin) return;
+
+  const keys = [
+    'turn_start_general',
+    'turn_start_individual',
+    'turn_reminder_general',
+    'turn_reminder_individual',
+    'monthly_summary',
+    'finance_summary',
+    'invite_neighbor'
+  ];
+
+  const templates = {};
+  keys.forEach((key) => {
+    const textarea = document.getElementById(`template-${key.replace(/_/g, '-')}`);
+    if (textarea) {
+      templates[key] = textarea.value;
+    }
+  });
+
+  try {
+    const res = await fetch(`${API_URL}/admin/whatsapp/templates`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${state.token}`
+      },
+      body: JSON.stringify({ templates })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'No se pudieron guardar las plantillas.');
+
+    showToast(data.message || 'Plantillas guardadas correctamente.', 'success');
+    await loadWhatsAppTemplates();
+  } catch (err) {
+    showToast(`Error al guardar plantillas: ${err.message}`, 'error');
+  }
+}
+
+function resetWhatsAppTemplatesToDefault() {
+  const confirmed = confirm('¿Estás seguro de que deseas reestablecer los textos a los valores por defecto?\n\n(Deberás hacer clic en "Guardar Plantillas" para confirmar los cambios permanentemente en el servidor)');
+  if (!confirmed) return;
+
+  const defaults = {
+    'turn-start-general': '🏡 *VeciTurno (Notificación General)*:\n\n¡Atención comunidad! Ha comenzado el turno de limpieza de *{mes}*.\n\nLe corresponde limpiar de forma automática a: *{vecino}*.\n\n¡Gracias por colaborar con la limpieza y mantenimiento del portal! ✨',
+    'turn-start-individual': '🏡 *VeciTurno (Aviso Forzado por Admin)*:\n\nSe envía recordatorio de inicio de turno de limpieza de *{mes}*.\n\nTurno actual: *{vecino}*.\n\nGracias por colaborar.',
+    'turn-reminder-general': '🧹 *Recordatorio de turno de limpieza*\n\nEl turno de *{vecino}* comienza *{tiempo}*.',
+    'turn-reminder-individual': '🧹 *Recordatorio de turno de limpieza*\n\nTu turno ({vecino}) comienza *{tiempo}*.\nPor favor confirma respondiendo: *OK TURNO*',
+    'monthly-summary': '📊 *Resumen mensual VeciTurno*\n\nTurno actual: *{vecino}*\nMes: *{mes}*\n\nÚltimos turnos:\n{historial}\n\nGracias por colaborar.',
+    'finance-summary': '💶 *Estado de cuotas y gastos ({mes})*\n\nIngresos por cuotas: {ingresos} €\nGasto seguro: {gasto_seguro} €\nGasto luz: {gasto_luz} €\nBalance: {balance} €\n{notas}',
+    'invite-neighbor': '🏡 *VeciTurno (Invitación de Registro)*:\n\n¡Hola! Te invitamos a registrarte en el sistema de turnos de limpieza de *{comunidad}*.\n\nPara configurar tu usuario y contraseña, accede al siguiente enlace:\n👉 {enlace}\n\n¡Gracias por colaborar! ✨'
+  };
+
+  Object.entries(defaults).forEach(([id, text]) => {
+    const textarea = document.getElementById(`template-${id}`);
+    if (textarea) {
+      textarea.value = text;
+    }
+  });
+
+  showToast('Valores por defecto cargados en el formulario. Haz clic en "Guardar Plantillas" para confirmar.', 'info');
 }
 
 async function loadNotificationLogs() {

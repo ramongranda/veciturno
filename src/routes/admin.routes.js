@@ -43,6 +43,8 @@ router.get('/whatsapp/status', authenticateToken, requireAdmin, adminController.
 router.get('/whatsapp/groups', authenticateToken, requireAdmin, adminController.getWhatsAppGroups);
 router.get('/whatsapp/config', authenticateToken, requireAdmin, adminController.getWhatsAppConfig);
 router.post('/whatsapp/config', authenticateToken, requireAdmin, adminController.setWhatsAppGroupConfig);
+router.get('/whatsapp/templates', authenticateToken, requireAdmin, adminController.getWhatsAppTemplates);
+router.post('/whatsapp/templates', authenticateToken, requireAdmin, adminController.updateWhatsAppTemplates);
 router.post('/whatsapp/logout', authenticateToken, requireAdmin, adminController.logoutWhatsApp);
 router.post('/whatsapp/restart', authenticateToken, requireAdmin, adminController.restartWhatsApp);
 
