@@ -504,26 +504,28 @@ function renderAuthHeader() {
       </div>
     `;
 
+    // Menú hamburguesa = "sheet de cuenta": NO duplica la barra inferior
+    // (Inicio/Finanzas/Certificados/Admin/Perfil viven en la bottom-nav).
+    // Aquí: identidad + perfil + cierre de sesión destacado.
     const mobileHtml = `
+      <div class="account-sheet-head">
+        <span class="account-sheet-avatar"><i data-lucide="user"></i></span>
+        <span class="account-sheet-id">
+          <strong>${displayName}</strong>
+          <small>${state.user.isAdmin ? 'Administrador' : 'Vecino'}</small>
+        </span>
+      </div>
+      <button class="btn btn-secondary glass" onclick="openProfileModal(); toggleHeaderDropdown(false);">
+        <i data-lucide="settings"></i>
+        <span>Mi Perfil</span>
+      </button>
       ${state.user.isAdmin ? `
         <button class="btn btn-secondary glass" onclick="openAdminPanel(); toggleHeaderDropdown(false);" title="Consola Administrador">
           <i data-lucide="shield-alert" class="text-warning"></i>
           <span>Administrar</span>
         </button>
       ` : ''}
-      <button class="btn btn-secondary glass" onclick="openFinancePage(); toggleHeaderDropdown(false);" title="Estado de Cuentas">
-        <i data-lucide="line-chart"></i>
-        <span>Finanzas</span>
-      </button>
-      <button class="btn btn-secondary glass" onclick="openCertificatesPage(); toggleHeaderDropdown(false);" title="Certificados">
-        <i data-lucide="file-text"></i>
-        <span>Certificados</span>
-      </button>
-      <button class="btn btn-secondary glass" onclick="openProfileModal(); toggleHeaderDropdown(false);">
-        <i data-lucide="user"></i>
-        <span>${displayName}</span>
-      </button>
-      <button class="btn btn-secondary glass" onclick="handleLogout(); toggleHeaderDropdown(false);" title="Cerrar Sesión">
+      <button class="btn btn-logout" onclick="handleLogout(); toggleHeaderDropdown(false);">
         <i data-lucide="log-out"></i>
         <span>Cerrar Sesión</span>
       </button>
@@ -1736,7 +1738,9 @@ async function openAdminPanel() {
   await loadAdminOwnerConfig();
   renderSecurityPanel();
   adminShowPanel('config');
-  
+  // En móvil arrancar en la LISTA de secciones (master-detail), no en un panel.
+  if (window.matchMedia('(max-width: 768px)').matches) adminBackToMenu();
+
   // Cargar lista de invitaciones existentes
   await loadAdminInvites();
   await loadWhatsAppGroupsAndConfig();
@@ -2248,6 +2252,20 @@ function adminShowPanel(panelKey) {
     const isActive = btn.getAttribute('data-admin-panel-btn') === panelKey;
     btn.classList.toggle('admin-menu-btn-active', isActive);
   });
+
+  // Master-detail móvil: al abrir un panel, pasar a "vista detalle"
+  // (CSS oculta la lista de secciones y muestra el botón "Volver"). Inerte en desktop.
+  const adminView = document.getElementById('view-admin');
+  if (adminView) adminView.classList.add('admin-panel-open');
+  window.scrollTo(0, 0);
+}
+
+// Volver de un panel a la lista de secciones (master-detail móvil).
+function adminBackToMenu() {
+  const adminView = document.getElementById('view-admin');
+  if (adminView) adminView.classList.remove('admin-panel-open');
+  toggleAdminSidebar(false);
+  window.scrollTo(0, 0);
 }
 
 async function loadCommunityStructureConfig() {

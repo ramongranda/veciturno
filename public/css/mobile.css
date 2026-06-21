@@ -561,3 +561,65 @@
 @media (max-width: 768px) {
   .admin-grid { grid-template-columns: 1fr !important; }
 }
+
+/* ==========================================================================
+   §9 Reestructuración nav/admin (master-detail + sheet de cuenta + logout)
+   Solo móvil. Desktop intacto (todo dentro de @media max-width:768px).
+   ========================================================================== */
+@media (max-width: 768px) {
+  /* ---- Sheet de cuenta (menú hamburguesa, ya sin duplicar la bottom-nav) ---- */
+  .account-sheet-head {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 6px 12px; margin-bottom: 8px;
+    border-bottom: 1px solid var(--glass-border);
+  }
+  .account-sheet-avatar {
+    width: 40px; height: 40px; border-radius: 50%; flex: 0 0 auto;
+    display: grid; place-items: center;
+    background: rgba(59, 130, 246, 0.15); color: var(--color-primary);
+  }
+  .account-sheet-id { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
+  .account-sheet-id strong { font-size: 0.95rem; }
+  .account-sheet-id small { color: var(--text-muted); font-size: 0.75rem; }
+
+  /* Cierre de sesión destacado (estilo peligro) — usa el rojo de marca --color-danger */
+  .btn-logout {
+    width: 100%; min-height: 46px; margin-top: 6px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    border-radius: 12px; font-weight: 600;
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.40);
+    color: #fca5a5;
+  }
+  .btn-logout:hover, .btn-logout:active { background: rgba(239, 68, 68, 0.22); color: #fee2e2; }
+
+  /* ---- Admin master-detail ---- */
+  /* Vista LISTA (por defecto): el sidebar es una lista inline a ancho completo */
+  #view-admin .admin-workspace { display: block; }
+  #view-admin .admin-sidebar {
+    position: static !important; transform: none !important;
+    width: 100% !important; height: auto !important;
+    z-index: auto; box-shadow: none; border-radius: 16px; overflow: visible;
+  }
+  #view-admin .admin-sidebar .admin-mobile-menu-btn { display: none; } /* X del viejo drawer */
+  #view-admin .admin-content { display: none; }
+  .admin-back-btn { display: none; }
+
+  /* items de sección = filas grandes con chevron de navegación */
+  .admin-menu-nav .btn {
+    min-height: 54px; justify-content: flex-start; padding-right: 34px; position: relative;
+  }
+  .admin-menu-nav .btn::after {
+    content: "›"; position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+    font-size: 1.5rem; line-height: 1; color: var(--text-muted);
+  }
+
+  /* Vista DETALLE (panel abierto): ocultar lista, mostrar panel + "Secciones" */
+  #view-admin.admin-panel-open .admin-sidebar { display: none; }
+  #view-admin.admin-panel-open .admin-content { display: block; }
+  #view-admin.admin-panel-open .admin-back-btn { display: inline-flex; }
+  /* en detalle ocultar "Volver a Inicio" (se sale del admin desde la lista) */
+  #view-admin.admin-panel-open .admin-page-topbar > .btn:first-child { display: none; }
+  /* en la lista ocultar la cabecera modal redundante para subir el menú */
+  #view-admin:not(.admin-panel-open) .admin-page-shell > .modal-header { display: none; }
+}
