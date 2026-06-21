@@ -129,6 +129,12 @@ async function startServer() {
 }
 
 function initializeBackgroundServices() {
+  // Permite desactivar el bot de WhatsApp/puppeteer (p. ej. en Olares, donde no
+  // se necesita chromium en segundo plano). DISABLE_WHATSAPP=true → no arranca.
+  if (/^(1|true|yes)$/i.test(process.env.DISABLE_WHATSAPP || '')) {
+    console.log('🚫 WhatsApp Bot desactivado por DISABLE_WHATSAPP.');
+    return;
+  }
   try {
     console.log('🤖 Inicializando servicios en segundo plano (WhatsApp Bot)...');
     whatsappService.initialize();

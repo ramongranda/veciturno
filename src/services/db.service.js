@@ -409,7 +409,7 @@ const dbService = {
       console.log('🔌 Conectando a la base de datos remota de Supabase (PostgreSQL)...');
       pgPool = new Pool({
         connectionString: config.DATABASE_URL,
-        ssl: { rejectUnauthorized: false }
+        ssl: config.PG_SSL ? { rejectUnauthorized: false } : false
       });
 
       try {

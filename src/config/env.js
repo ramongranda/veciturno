@@ -1,5 +1,29 @@
 require('dotenv').config();
 
+// Construye DATABASE_URL desde variables sueltas si no se pasa directa.
+// Soporta nombres estándar (PG*) y los inyectados por plataformas (POSTGRES_*/DB_*),
+// p. ej. el Postgres gestionado de Olares (citus).
+function buildDatabaseUrl() {
+  if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
+  const host = process.env.PGHOST || process.env.POSTGRES_HOST || process.env.DB_HOST;
+  const user = process.env.PGUSER || process.env.POSTGRES_USER || process.env.DB_USER;
+  const password = process.env.PGPASSWORD || process.env.POSTGRES_PASSWORD || process.env.DB_PASSWORD || '';
+  const database = process.env.PGDATABASE || process.env.POSTGRES_DB || process.env.DB_NAME;
+  const port = process.env.PGPORT || process.env.POSTGRES_PORT || process.env.DB_PORT || '5432';
+  if (host && user && database) {
+    const auth = password
+      ? `${encodeURIComponent(user)}:${encodeURIComponent(password)}`
+      : encodeURIComponent(user);
+    return `postgres://${auth}@${host}:${port}/${database}`;
+  }
+  return '';
+}
+
+// SSL solo si se pide explícitamente. El citus interno de Olares NO usa SSL;
+// Supabase y otros gestionados sí → pon PG_SSL=true (o sslmode=require en la URL).
+const PG_SSL = /^(1|true|require|yes)$/i.test(process.env.PG_SSL || process.env.DATABASE_SSL || '')
+  || /sslmode=require/i.test(process.env.DATABASE_URL || '');
+
 // Lista de variables requeridas y sus valores por defecto
 const config = {
   PORT: parseInt(process.env.PORT || '7860', 10),
@@ -11,7 +35,8 @@ const config = {
   NODE_ENV: process.env.NODE_ENV || 'development',
   SYSTEM_WHATSAPP_API_KEY: process.env.SYSTEM_WHATSAPP_API_KEY || '',
   NOTIFICATIONS_GROUP_URL: process.env.NOTIFICATIONS_GROUP_URL || '',
-  DATABASE_URL: process.env.DATABASE_URL || '',
+  DATABASE_URL: buildDatabaseUrl(),
+  PG_SSL,
   APP_BASE_URL: (process.env.APP_BASE_URL || '').replace(/\/+$/, '')
 };
 
