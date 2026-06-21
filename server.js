@@ -76,8 +76,18 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Servir archivos estáticos del frontend
-app.use(express.static(path.join(__dirname, 'public')));
+// Servir archivos estáticos del frontend.
+// CSS/JS/HTML con 'no-cache' → el navegador revalida (ETag) en cada carga, así
+// los cambios de estilos/código se ven siempre sin caché pegada.
+app.use(express.static(path.join(__dirname, 'public'), {
+  etag: true,
+  lastModified: true,
+  setHeaders: (res, filePath) => {
+    if (/\.(css|js|html)$/i.test(filePath)) {
+      res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+    }
+  }
+}));
 
 // Desactivar caché del navegador para toda la API REST (garantiza datos en tiempo real)
 app.use('/api', (req, res, next) => {
