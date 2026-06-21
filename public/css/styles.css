@@ -2519,3 +2519,106 @@ input[type='number'] {
   margin-bottom: 6px;
   display: block;
 }
+
+/* ==========================================================================
+   MOBILE RESPONSIVE OVERHAUL — "movilidad absoluta"
+   Bloque añadido al final: por cascada sobreescribe lo anterior.
+   Breakpoints: <=900 (tablet/drawer admin) · <=640 (teléfono) · <=480 · <=380
+   ========================================================================== */
+
+/* 0. Guardas globales: jamás scroll horizontal; media e iconos nunca desbordan */
+html { -webkit-text-size-adjust: 100%; }
+html, body { max-width: 100%; overflow-x: hidden; }
+img, svg, video, canvas { max-width: 100%; height: auto; }
+
+/* ---- <=900px: el sidebar admin es SIEMPRE drawer (cierra el hueco 651-899) -- */
+@media (max-width: 900px) {
+  .admin-workspace { grid-template-columns: 1fr; }
+  .admin-sidebar {
+    position: fixed; left: 0; top: 0;
+    width: min(280px, 84vw); height: 100vh; height: 100dvh;
+    z-index: 200; border-radius: 0 18px 18px 0;
+    transform: translateX(-110%);
+    transition: transform .3s cubic-bezier(.4,0,.2,1);
+    overflow-y: auto;
+    box-shadow: 8px 0 30px rgba(0,0,0,.5);
+    padding-top: max(16px, env(safe-area-inset-top));
+  }
+  .admin-sidebar.open { transform: translateX(0); }
+  .admin-mobile-menu-btn { display: inline-flex; }
+}
+
+/* ---- <=640px: layout teléfono ---- */
+@media (max-width: 640px) {
+  /* contenedores: menos padding + hueco para la barra inferior */
+  .app-container { padding: 12px; padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
+  .glass-card { padding: 16px; }
+  .app-header { gap: 10px; }
+
+  /* menú hamburguesa: nunca más ancho que el viewport */
+  .header-dropdown { min-width: min(220px, calc(100vw - 28px)); max-width: calc(100vw - 24px); }
+
+  /* grids -> 1 columna */
+  .admin-grid, .dashboard-grid { grid-template-columns: 1fr !important; }
+  .finance-kpi-grid { grid-template-columns: repeat(2, 1fr); }
+
+  /* tablas: scroll horizontal suave en lugar de aplastarse */
+  .table-container, .invite-table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .admin-table, table.table { min-width: 520px; }
+
+  /* modales casi a pantalla completa */
+  .app-view.modal-like { padding: 12px; }
+  .modal-card, .modal-card.register-modal {
+    max-width: calc(100vw - 16px); width: 100%; padding: 16px;
+  }
+  .modal-close { width: 44px; height: 44px; top: 12px; right: 12px; }
+
+  /* formularios */
+  .button-row { flex-direction: column-reverse; gap: 10px; }
+  .button-row .btn { width: 100%; }
+  /* 16px en inputs evita el zoom automático de iOS al enfocar */
+  .input-wrapper input, .input-wrapper select { padding-left: 38px; font-size: 16px; }
+  .input-wrapper > i, .input-wrapper > svg { left: 12px; }
+
+  /* touch targets >= 44px */
+  .btn { min-height: 44px; }
+  .btn-icon { width: 44px; height: 44px; min-width: 44px; }
+
+  /* tabs de finanzas: scrollables, sin romper la fila */
+  .expense-tabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .expense-tabs .btn { flex: 0 0 auto; }
+
+  /* QR + 2FA */
+  .setup-2fa-layout { grid-template-columns: 1fr; }
+  .qr-container img, .setup-2fa-layout img { width: 150px; height: 150px; }
+
+  /* listas (historial / notificaciones) apiladas */
+  .history-item { flex-direction: column; align-items: flex-start; gap: 6px; }
+
+  /* barra inferior con safe-area */
+  .mobile-bottom-nav { padding-bottom: max(6px, env(safe-area-inset-bottom)); }
+}
+
+/* ---- <=480px: teléfono estándar ---- */
+@media (max-width: 480px) {
+  .app-container { padding: 10px; padding-bottom: calc(86px + env(safe-area-inset-bottom)); }
+  .glass-card { padding: 14px; }
+  h1 { font-size: 1.5rem; line-height: 1.2; }
+  h2 { font-size: 1.25rem; }
+  .input-2fa input { font-size: 1.4rem; letter-spacing: .2rem; }
+  .finance-kpi-grid { grid-template-columns: 1fr; }
+  .qr-container img, .setup-2fa-layout img { width: 132px; height: 132px; }
+  .recommendation-banner { flex-direction: column; gap: 12px; align-items: stretch; }
+  .recommendation-banner .btn { width: 100%; }
+  .copy-input-row .btn-icon { height: 44px; }
+  .next-turn-card { max-width: 100%; }
+}
+
+/* ---- <=380px: móvil pequeño (iPhone SE) ---- */
+@media (max-width: 380px) {
+  .app-container { padding: 8px; }
+  .glass-card { padding: 12px; }
+  .btn { padding: 10px 14px; font-size: .85rem; }
+  .input-2fa input { font-size: 1.2rem; letter-spacing: .12rem; }
+  .qr-container img, .setup-2fa-layout img { width: 120px; height: 120px; }
+}
