@@ -387,12 +387,12 @@ function readDB() {
 function writeDB(data) {
   dbInMemoryData = ensureDataShape(data);
   if (config.DATABASE_URL && pgPool) {
-    // Sincronización asíncrona en segundo plano a Supabase (PostgreSQL)
+    // Sincronización asíncrona en segundo plano a PostgreSQL gestionado
     pgPool.query(
       'INSERT INTO veciturno_store (id, data) VALUES (1, $1) ON CONFLICT (id) DO UPDATE SET data = $1',
       [JSON.stringify(dbInMemoryData)]
     ).catch((err) => {
-      console.error('Error al guardar asíncronamente en PostgreSQL/Supabase:', err.message);
+      console.error('Error al guardar asíncronamente en PostgreSQL:', err.message);
     });
   } else {
     try {
@@ -406,7 +406,7 @@ function writeDB(data) {
 const dbService = {
   initialize: async () => {
     if (config.DATABASE_URL) {
-      console.log('🔌 Conectando a la base de datos remota de Supabase (PostgreSQL)...');
+      console.log('🔌 Conectando a la base de datos remota de PostgreSQL gestionado...');
       pgPool = new Pool({
         connectionString: config.DATABASE_URL,
         ssl: config.PG_SSL ? { rejectUnauthorized: false } : false
@@ -422,16 +422,16 @@ const dbService = {
 
         const res = await pgPool.query('SELECT data FROM veciturno_store WHERE id = 1');
         if (res.rows.length > 0) {
-          console.log('✅ Base de datos remota cargada correctamente de Supabase.');
+          console.log('✅ Base de datos remota cargada correctamente de PostgreSQL.');
           dbInMemoryData = ensureDataShape(res.rows[0].data);
         } else {
-          console.log('📦 Inicializando base de datos vacía en Supabase...');
+          console.log('📦 Inicializando base de datos vacía en PostgreSQL...');
           const data = buildInitialData();
           await pgPool.query('INSERT INTO veciturno_store (id, data) VALUES (1, $1)', [JSON.stringify(data)]);
           dbInMemoryData = ensureDataShape(data);
         }
       } catch (err) {
-        console.error('❌ Error crítico al inicializar la base de datos remota en Supabase:', err.message);
+        console.error('❌ Error crítico al inicializar la base de datos remota en PostgreSQL:', err.message);
         console.log('⚠️ Rebotando al archivo JSON local temporal como medida de seguridad.');
         loadFromLocalJSONFile();
       }

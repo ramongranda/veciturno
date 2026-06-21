@@ -96,7 +96,7 @@ app.get('*', (req, res) => {
 });
 
 async function startServer() {
-  // 🔌 Inicializar la base de datos híbrida (in-memory con Postgres/Supabase de respaldo)
+  // 🔌 Inicializar la base de datos híbrida (in-memory con Postgres gestionado de respaldo)
   await dbService.initialize();
 
   // Levantar el servidor en el puerto configurado (según disponibilidad de SSL)
