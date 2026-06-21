@@ -5,11 +5,11 @@ require('dotenv').config();
 // p. ej. el Postgres gestionado de Olares (citus).
 function buildDatabaseUrl() {
   if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
-  const host = process.env.PGHOST || process.env.POSTGRES_HOST || process.env.DB_HOST;
-  const user = process.env.PGUSER || process.env.POSTGRES_USER || process.env.DB_USER;
-  const password = process.env.PGPASSWORD || process.env.POSTGRES_PASSWORD || process.env.DB_PASSWORD || '';
-  const database = process.env.PGDATABASE || process.env.POSTGRES_DB || process.env.DB_NAME;
-  const port = process.env.PGPORT || process.env.POSTGRES_PORT || process.env.DB_PORT || '5432';
+  const host = process.env.PGHOST || process.env.POSTGRES_HOST || process.env.PG_HOST || process.env.DB_HOST;
+  const user = process.env.PGUSER || process.env.POSTGRES_USER || process.env.PG_USER || process.env.DB_USER;
+  const password = process.env.PGPASSWORD || process.env.POSTGRES_PASSWORD || process.env.PG_PASS || process.env.DB_PASSWORD || '';
+  const database = process.env.PGDATABASE || process.env.POSTGRES_DB || process.env.PG_DBNAME || process.env.DB_NAME;
+  const port = process.env.PGPORT || process.env.POSTGRES_PORT || process.env.PG_PORT || process.env.DB_PORT || '5432';
   if (host && user && database) {
     const auth = password
       ? `${encodeURIComponent(user)}:${encodeURIComponent(password)}`
@@ -27,7 +27,7 @@ const PG_SSL = /^(1|true|require|yes)$/i.test(process.env.PG_SSL || process.env.
 // Lista de variables requeridas y sus valores por defecto
 const config = {
   PORT: parseInt(process.env.PORT || '7860', 10),
-  JWT_SECRET: process.env.JWT_SECRET,
+  JWT_SECRET: process.env.JWT_SECRET || process.env.JWT_TOKEN,
   COMMUNITY_NAME: process.env.COMMUNITY_NAME || 'Comunidad VeciTurno',
   START_MONTH: process.env.START_MONTH || '2026-06-01',
   START_FLOOR_ID: process.env.START_FLOOR_ID || '1',
