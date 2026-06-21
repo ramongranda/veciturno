@@ -32,6 +32,8 @@ router.post('/turn/set-active', authenticateToken, requireAdmin, adminController
 router.post('/turn/set-month', authenticateToken, requireAdmin, adminController.setActiveTurnMonth);
 router.get('/notifications/logs', authenticateToken, requireAdmin, adminController.getNotificationLogs);
 router.get('/incidents', authenticateToken, requireAdmin, adminController.getIncidents);
+router.post('/announcements', authenticateToken, requireAdmin, adminController.createAnnouncement);
+router.delete('/announcements/:id', authenticateToken, requireAdmin, adminController.deleteAnnouncement);
 router.post('/send-test-whatsapp', authenticateToken, requireAdmin, adminController.sendTestWhatsApp);
 router.post('/notifications/force-turn-start', authenticateToken, requireAdmin, adminController.forceTurnStartNotification);
 router.post('/notifications/run-reminders', authenticateToken, requireAdmin, adminController.runWhatsAppReminders);

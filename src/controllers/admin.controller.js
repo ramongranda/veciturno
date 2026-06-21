@@ -686,6 +686,30 @@ const adminController = {
     }
   },
 
+  // ---- Tablón de anuncios ----
+  createAnnouncement: (req, res) => {
+    try {
+      const { title, body, pinned } = req.body || {};
+      if (!String(title || '').trim() && !String(body || '').trim()) {
+        return res.status(400).json({ error: 'El anuncio necesita un título o un texto.' });
+      }
+      const createdBy = (req.user && (req.user.username || req.user.floor)) || 'Administración';
+      const announcement = dbService.addAnnouncement({ title, body, pinned, createdBy });
+      return res.status(201).json({ announcement });
+    } catch (_) {
+      return res.status(500).json({ error: 'No se pudo publicar el anuncio.' });
+    }
+  },
+  deleteAnnouncement: (req, res) => {
+    try {
+      const ok = dbService.deleteAnnouncement(req.params.id);
+      if (!ok) return res.status(404).json({ error: 'Anuncio no encontrado.' });
+      return res.json({ success: true });
+    } catch (_) {
+      return res.status(500).json({ error: 'No se pudo eliminar el anuncio.' });
+    }
+  },
+
   getWhatsAppGroups: async (req, res) => {
     try {
       const whatsappService = require('../services/whatsapp.service');

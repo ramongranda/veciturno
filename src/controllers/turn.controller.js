@@ -38,7 +38,8 @@ const turnController = {
         notificationsGroupUrl: config.NOTIFICATIONS_GROUP_URL,
         neighbors,
         state,
-        history
+        history,
+        announcements: dbService.getAnnouncements(50)
       });
     } catch (err) {
       res.status(500).json({ error: 'Error al obtener el feed público de la comunidad.' });

@@ -209,6 +209,9 @@ function renderDashboard(data) {
     communityNameEl.textContent = data.communityName;
     document.title = `${data.communityName} - VeciTurno`;
   }
+
+  // Tablón de anuncios de la comunidad
+  renderAnnouncements(data.announcements || []);
   
   // 1. Renderizar tarjeta central del Turno Activo
   const activeBadgeEl = document.getElementById('active-floor-badge');
@@ -2173,6 +2176,7 @@ function adminShowPanel(panelKey) {
   const visualization = document.getElementById('admin-section-visualization');
   const whatsapp = document.getElementById('admin-section-whatsapp');
   const whatsappTemplates = document.getElementById('admin-section-whatsapp-templates');
+  const announcements = document.getElementById('admin-section-announcements');
   const invitesTable = invites ? invites.querySelector('.invite-table-container') : null;
   const invitesTitle = invites ? invites.querySelector('h3') : null;
 
@@ -2187,6 +2191,7 @@ function adminShowPanel(panelKey) {
   if (visualization) visualization.style.display = 'none';
   if (whatsapp) whatsapp.style.display = 'none';
   if (whatsappTemplates) whatsappTemplates.style.display = 'none';
+  if (announcements) announcements.style.display = 'none';
   if (invitesTable) invitesTable.style.display = '';
   if (invitesTitle) invitesTitle.style.display = '';
   [inviteGenerator, securitySummary, usersSeparator, directRegister, usersManagement].forEach((el) => {
@@ -2196,6 +2201,10 @@ function adminShowPanel(panelKey) {
   if (panelKey === 'config' && config) {
     config.style.display = '';
     loadActiveTurnOptions();
+  }
+  if (panelKey === 'announcements' && announcements) {
+    announcements.style.display = '';
+    loadAdminAnnouncements();
   }
   if (panelKey === 'fees' && fees) fees.style.display = '';
   if (panelKey === 'finance' && finance) {
@@ -2266,6 +2275,107 @@ function adminBackToMenu() {
   if (adminView) adminView.classList.remove('admin-panel-open');
   toggleAdminSidebar(false);
   window.scrollTo(0, 0);
+}
+
+// ===== Tablón de anuncios =====
+function escapeHtml(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+function formatAnnouncementDate(iso) {
+  try {
+    return new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+  } catch (_) { return ''; }
+}
+function announcementCard(a, withDelete) {
+  const pin = a.pinned ? '<span class="announcement-pin"><i data-lucide="pin"></i></span>' : '';
+  const del = withDelete
+    ? `<button class="btn btn-icon btn-danger-ghost" title="Eliminar" onclick="handleDeleteAnnouncement('${a.id}')"><i data-lucide="trash-2"></i></button>`
+    : '';
+  const body = a.body ? `<p class="announcement-body">${escapeHtml(a.body).replace(/\n/g, '<br>')}</p>` : '';
+  const meta = `${formatAnnouncementDate(a.createdAt)}${a.createdBy ? ' · ' + escapeHtml(a.createdBy) : ''}`;
+  return `
+    <div class="announcement-item${a.pinned ? ' is-pinned' : ''}">
+      <div class="announcement-head">
+        ${pin}<span class="announcement-title">${escapeHtml(a.title) || 'Aviso'}</span>${del}
+      </div>
+      ${body}
+      <span class="announcement-date">${meta}</span>
+    </div>`;
+}
+// Tablón en el dashboard (solo lectura)
+function renderAnnouncements(list) {
+  const container = document.getElementById('announcements-container');
+  if (!container) return;
+  if (!Array.isArray(list) || list.length === 0) {
+    container.innerHTML = '<p class="box-desc">No hay anuncios por ahora.</p>';
+    return;
+  }
+  container.innerHTML = list.map((a) => announcementCard(a, false)).join('');
+  if (window.lucide) lucide.createIcons();
+}
+// Tablón en admin (crear/borrar)
+async function loadAdminAnnouncements() {
+  const listEl = document.getElementById('admin-announcements-list');
+  if (!listEl) return;
+  try {
+    const res = await fetch(`${API_URL}/public/status?_t=${Date.now()}`);
+    const data = await res.json();
+    const list = data.announcements || [];
+    listEl.innerHTML = list.length === 0
+      ? '<p class="box-desc">Aún no has publicado anuncios.</p>'
+      : list.map((a) => announcementCard(a, true)).join('');
+    if (window.lucide) lucide.createIcons();
+  } catch (_) {
+    listEl.innerHTML = '<p class="error-msg">No se pudieron cargar los anuncios.</p>';
+  }
+}
+async function handleCreateAnnouncement(event) {
+  event.preventDefault();
+  const titleEl = document.getElementById('announcement-title');
+  const bodyEl = document.getElementById('announcement-body');
+  const pinnedEl = document.getElementById('announcement-pinned');
+  const okEl = document.getElementById('announcement-success');
+  const errEl = document.getElementById('announcement-error');
+  okEl.classList.add('hidden'); errEl.classList.add('hidden');
+  const title = titleEl.value.trim();
+  const body = bodyEl.value.trim();
+  if (!title && !body) {
+    errEl.textContent = 'Escribe un título o un mensaje.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+  try {
+    const res = await fetch(`${API_URL}/admin/announcements`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${state.token}` },
+      body: JSON.stringify({ title, body, pinned: pinnedEl.checked })
+    });
+    if (!res.ok) throw new Error('fail');
+    titleEl.value = ''; bodyEl.value = ''; pinnedEl.checked = false;
+    okEl.textContent = 'Anuncio publicado.';
+    okEl.classList.remove('hidden');
+    await loadAdminAnnouncements();
+    showToast('Anuncio publicado en el tablón.', 'success');
+  } catch (_) {
+    errEl.textContent = 'No se pudo publicar el anuncio.';
+    errEl.classList.remove('hidden');
+  }
+}
+async function handleDeleteAnnouncement(id) {
+  if (!confirm('¿Eliminar este anuncio?')) return;
+  try {
+    const res = await fetch(`${API_URL}/admin/announcements/${id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${state.token}` }
+    });
+    if (!res.ok) throw new Error('fail');
+    await loadAdminAnnouncements();
+    showToast('Anuncio eliminado.', 'success');
+  } catch (_) {
+    showToast('No se pudo eliminar.', 'error');
+  }
 }
 
 async function loadCommunityStructureConfig() {

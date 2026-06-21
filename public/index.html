@@ -22,8 +22,8 @@
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <!-- Hojas de Estilo -->
-  <link rel="stylesheet" href="css/styles.css?v=mobile-redesign-3">
-  <link rel="stylesheet" href="css/mobile.css?v=mobile-redesign-3">
+  <link rel="stylesheet" href="css/styles.css?v=mobile-redesign-4">
+  <link rel="stylesheet" href="css/mobile.css?v=mobile-redesign-4">
 </head>
 <body>
 
@@ -136,6 +136,13 @@
 
         <!-- COLUMNA DERECHA: LOS 3 VECINOS / PISOS -->
         <div class="dashboard-side-column">
+          <!-- Tablón de anuncios de la comunidad -->
+          <div class="section-card glass-card" id="announcements-card">
+            <h3><i data-lucide="megaphone"></i> Tablón de la comunidad</h3>
+            <div id="announcements-container" class="announcements-list">
+              <p class="box-desc">Cargando anuncios…</p>
+            </div>
+          </div>
           <div id="neighbor-notifications-card" class="section-card glass-card hidden">
             <h3>
               <i data-lucide="bell-ring"></i>
@@ -697,6 +704,10 @@
                 <i data-lucide="link"></i>
                 <span>Invitaciones</span>
               </button>
+              <button class="btn btn-secondary" type="button" data-admin-panel-btn="announcements" onclick="adminShowPanel('announcements')">
+                <i data-lucide="megaphone"></i>
+                <span>Tablón de anuncios</span>
+              </button>
               <button class="btn btn-secondary" type="button" data-admin-panel-btn="whatsapp" onclick="adminShowPanel('whatsapp')">
                 <i data-lucide="message-square"></i>
                 <span>WhatsApp Servidor</span>
@@ -705,6 +716,39 @@
           </aside>
 
           <div class="admin-content">
+        <section id="admin-section-announcements" class="section-card glass-card" style="display:none;">
+          <h3><i data-lucide="megaphone"></i> Tablón de anuncios</h3>
+          <p class="box-desc">Publica avisos para toda la comunidad. Aparecen en el panel de inicio de cada vecino.</p>
+          <form id="announcement-form" class="auth-form" onsubmit="handleCreateAnnouncement(event)">
+            <div class="form-group">
+              <label for="announcement-title">Título</label>
+              <div class="input-wrapper">
+                <i data-lucide="type"></i>
+                <input type="text" id="announcement-title" maxlength="140" placeholder="Ej. Corte de agua el martes">
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="announcement-body">Mensaje</label>
+              <textarea id="announcement-body" rows="4" maxlength="4000" placeholder="Detalle del aviso para los vecinos…"></textarea>
+            </div>
+            <label class="checkbox-row" style="display:flex;align-items:center;gap:8px;">
+              <input type="checkbox" id="announcement-pinned">
+              <span>Fijar arriba (destacado)</span>
+            </label>
+            <div id="announcement-success" class="success-msg hidden"></div>
+            <div id="announcement-error" class="error-msg hidden"></div>
+            <button type="submit" class="btn btn-primary">
+              <i data-lucide="send"></i>
+              <span>Publicar anuncio</span>
+            </button>
+          </form>
+          <div style="margin-top:16px;">
+            <h3 style="font-size:1rem;">Anuncios publicados</h3>
+            <div id="admin-announcements-list" class="announcements-list">
+              <p class="box-desc">Cargando…</p>
+            </div>
+          </div>
+        </section>
         <section id="admin-section-config" class="section-card glass-card">
           <h3>Configuración General</h3>
           <p class="box-desc">Desde esta consola puedes gestionar el acceso de vecinos, invitaciones y el canal oficial de WhatsApp de la comunidad.</p>

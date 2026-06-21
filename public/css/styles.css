@@ -2622,3 +2622,31 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
   .input-2fa input { font-size: 1.2rem; letter-spacing: .12rem; }
   .qr-container img, .setup-2fa-layout img { width: 120px; height: 120px; }
 }
+
+/* ==========================================================================
+   TABLÓN DE ANUNCIOS (feature) — base para desktop y móvil
+   ========================================================================== */
+.announcements-list { display: flex; flex-direction: column; gap: 10px; }
+.announcement-item {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+.announcement-item.is-pinned {
+  border-color: rgba(245, 158, 11, 0.40);
+  background: rgba(245, 158, 11, 0.06);
+}
+.announcement-head { display: flex; align-items: center; gap: 8px; }
+.announcement-pin { color: var(--color-warning); display: inline-flex; }
+.announcement-pin svg { width: 15px; height: 15px; }
+.announcement-title { font-weight: 600; font-size: 0.95rem; flex: 1; min-width: 0; }
+.announcement-body { color: var(--text-muted); font-size: 0.85rem; margin: 6px 0 0; line-height: 1.45; word-break: break-word; }
+.announcement-date { display: block; margin-top: 8px; font-size: 0.72rem; color: var(--text-muted); opacity: 0.85; }
+.btn-danger-ghost {
+  flex: 0 0 auto; width: 32px; height: 32px; padding: 0;
+  display: inline-grid; place-items: center; border-radius: 8px;
+  background: transparent; border: 1px solid var(--glass-border); color: var(--text-muted); cursor: pointer;
+}
+.btn-danger-ghost:hover { color: var(--color-danger); border-color: rgba(239, 68, 68, 0.40); }
+.btn-danger-ghost svg { width: 16px; height: 16px; }

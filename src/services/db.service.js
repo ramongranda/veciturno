@@ -129,6 +129,7 @@ function buildInitialData() {
     incidents: [],
     pollRecords: [],
     turnConfirmations: [],
+    announcements: [],
     settings: {
       communityName: config.COMMUNITY_NAME || 'Comunidad VeciTurno',
       whatsappGroupId: '',
@@ -179,6 +180,7 @@ function ensureDataShape(data) {
   safe.incidents = Array.isArray(safe.incidents) ? safe.incidents : [];
   safe.pollRecords = Array.isArray(safe.pollRecords) ? safe.pollRecords : [];
   safe.turnConfirmations = Array.isArray(safe.turnConfirmations) ? safe.turnConfirmations : [];
+  safe.announcements = Array.isArray(safe.announcements) ? safe.announcements : [];
   safe.settings = safe.settings && typeof safe.settings === 'object' ? safe.settings : {};
   if (typeof safe.settings.communityName !== 'string') {
     safe.settings.communityName = config.COMMUNITY_NAME || 'Comunidad VeciTurno';
@@ -825,6 +827,40 @@ const dbService = {
   getIncidents: (limit = 100) => {
     const data = readDB();
     return (data.incidents || []).slice(0, limit);
+  },
+  // ---- Tablón de anuncios de la comunidad ----
+  getAnnouncements: (limit = 50) => {
+    const data = readDB();
+    const rows = (data.announcements || []).slice();
+    // Fijados primero, luego por fecha descendente.
+    rows.sort((a, b) => {
+      if (!!b.pinned !== !!a.pinned) return b.pinned ? 1 : -1;
+      return String(b.createdAt).localeCompare(String(a.createdAt));
+    });
+    return rows.slice(0, limit);
+  },
+  addAnnouncement: ({ title, body, pinned = false, createdBy = '' }) => {
+    const data = readDB();
+    data.announcements = data.announcements || [];
+    const announcement = {
+      id: `${Date.now()}${Math.random().toString(36).slice(2, 6)}`,
+      title: String(title || '').trim().slice(0, 140),
+      body: String(body || '').trim().slice(0, 4000),
+      pinned: !!pinned,
+      createdAt: new Date().toISOString(),
+      createdBy: String(createdBy || '').slice(0, 80)
+    };
+    data.announcements.unshift(announcement);
+    if (data.announcements.length > 200) data.announcements = data.announcements.slice(0, 200);
+    writeDB(data);
+    return announcement;
+  },
+  deleteAnnouncement: (id) => {
+    const data = readDB();
+    const before = (data.announcements || []).length;
+    data.announcements = (data.announcements || []).filter((a) => a.id !== id);
+    writeDB(data);
+    return before !== data.announcements.length;
   },
   addTurnConfirmation: ({ floorId, month, phone, via = 'whatsapp' }) => {
     const data = readDB();
