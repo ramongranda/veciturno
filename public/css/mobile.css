@@ -1,0 +1,563 @@
+/* VeciTurno mobile-first redesign */
+/* ==========================================================================
+   Loads AFTER styles.css. Every visual rule is wrapped in @media (max-width: 768px)
+   (plus refinements at <=560 / <=480 / <=420 / <=380). Desktop (>=769px) is frozen.
+   Visibility is JS-owned: never display:none a toggle target (.hidden/.active/.open/
+   .modal-like/.page-view/#admin-section-*/etc). We restyle APPEARANCE only.
+   Brand: only existing custom properties + documented glass recipes. No new hex.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   §8 Tokens — inert on desktop (nothing references them at >=769px); they are
+   only consumed inside the mobile media queries below.
+   -------------------------------------------------------------------------- */
+:root {
+  /* fluid type — only consumed by mobile.css rules */
+  --fs-display: clamp(1.6rem, 6.5vw, 2.2rem);   /* turn floor h2 */
+  --fs-h1:      clamp(1.25rem, 5vw, 1.6rem);
+  --fs-h2:      clamp(1.1rem, 4vw, 1.3rem);
+  --fs-h3:      clamp(1rem, 3.6vw, 1.15rem);
+  --fs-body:    clamp(0.9rem, 3.4vw, 1rem);
+  --fs-small:   clamp(0.75rem, 3vw, 0.85rem);
+
+  /* spacing scale (4px base) */
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px;
+  --sp-4: 16px; --sp-5: 24px; --sp-6: 32px;
+
+  /* bottom-nav height incl. labels */
+  --mobile-nav-h: 64px;
+}
+
+/* ==========================================================================
+   PRIMARY MOBILE BREAKPOINT (<= 768px)
+   ========================================================================== */
+@media (max-width: 768px) {
+
+  /* ------------------------------------------------------------------------
+     §1.1 App shell + scroll clearance for the bottom tab bar
+     ------------------------------------------------------------------------ */
+  .app-container {
+    padding: 12px 12px;
+    /* bottom-nav clearance: 80px is too tight once safe-area is added */
+    padding-bottom: calc(var(--mobile-nav-h) + env(safe-area-inset-bottom) + 16px);
+  }
+
+  /* Page-views (admin/finance/certificates) get the same clearance.
+     styles.css:2394 sets 92px — replace with token math. */
+  .app-view.page-view.active {
+    padding-bottom: calc(var(--mobile-nav-h) + env(safe-area-inset-bottom) + 24px);
+  }
+
+  /* ------------------------------------------------------------------------
+     §1.2 Sticky compact header (safe-area aware)
+     Glass recipe inherited: var(--glass-bg) + 1px var(--glass-border)
+     + backdrop blur(16px) + var(--shadow-lg). Override the <=650 column stack
+     back to a single compact row.
+     ------------------------------------------------------------------------ */
+  .app-header {
+    position: sticky;
+    top: 0;
+    z-index: 60;                       /* above content/bottom-nav scroll, below dropdown(220) */
+    flex-direction: row;               /* override 650px column stack */
+    align-items: center;
+    text-align: left;
+    gap: 10px;
+    padding: 10px 14px;
+    padding-top: calc(10px + env(safe-area-inset-top));        /* notch */
+    margin: calc(-1 * env(safe-area-inset-top)) -12px 12px;    /* bleed to edges, cancel container pad */
+    border-radius: 0 0 18px 18px;      /* flush top, rounded bottom only */
+  }
+
+  .header-actions {
+    gap: 10px;
+    justify-content: flex-end;
+    flex: 1;
+    flex-wrap: nowrap;
+  }
+
+  .logo-text h1 { font-size: clamp(1.05rem, 4.2vw, 1.25rem); }
+  .logo-icon    { width: 38px; height: 38px; }   /* radius 12px stays */
+
+  /* ------------------------------------------------------------------------
+     §1.3 Live indicator → compact pill (emerald, radius 50px stays)
+     ------------------------------------------------------------------------ */
+  .live-indicator {
+    font-size: 0.72rem;
+    padding: 5px 10px;
+    gap: 6px;
+  }
+
+  /* ------------------------------------------------------------------------
+     §2.1 Bottom tab bar — native tab bar. Do NOT touch display toggling
+     (styles.css:2385 flips none→flex; JS also sets per-button style.display).
+     Glass kept: rgba(11,15,25,0.92) + blur(20px) + border-top rgba(255,255,255,0.08).
+     ------------------------------------------------------------------------ */
+  .mobile-bottom-nav {
+    height: var(--mobile-nav-h);
+    padding: 4px 4px max(4px, env(safe-area-inset-bottom));
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.45);   /* lift off content */
+    z-index: 50;                                   /* keep existing */
+  }
+
+  .mobile-bottom-nav button {
+    position: relative;
+    flex: 1 1 0;                 /* equal-width tabs whether 2 or 5 items */
+    min-width: 0;                /* override min-width:56px */
+    gap: 4px;
+    padding: 6px 4px;
+    border-radius: 10px;
+    font-size: clamp(0.6rem, 2.6vw, 0.68rem);
+    min-height: 44px;            /* touch target */
+  }
+
+  .mobile-bottom-nav button i,
+  .mobile-bottom-nav button svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  /* Active state — brand primary + iOS/Android-style top accent. */
+  .mobile-bottom-nav button.active {
+    color: var(--color-primary);
+    background: rgba(59, 130, 246, 0.10);
+  }
+
+  .mobile-bottom-nav button.active::before {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 26px;
+    height: 3px;
+    border-radius: 50px;
+    background: var(--color-primary);
+  }
+
+  /* ------------------------------------------------------------------------
+     §2.2 Hamburger dropdown (#header-dropdown) as a bottom sheet.
+     Visibility stays JS-driven via .open/.active — only animate, never force
+     display. Glass inherited: rgba(17,24,39,0.95) + blur(20px)
+     + border rgba(255,255,255,0.1) + 0 20px 50px rgba(0,0,0,0.6).
+     ------------------------------------------------------------------------ */
+  .header-dropdown {
+    left: 12px;
+    right: 12px;
+    bottom: calc(var(--mobile-nav-h) + 12px + env(safe-area-inset-bottom));
+    padding: 14px 12px calc(8px + env(safe-area-inset-bottom));
+    border-radius: 20px 20px 18px 18px;
+    transform: translateY(12px);
+    opacity: 0;
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+    pointer-events: none;        /* gated; display is still owned by styles.css */
+  }
+
+  .header-dropdown.open,
+  .header-dropdown.active {       /* support whichever class app.js applies */
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* grabber handle */
+  .header-dropdown::before {
+    content: "";
+    display: block;
+    width: 40px;
+    height: 4px;
+    margin: 0 auto 12px;
+    border-radius: 50px;
+    background: rgba(255, 255, 255, 0.18);
+  }
+
+  .header-dropdown .btn {        /* styles.css:2238 gives 48px — bump to spec */
+    width: 100%;
+    justify-content: flex-start;
+    min-height: 50px;
+    font-size: 0.95rem;
+    border-radius: 12px;
+    margin-bottom: 8px;
+  }
+
+  .header-dropdown .btn:last-child { margin-bottom: 0; }
+
+  .header-dropdown-overlay.active {
+    background: rgba(3, 7, 18, 0.60);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+
+  /* ------------------------------------------------------------------------
+     §3.1 Global card treatment
+     ------------------------------------------------------------------------ */
+  .glass-card    { padding: 18px; border-radius: 18px; }   /* down from 24 */
+  .section-card  { margin-bottom: 14px; }
+  .section-card h3 { font-size: var(--fs-h3); }
+
+  /* ------------------------------------------------------------------------
+     §3.2 Dashboard (#view-dashboard) — single stacked column,
+     active turn card first.
+     ------------------------------------------------------------------------ */
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .dashboard-main-card {
+    min-height: auto;
+    padding: 28px 18px 24px;
+  }
+
+  .floor-avatar {
+    width: clamp(84px, 26vw, 110px);
+    height: clamp(84px, 26vw, 110px);
+    font-size: clamp(2rem, 8vw, 2.6rem);
+  }
+
+  .active-turn-content h2 { font-size: var(--fs-display); }
+  .dashboard-side-column  { gap: 14px; }
+  .next-turn-card-inner   { flex-wrap: wrap; }
+
+  /* Banners stay full-width and stacked; visibility still via .hidden. */
+  .warning-banner,
+  .recommendation-banner { border-radius: 16px; }
+
+  .banner-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .recommendation-banner .btn { width: 100%; }
+
+  /* ------------------------------------------------------------------------
+     §3.3 Finance (#view-finance) and Certificates
+     ------------------------------------------------------------------------ */
+  .finance-kpi-grid {
+    grid-template-columns: 1fr 1fr;   /* 2-up KPI */
+    gap: 10px;
+  }
+
+  .finance-exec-layout { grid-template-columns: 1fr; }
+  .finance-exec-side,
+  .finance-exec-main   { min-width: 0; }
+  .finance-donut-grid  { grid-template-columns: 1fr; }
+
+  /* expense tab chips: horizontal scroll, no wrap. Keep admin-menu-btn-active. */
+  .expense-tabs {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 8px;
+    scrollbar-width: none;
+  }
+
+  .expense-tabs::-webkit-scrollbar { display: none; }
+
+  .expense-tabs .btn {
+    flex: 0 0 auto;
+    min-height: 44px;
+  }
+
+  /* ------------------------------------------------------------------------
+     §4 Admin sidebar as off-canvas drawer (raised from <=650 to <=768).
+     .admin-sidebar.open toggle is JS-owned — do not override it.
+     glass-card class already supplies bg/blur/border.
+     ------------------------------------------------------------------------ */
+  .admin-workspace { grid-template-columns: 1fr; }   /* content full width */
+
+  .admin-sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: min(82vw, 300px);
+    height: 100dvh;
+    z-index: 200;
+    border-radius: 0 18px 18px 0;
+    padding: calc(16px + env(safe-area-inset-top)) 14px 16px;
+    transform: translateX(-110%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow-y: auto;
+    box-shadow: 8px 0 30px rgba(0, 0, 0, 0.55);
+  }
+
+  .admin-sidebar.open { transform: translateX(0); }   /* JS toggle, do not override */
+
+  .admin-mobile-menu-btn { display: inline-flex; }     /* topbar opener */
+
+  .admin-menu-nav .btn {
+    width: 100%;
+    min-height: 46px;
+    justify-content: flex-start;
+  }
+
+  .admin-sidebar-overlay.active {
+    display: block;
+    background: rgba(3, 7, 18, 0.7);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+
+  .admin-page-topbar { gap: 8px; }
+  .admin-page-topbar .btn {
+    flex: 1;
+    min-height: 44px;
+  }
+
+  .admin-grid { grid-template-columns: 1fr; }          /* stack USERS sub-cards */
+  .admin-subsection,
+  .admin-action-box,
+  .admin-list-box { min-width: 0; }
+
+  /* ------------------------------------------------------------------------
+     §5 Modals as bottom-sheets. Preserve .active/.modal-like semantics and
+     body.modal-open. Anchor to bottom, slide up, internal scroll.
+     ------------------------------------------------------------------------ */
+  .app-view.modal-like {
+    align-items: flex-end;          /* anchor sheet to bottom (was center) */
+    padding: 0;
+  }
+
+  .modal-card,
+  .modal-card.register-modal,
+  .modal-card.admin-modal {
+    max-width: 100%;
+    width: 100%;
+    max-height: 92dvh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 22px 22px 0 0;   /* sheet: round top only */
+    padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
+    box-shadow: 0 -20px 50px rgba(0, 0, 0, 0.6);
+  }
+
+  /* slide-up entrance, layered on the existing .animate-zoom hook */
+  .app-view.modal-like.active .modal-card {
+    animation: sheetUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* grabber handle for every sheet */
+  .modal-card::before {
+    content: "";
+    display: block;
+    width: 40px;
+    height: 4px;
+    margin: -4px auto 14px;
+    border-radius: 50px;
+    background: rgba(255, 255, 255, 0.18);
+  }
+
+  /* close button: 44px touch target, top-right of the sheet */
+  .modal-close {
+    width: 44px;
+    height: 44px;
+    top: 12px;
+    right: 12px;
+    border-radius: 12px;
+  }
+
+  .modal-header { padding-right: 52px; }   /* clear the close button */
+  .modal-icon   { width: 52px; height: 52px; }
+
+  /* Stack the primary action at the bottom (thumb-reachable). */
+  .button-row {
+    flex-direction: column-reverse;
+    gap: 10px;
+  }
+  .button-row .btn { width: 100%; }
+
+  /* ------------------------------------------------------------------------
+     §6.1 Tables → horizontal scroll wrappers (safe default for all tables).
+     Overrides styles.css:1152 min-width:0;table-layout:fixed at equal
+     specificity (this file loads later) — scroll wins for <=768.
+     ------------------------------------------------------------------------ */
+  .table-container,
+  .invite-table-container,
+  .admin-table-wrap,
+  #finance-contributions-table {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+  }
+
+  .admin-table,
+  table.table { min-width: 520px; }     /* force scroll instead of crushing cols */
+
+  .admin-table th,
+  .admin-table td {
+    white-space: nowrap;
+    padding: 10px 12px;
+  }
+
+  /* ------------------------------------------------------------------------
+     §7 Forms: full-width, 16px font (no iOS focus-zoom), 44px targets.
+     ------------------------------------------------------------------------ */
+  .auth-form { gap: 14px; }
+  .form-group { width: 100%; }
+
+  .input-wrapper input,
+  .input-wrapper select,
+  .form-textarea,
+  textarea {
+    width: 100%;
+    font-size: 16px;            /* CRITICAL: prevents iOS focus-zoom */
+    min-height: 48px;           /* >= 44px touch target */
+    padding: 13px 14px 13px 44px;
+    border-radius: 12px;
+  }
+
+  .form-textarea,
+  textarea {
+    padding-left: 14px;
+    min-height: 110px;
+  }
+
+  .input-wrapper i,
+  .input-wrapper svg { left: 14px; }   /* keep icon aligned */
+
+  select {
+    -webkit-appearance: none;
+    appearance: none;
+    background-image: none;     /* native arrow only; avoid double-glyph */
+  }
+
+  /* all primary buttons: full-width, in forms */
+  .btn-full,
+  .auth-form .btn,
+  .button-row .btn { width: 100%; }
+
+  .btn { min-height: 44px; }    /* reaffirm styles.css:2584 */
+
+  /* labels & hints stay readable; visibility still via .hidden */
+  .form-group label { font-size: 0.85rem; }
+  .error-msg,
+  .success-msg { font-size: 0.85rem; }
+
+  /* ------------------------------------------------------------------------
+     §8 Fluid type scale applied to headings/copy.
+     Keep --font-title / --font-body globally applied; don't restate family.
+     ------------------------------------------------------------------------ */
+  .modal-header h2 { font-size: var(--fs-h3); }
+  .box-desc,
+  .auth-2fa-info,
+  .input-hint { font-size: var(--fs-small); }
+
+  /* ------------------------------------------------------------------------
+     §9 QR / 2FA sizing — one fluid clamp replaces the 150/132/120 cascade.
+     ------------------------------------------------------------------------ */
+  .setup-2fa-layout {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    text-align: center;
+  }
+
+  .qr-container { padding: 14px; }
+
+  .qr-container img,
+  .setup-2fa-layout img,
+  #register-qr-image,
+  #setup-2fa-qr-image {
+    width: clamp(160px, 56vw, 220px);
+    height: auto;
+    aspect-ratio: 1 / 1;
+    margin: 0 auto;
+    display: block;
+    border-radius: 12px;
+    background: #fff;            /* QR contrast on dark glass (neutral, not a brand color) */
+    padding: 8px;
+  }
+
+  .manual-secret-box {
+    word-break: break-all;
+    font-size: 0.9rem;
+    text-align: center;
+    border-radius: 12px;
+  }
+
+  .instructions-2fa { font-size: var(--fs-small); }
+
+  .auth-apps-row {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  /* the 6-digit code input stays large & centered, but cap so it never overflows */
+  .input-2fa input {
+    font-size: clamp(1.3rem, 7vw, 1.8rem);
+    letter-spacing: 0.25rem;
+  }
+}
+
+/* sheet entrance keyframe (definition is global; only consumed inside <=768) */
+@keyframes sheetUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+/* ==========================================================================
+   §6.2 Invites table → CSS-only stacked cards (INVITES ONLY, <=560px).
+   Scoped tightly to #admin-section-invites so the 5-col neighbors table and
+   finance contributions table stay on horizontal scroll (§6.1).
+   ========================================================================== */
+@media (max-width: 560px) {
+  #admin-section-invites .admin-table,
+  #admin-section-invites .admin-table thead,
+  #admin-section-invites .admin-table tbody,
+  #admin-section-invites .admin-table tr,
+  #admin-section-invites .admin-table td {
+    display: block;
+    width: 100%;
+  }
+
+  #admin-section-invites .admin-table { min-width: 0; }
+  #admin-section-invites .admin-table thead { display: none; }   /* header hidden visually only */
+
+  #admin-section-invites .admin-table tr {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+  }
+
+  #admin-section-invites .admin-table td {
+    white-space: normal;
+    border: none;
+    padding: 4px 0;
+    overflow-wrap: anywhere;
+  }
+}
+
+/* ==========================================================================
+   §1.3 Tightest widths — collapse the live indicator to a dot-only pill.
+   font-size:0 hides the "En vivo" text node without removing it from the DOM
+   (contract: indicator is always shown). The .pulse-dot has fixed px dims.
+   ========================================================================== */
+@media (max-width: 420px) {
+  .live-indicator {
+    font-size: 0;
+    padding: 7px;
+    gap: 0;
+  }
+
+  .live-indicator .pulse-dot {
+    width: 9px;
+    height: 9px;
+  }
+}
+
+/* ==========================================================================
+   §3.3 Smallest phones — single-column KPI grid.
+   ========================================================================== */
+@media (max-width: 380px) {
+  .finance-kpi-grid { grid-template-columns: 1fr; }
+}
+
+/* Polish post-verify: grids admin con grid-template inline (auto-fit) -> 1 columna
+   en toda la franja móvil (el !important gana al style inline en 641-768px). */
+@media (max-width: 768px) {
+  .admin-grid { grid-template-columns: 1fr !important; }
+}
