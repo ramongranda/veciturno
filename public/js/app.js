@@ -212,7 +212,13 @@ function renderDashboard(data) {
 
   // Tablón de anuncios de la comunidad
   renderAnnouncements(data.announcements || []);
-  
+  // Documentos de la comunidad (solo si hay sesión)
+  loadDocumentsCard();
+  // Reservas de zonas comunes (solo si hay sesión)
+  loadReservationsCard();
+  // Incidencias (solo si hay sesión)
+  loadIncidentsCard();
+
   // 1. Renderizar tarjeta central del Turno Activo
   const activeBadgeEl = document.getElementById('active-floor-badge');
   const activeTitleEl = document.getElementById('active-floor-title');
@@ -632,6 +638,10 @@ function renderMobileBottomNav() {
     bottomNav.style.display = '';
   }
   lucide.createIcons();
+  // Mostrar/ocultar tarjetas según el estado de sesión.
+  loadDocumentsCard();
+  loadReservationsCard();
+  loadIncidentsCard();
 }
 
 function updateBottomNavActive(viewName) {
@@ -2177,6 +2187,9 @@ function adminShowPanel(panelKey) {
   const whatsapp = document.getElementById('admin-section-whatsapp');
   const whatsappTemplates = document.getElementById('admin-section-whatsapp-templates');
   const announcements = document.getElementById('admin-section-announcements');
+  const documents = document.getElementById('admin-section-documents');
+  const areas = document.getElementById('admin-section-areas');
+  const incidents = document.getElementById('admin-section-incidents');
   const invitesTable = invites ? invites.querySelector('.invite-table-container') : null;
   const invitesTitle = invites ? invites.querySelector('h3') : null;
 
@@ -2192,6 +2205,9 @@ function adminShowPanel(panelKey) {
   if (whatsapp) whatsapp.style.display = 'none';
   if (whatsappTemplates) whatsappTemplates.style.display = 'none';
   if (announcements) announcements.style.display = 'none';
+  if (documents) documents.style.display = 'none';
+  if (areas) areas.style.display = 'none';
+  if (incidents) incidents.style.display = 'none';
   if (invitesTable) invitesTable.style.display = '';
   if (invitesTitle) invitesTitle.style.display = '';
   [inviteGenerator, securitySummary, usersSeparator, directRegister, usersManagement].forEach((el) => {
@@ -2205,6 +2221,19 @@ function adminShowPanel(panelKey) {
   if (panelKey === 'announcements' && announcements) {
     announcements.style.display = '';
     loadAdminAnnouncements();
+  }
+  if (panelKey === 'documents' && documents) {
+    documents.style.display = '';
+    loadAdminDocuments();
+  }
+  if (panelKey === 'areas' && areas) {
+    areas.style.display = '';
+    loadAdminAreas();
+    loadAdminReservations();
+  }
+  if (panelKey === 'incidents' && incidents) {
+    incidents.style.display = '';
+    loadAdminIncidentsFull();
   }
   if (panelKey === 'fees' && fees) fees.style.display = '';
   if (panelKey === 'finance' && finance) {
@@ -2373,6 +2402,595 @@ async function handleDeleteAnnouncement(id) {
     if (!res.ok) throw new Error('fail');
     await loadAdminAnnouncements();
     showToast('Anuncio eliminado.', 'success');
+  } catch (_) {
+    showToast('No se pudo eliminar.', 'error');
+  }
+}
+
+// ===== Documentos de la comunidad =====
+function formatFileSize(bytes) {
+  const n = Number(bytes) || 0;
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+function documentIcon(mime) {
+  const m = String(mime || '').toLowerCase();
+  if (m.includes('pdf')) return 'file-text';
+  if (m.includes('image')) return 'image';
+  if (m.includes('sheet') || m.includes('excel') || m.includes('csv')) return 'sheet';
+  if (m.includes('word') || m.includes('document')) return 'file-text';
+  if (m.includes('zip') || m.includes('compressed') || m.includes('rar')) return 'archive';
+  return 'file';
+}
+function documentCard(d, withDelete) {
+  const icon = documentIcon(d.mime);
+  const cat = d.category ? `<span class="document-cat">${escapeHtml(d.category)}</span>` : '';
+  const meta = `${formatAnnouncementDate(d.createdAt)} · ${formatFileSize(d.size)}${d.uploadedBy ? ' · ' + escapeHtml(d.uploadedBy) : ''}`;
+  const del = withDelete
+    ? `<button class="btn btn-icon btn-danger-ghost" title="Eliminar" onclick="handleDeleteDocument('${d.id}')"><i data-lucide="trash-2"></i></button>`
+    : '';
+  return `
+    <div class="document-item">
+      <span class="document-icon"><i data-lucide="${icon}"></i></span>
+      <div class="document-info">
+        <span class="document-title">${escapeHtml(d.title) || escapeHtml(d.filename) || 'Documento'}</span>
+        <span class="document-meta">${meta}</span>
+        ${cat}
+      </div>
+      <button class="btn btn-icon document-download" title="Descargar" onclick="downloadDocument('${d.id}')"><i data-lucide="download"></i></button>
+      ${del}
+    </div>`;
+}
+// Tarjeta de documentos en el dashboard (solo con sesión iniciada)
+async function loadDocumentsCard() {
+  const card = document.getElementById('documents-card');
+  const container = document.getElementById('documents-container');
+  if (!card || !container) return;
+  if (!state.token) { card.classList.add('hidden'); return; }
+  card.classList.remove('hidden');
+  try {
+    const res = await fetch(`${API_URL}/neighbors/documents`, {
+      headers: { 'Authorization': `Bearer ${state.token}` }
+    });
+    if (!res.ok) throw new Error('fail');
+    const data = await res.json();
+    const list = data.documents || [];
+    container.innerHTML = list.length === 0
+      ? '<p class="box-desc">No hay documentos disponibles.</p>'
+      : list.map((d) => documentCard(d, false)).join('');
+    if (window.lucide) lucide.createIcons();
+  } catch (_) {
+    container.innerHTML = '<p class="error-msg">No se pudieron cargar los documentos.</p>';
+  }
+}
+// Documentos en el panel de administración (subir / borrar)
+async function loadAdminDocuments() {
+  const listEl = document.getElementById('admin-documents-list');
+  if (!listEl) return;
+  try {
+    const res = await fetch(`${API_URL}/neighbors/documents`, {
+      headers: { 'Authorization': `Bearer ${state.token}` }
+    });
+    const data = await res.json();
+    const list = data.documents || [];
+    listEl.innerHTML = list.length === 0
+      ? '<p class="box-desc">Aún no has subido documentos.</p>'
+      : list.map((d) => documentCard(d, true)).join('');
+    if (window.lucide) lucide.createIcons();
+  } catch (_) {
+    listEl.innerHTML = '<p class="error-msg">No se pudieron cargar los documentos.</p>';
+  }
+}
+async function downloadDocument(id) {
+  try {
+    const res = await fetch(`${API_URL}/neighbors/documents/${id}/download`, {
+      headers: { 'Authorization': `Bearer ${state.token}` }
+    });
+    if (!res.ok) throw new Error('fail');
+    const blob = await res.blob();
+    const cd = res.headers.get('Content-Disposition') || '';
+    const match = cd.match(/filename="?([^"]+)"?/);
+    const filename = match ? match[1] : 'documento';
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  } catch (_) {
+    showToast('No se pudo descargar el documento.', 'error');
+  }
+}
+async function handleUploadDocument(event) {
+  event.preventDefault();
+  const titleEl = document.getElementById('document-title');
+  const catEl = document.getElementById('document-category');
+  const fileEl = document.getElementById('document-file');
+  const okEl = document.getElementById('document-success');
+  const errEl = document.getElementById('document-error');
+  const btn = document.getElementById('document-submit-btn');
+  okEl.classList.add('hidden'); errEl.classList.add('hidden');
+  const file = fileEl.files && fileEl.files[0];
+  if (!file) {
+    errEl.textContent = 'Selecciona un archivo.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+  if (file.size > 25 * 1024 * 1024) {
+    errEl.textContent = 'El archivo supera el límite de 25 MB.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('title', titleEl.value.trim());
+  fd.append('category', catEl.value.trim());
+  const original = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span>Subiendo…</span>';
+  try {
+    const res = await fetch(`${API_URL}/admin/documents`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${state.token}` },
+      body: fd
+    });
+    if (!res.ok) throw new Error('fail');
+    titleEl.value = ''; catEl.value = ''; fileEl.value = '';
+    okEl.textContent = 'Documento subido.';
+    okEl.classList.remove('hidden');
+    await loadAdminDocuments();
+    showToast('Documento subido correctamente.', 'success');
+  } catch (_) {
+    errEl.textContent = 'No se pudo subir el documento.';
+    errEl.classList.remove('hidden');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = original;
+    if (window.lucide) lucide.createIcons();
+  }
+}
+async function handleDeleteDocument(id) {
+  if (!confirm('¿Eliminar este documento?')) return;
+  try {
+    const res = await fetch(`${API_URL}/admin/documents/${id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${state.token}` }
+    });
+    if (!res.ok) throw new Error('fail');
+    await loadAdminDocuments();
+    showToast('Documento eliminado.', 'success');
+  } catch (_) {
+    showToast('No se pudo eliminar.', 'error');
+  }
+}
+
+// ===== Reservas de zonas comunes =====
+let reservationAreas = [];
+function todayISO() {
+  const d = new Date();
+  const off = d.getTimezoneOffset();
+  return new Date(d.getTime() - off * 60000).toISOString().slice(0, 10);
+}
+function formatReservationDate(iso) {
+  try {
+    return new Date(iso + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'short', day: '2-digit', month: 'short' });
+  } catch (_) { return iso; }
+}
+// Tarjeta de reservas del dashboard (solo con sesión)
+async function loadReservationsCard() {
+  const card = document.getElementById('reservations-card');
+  if (!card) return;
+  if (!state.token) { card.classList.add('hidden'); return; }
+  card.classList.remove('hidden');
+  const select = document.getElementById('reservation-area');
+  const form = document.getElementById('reservation-form');
+  const empty = document.getElementById('reservations-empty');
+  const dateEl = document.getElementById('reservation-date');
+  try {
+    const res = await fetch(`${API_URL}/neighbors/areas`, { headers: { 'Authorization': `Bearer ${state.token}` } });
+    const data = await res.json();
+    reservationAreas = data.areas || [];
+    if (reservationAreas.length === 0) {
+      if (form) form.classList.add('hidden');
+      if (empty) { empty.textContent = 'La comunidad aún no tiene zonas comunes reservables.'; empty.classList.remove('hidden'); }
+    } else {
+      if (form) form.classList.remove('hidden');
+      if (empty) empty.classList.add('hidden');
+      if (select) {
+        const prev = select.value;
+        select.innerHTML = reservationAreas.map((a) => `<option value="${a.id}">${escapeHtml(a.name)} (${a.openHour}–${a.closeHour})</option>`).join('');
+        if (prev && reservationAreas.some((a) => a.id === prev)) select.value = prev;
+      }
+      if (dateEl && !dateEl.value) { dateEl.min = todayISO(); dateEl.value = todayISO(); }
+      loadReservationAvailability();
+    }
+    await loadMyReservations();
+    if (window.lucide) lucide.createIcons();
+  } catch (_) {
+    if (empty) { empty.textContent = 'No se pudieron cargar las zonas comunes.'; empty.classList.remove('hidden'); }
+  }
+}
+async function loadReservationAvailability() {
+  const select = document.getElementById('reservation-area');
+  const dateEl = document.getElementById('reservation-date');
+  const startEl = document.getElementById('reservation-start');
+  const endEl = document.getElementById('reservation-end');
+  const box = document.getElementById('reservation-availability');
+  if (!select || !dateEl || !box) return;
+  const areaId = select.value;
+  const date = dateEl.value;
+  const area = reservationAreas.find((a) => a.id === areaId);
+  if (area && startEl && endEl) {
+    startEl.min = area.openHour; startEl.max = area.closeHour;
+    endEl.min = area.openHour; endEl.max = area.closeHour;
+  }
+  if (!areaId || !date) { box.innerHTML = ''; return; }
+  try {
+    const res = await fetch(`${API_URL}/neighbors/reservations?areaId=${encodeURIComponent(areaId)}&date=${encodeURIComponent(date)}`, { headers: { 'Authorization': `Bearer ${state.token}` } });
+    const data = await res.json();
+    const list = (data.reservations || []).filter((r) => r.status !== 'cancelled');
+    box.innerHTML = list.length === 0
+      ? '<span class="availability-free"><i data-lucide="check-circle"></i> Libre todo el día</span>'
+      : '<span class="availability-label">Ocupado:</span> ' + list.map((r) => `<span class="availability-slot">${r.startTime}–${r.endTime}</span>`).join(' ');
+    if (window.lucide) lucide.createIcons();
+  } catch (_) {
+    box.innerHTML = '';
+  }
+}
+async function handleCreateReservation(event) {
+  event.preventDefault();
+  const select = document.getElementById('reservation-area');
+  const dateEl = document.getElementById('reservation-date');
+  const startEl = document.getElementById('reservation-start');
+  const endEl = document.getElementById('reservation-end');
+  const okEl = document.getElementById('reservation-success');
+  const errEl = document.getElementById('reservation-error');
+  okEl.classList.add('hidden'); errEl.classList.add('hidden');
+  const payload = { areaId: select.value, date: dateEl.value, startTime: startEl.value, endTime: endEl.value };
+  if (!payload.areaId || !payload.date || !payload.startTime || !payload.endTime) {
+    errEl.textContent = 'Completa zona, fecha y franja horaria.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+  try {
+    const res = await fetch(`${API_URL}/neighbors/reservations`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${state.token}` },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'No se pudo reservar.');
+    okEl.textContent = 'Reserva confirmada.';
+    okEl.classList.remove('hidden');
+    startEl.value = ''; endEl.value = '';
+    await loadMyReservations();
+    await loadReservationAvailability();
+    showToast('Reserva confirmada.', 'success');
+  } catch (err) {
+    errEl.textContent = err.message || 'No se pudo reservar.';
+    errEl.classList.remove('hidden');
+  }
+}
+function reservationCard(r, opts) {
+  const o = opts || {};
+  const when = `${formatReservationDate(r.date)} · ${r.startTime}–${r.endTime}`;
+  const who = o.showWho && r.neighborName ? ` · ${escapeHtml(r.neighborName)}` : '';
+  const cancel = o.canCancel
+    ? `<button class="btn btn-icon btn-danger-ghost" title="Cancelar" onclick="handleCancelReservation('${r.id}')"><i data-lucide="x"></i></button>`
+    : '';
+  return `
+    <div class="reservation-item">
+      <span class="reservation-icon"><i data-lucide="calendar-check"></i></span>
+      <div class="reservation-info">
+        <span class="reservation-title">${escapeHtml(r.areaName) || 'Zona común'}</span>
+        <span class="reservation-meta">${when}${who}</span>
+      </div>
+      ${cancel}
+    </div>`;
+}
+async function loadMyReservations() {
+  const listEl = document.getElementById('my-reservations-list');
+  if (!listEl) return;
+  try {
+    const res = await fetch(`${API_URL}/neighbors/reservations?mine=1`, { headers: { 'Authorization': `Bearer ${state.token}` } });
+    const data = await res.json();
+    const list = data.reservations || [];
+    listEl.innerHTML = list.length === 0
+      ? '<p class="box-desc">No tienes reservas próximas.</p>'
+      : list.map((r) => reservationCard(r, { canCancel: true })).join('');
+    if (window.lucide) lucide.createIcons();
+  } catch (_) {
+    listEl.innerHTML = '<p class="error-msg">No se pudieron cargar tus reservas.</p>';
+  }
+}
+async function handleCancelReservation(id) {
+  if (!confirm('¿Cancelar esta reserva?')) return;
+  try {
+    const res = await fetch(`${API_URL}/neighbors/reservations/${id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${state.token}` }
+    });
+    if (!res.ok) throw new Error('fail');
+    await loadMyReservations();
+    await loadReservationAvailability();
+    if (document.getElementById('admin-reservations-list')) await loadAdminReservations();
+    showToast('Reserva cancelada.', 'success');
+  } catch (_) {
+    showToast('No se pudo cancelar.', 'error');
+  }
+}
+// ----- Admin: zonas comunes -----
+function areaCard(a) {
+  const badge = a.active === false ? '<span class="area-state area-off">Inactiva</span>' : '<span class="area-state area-on">Activa</span>';
+  const desc = a.description ? `<span class="area-desc">${escapeHtml(a.description)}</span>` : '';
+  return `
+    <div class="area-item">
+      <div class="area-info">
+        <span class="area-name">${escapeHtml(a.name)} ${badge}</span>
+        <span class="area-hours">${a.openHour}–${a.closeHour}</span>
+        ${desc}
+      </div>
+      <button class="btn btn-icon" title="${a.active === false ? 'Activar' : 'Desactivar'}" onclick="handleToggleArea('${a.id}')"><i data-lucide="${a.active === false ? 'eye' : 'eye-off'}"></i></button>
+      <button class="btn btn-icon btn-danger-ghost" title="Eliminar" onclick="handleDeleteArea('${a.id}')"><i data-lucide="trash-2"></i></button>
+    </div>`;
+}
+async function loadAdminAreas() {
+  const listEl = document.getElementById('admin-areas-list');
+  if (!listEl) return;
+  try {
+    const res = await fetch(`${API_URL}/admin/areas`, { headers: { 'Authorization': `Bearer ${state.token}` } });
+    const data = await res.json();
+    const list = data.areas || [];
+    listEl.innerHTML = list.length === 0
+      ? '<p class="box-desc">Aún no hay zonas configuradas.</p>'
+      : list.map(areaCard).join('');
+    if (window.lucide) lucide.createIcons();
+  } catch (_) {
+    listEl.innerHTML = '<p class="error-msg">No se pudieron cargar las zonas.</p>';
+  }
+}
+async function handleCreateArea(event) {
+  event.preventDefault();
+  const nameEl = document.getElementById('area-name');
+  const descEl = document.getElementById('area-description');
+  const openEl = document.getElementById('area-open');
+  const closeEl = document.getElementById('area-close');
+  const okEl = document.getElementById('area-success');
+  const errEl = document.getElementById('area-error');
+  okEl.classList.add('hidden'); errEl.classList.add('hidden');
+  const name = nameEl.value.trim();
+  if (!name) { errEl.textContent = 'Indica un nombre.'; errEl.classList.remove('hidden'); return; }
+  try {
+    const res = await fetch(`${API_URL}/admin/areas`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${state.token}` },
+      body: JSON.stringify({ name, description: descEl.value.trim(), openHour: openEl.value || '08:00', closeHour: closeEl.value || '22:00' })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'fail');
+    nameEl.value = ''; descEl.value = '';
+    okEl.textContent = 'Zona añadida.'; okEl.classList.remove('hidden');
+    await loadAdminAreas();
+    showToast('Zona común añadida.', 'success');
+  } catch (err) {
+    errEl.textContent = err.message || 'No se pudo crear la zona.';
+    errEl.classList.remove('hidden');
+  }
+}
+async function handleToggleArea(id) {
+  try {
+    const res = await fetch(`${API_URL}/admin/areas/${id}/toggle`, { method: 'POST', headers: { 'Authorization': `Bearer ${state.token}` } });
+    if (!res.ok) throw new Error('fail');
+    await loadAdminAreas();
+    showToast('Zona actualizada.', 'success');
+  } catch (_) {
+    showToast('No se pudo actualizar.', 'error');
+  }
+}
+async function handleDeleteArea(id) {
+  if (!confirm('¿Eliminar esta zona? Se borrarán también sus reservas.')) return;
+  try {
+    const res = await fetch(`${API_URL}/admin/areas/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${state.token}` } });
+    if (!res.ok) throw new Error('fail');
+    await loadAdminAreas();
+    await loadAdminReservations();
+    showToast('Zona eliminada.', 'success');
+  } catch (_) {
+    showToast('No se pudo eliminar.', 'error');
+  }
+}
+async function loadAdminReservations() {
+  const listEl = document.getElementById('admin-reservations-list');
+  if (!listEl) return;
+  try {
+    const res = await fetch(`${API_URL}/neighbors/reservations`, { headers: { 'Authorization': `Bearer ${state.token}` } });
+    const data = await res.json();
+    const list = data.reservations || [];
+    listEl.innerHTML = list.length === 0
+      ? '<p class="box-desc">No hay reservas próximas.</p>'
+      : list.map((r) => reservationCard(r, { canCancel: true, showWho: true })).join('');
+    if (window.lucide) lucide.createIcons();
+  } catch (_) {
+    listEl.innerHTML = '<p class="error-msg">No se pudieron cargar las reservas.</p>';
+  }
+}
+
+// ===== Incidencias =====
+const INCIDENT_STATUS = {
+  open: { label: 'Abierta', cls: 'inc-open' },
+  in_progress: { label: 'En curso', cls: 'inc-progress' },
+  resolved: { label: 'Resuelta', cls: 'inc-resolved' }
+};
+let incidentFilter = 'all';
+function incidentStatusBadge(status) {
+  const m = INCIDENT_STATUS[status] || INCIDENT_STATUS.open;
+  return `<span class="incident-status ${m.cls}">${m.label}</span>`;
+}
+function incidentCard(i, opts) {
+  const o = opts || {};
+  let when = '';
+  try { when = new Date(i.createdAt).toLocaleString('es-ES', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }); } catch (_) { when = ''; }
+  const body = i.text ? `<p class="incident-text">${escapeHtml(i.text).replace(/\n/g, '<br>')}</p>` : '';
+  const photo = i.hasPhoto ? `<button class="btn btn-sm incident-photo-btn" onclick="viewIncidentPhoto('${i.id}')"><i data-lucide="image"></i><span>Ver foto</span></button>` : '';
+  const adminControls = o.admin ? `
+    <div class="incident-admin-actions">
+      <button class="btn btn-sm" onclick="handleSetIncidentStatus('${i.id}','open')">Abrir</button>
+      <button class="btn btn-sm" onclick="handleSetIncidentStatus('${i.id}','in_progress')">En curso</button>
+      <button class="btn btn-sm" onclick="handleSetIncidentStatus('${i.id}','resolved')">Resuelta</button>
+      <button class="btn btn-icon btn-danger-ghost" title="Eliminar" onclick="handleDeleteIncident('${i.id}')"><i data-lucide="trash-2"></i></button>
+    </div>` : '';
+  return `
+    <div class="incident-item incident-${i.status || 'open'}">
+      <div class="incident-head">
+        <span class="incident-title">${escapeHtml(i.title) || 'Incidencia'}</span>
+        ${incidentStatusBadge(i.status)}
+      </div>
+      ${body}
+      <div class="incident-meta">
+        <span>${escapeHtml(i.reporter || 'Vecino')} · ${when}</span>
+        ${photo}
+      </div>
+      ${adminControls}
+    </div>`;
+}
+// Tarjeta de incidencias del dashboard (solo con sesión)
+async function loadIncidentsCard() {
+  const card = document.getElementById('incidents-card');
+  const container = document.getElementById('incidents-container');
+  if (!card || !container) return;
+  if (!state.token) { card.classList.add('hidden'); return; }
+  card.classList.remove('hidden');
+  try {
+    const res = await fetch(`${API_URL}/neighbors/incidents`, { headers: { 'Authorization': `Bearer ${state.token}` } });
+    const data = await res.json();
+    const list = data.incidents || [];
+    container.innerHTML = list.length === 0
+      ? '<p class="box-desc">No hay incidencias registradas.</p>'
+      : list.map((i) => incidentCard(i, { admin: false })).join('');
+    if (window.lucide) lucide.createIcons();
+  } catch (_) {
+    container.innerHTML = '<p class="error-msg">No se pudieron cargar las incidencias.</p>';
+  }
+}
+async function handleCreateIncident(event) {
+  event.preventDefault();
+  const titleEl = document.getElementById('incident-title');
+  const textEl = document.getElementById('incident-text');
+  const photoEl = document.getElementById('incident-photo');
+  const okEl = document.getElementById('incident-success');
+  const errEl = document.getElementById('incident-error');
+  const btn = document.getElementById('incident-submit-btn');
+  okEl.classList.add('hidden'); errEl.classList.add('hidden');
+  const title = titleEl.value.trim();
+  const text = textEl.value.trim();
+  if (!title && !text) {
+    errEl.textContent = 'Indica al menos un asunto o detalle.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+  const file = photoEl.files && photoEl.files[0];
+  if (file && file.size > 8 * 1024 * 1024) {
+    errEl.textContent = 'La foto supera el límite de 8 MB.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+  const fd = new FormData();
+  fd.append('title', title);
+  fd.append('text', text);
+  if (file) fd.append('photo', file);
+  const original = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span>Enviando…</span>';
+  try {
+    const res = await fetch(`${API_URL}/neighbors/incidents`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${state.token}` },
+      body: fd
+    });
+    if (!res.ok) throw new Error('fail');
+    titleEl.value = ''; textEl.value = ''; photoEl.value = '';
+    okEl.textContent = 'Incidencia reportada. ¡Gracias!';
+    okEl.classList.remove('hidden');
+    await loadIncidentsCard();
+    showToast('Incidencia reportada.', 'success');
+  } catch (_) {
+    errEl.textContent = 'No se pudo reportar la incidencia.';
+    errEl.classList.remove('hidden');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = original;
+    if (window.lucide) lucide.createIcons();
+  }
+}
+async function viewIncidentPhoto(id) {
+  try {
+    const res = await fetch(`${API_URL}/neighbors/incidents/${id}/photo`, { headers: { 'Authorization': `Bearer ${state.token}` } });
+    if (!res.ok) throw new Error('fail');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } catch (_) {
+    showToast('No se pudo abrir la foto.', 'error');
+  }
+}
+// ----- Admin: gestión de incidencias -----
+function setIncidentFilter(f) {
+  incidentFilter = f;
+  document.querySelectorAll('[data-incident-filter]').forEach((b) => b.classList.toggle('active', b.getAttribute('data-incident-filter') === f));
+  loadAdminIncidentsFull();
+}
+async function loadAdminIncidentsFull() {
+  const listEl = document.getElementById('admin-incidents-full-list');
+  if (!listEl) return;
+  try {
+    const res = await fetch(`${API_URL}/admin/incidents?limit=100`, { headers: { 'Authorization': `Bearer ${state.token}` } });
+    const data = await res.json();
+    let list = (data.incidents || []).map((i) => ({
+      id: i.id,
+      title: i.title || '',
+      text: i.text || '',
+      status: i.status || 'open',
+      reporter: i.neighborName || i.from || (i.source === 'whatsapp' ? 'WhatsApp' : 'Vecino'),
+      hasPhoto: !!i.photoId,
+      createdAt: i.createdAt
+    }));
+    if (incidentFilter !== 'all') list = list.filter((i) => i.status === incidentFilter);
+    listEl.innerHTML = list.length === 0
+      ? '<p class="box-desc">Sin incidencias.</p>'
+      : list.map((i) => incidentCard(i, { admin: true })).join('');
+    if (window.lucide) lucide.createIcons();
+  } catch (_) {
+    listEl.innerHTML = '<p class="error-msg">No se pudieron cargar las incidencias.</p>';
+  }
+}
+async function handleSetIncidentStatus(id, status) {
+  try {
+    const res = await fetch(`${API_URL}/admin/incidents/${id}/status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${state.token}` },
+      body: JSON.stringify({ status })
+    });
+    if (!res.ok) throw new Error('fail');
+    await loadAdminIncidentsFull();
+    showToast('Estado actualizado.', 'success');
+  } catch (_) {
+    showToast('No se pudo actualizar.', 'error');
+  }
+}
+async function handleDeleteIncident(id) {
+  if (!confirm('¿Eliminar esta incidencia?')) return;
+  try {
+    const res = await fetch(`${API_URL}/admin/incidents/${id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${state.token}` }
+    });
+    if (!res.ok) throw new Error('fail');
+    await loadAdminIncidentsFull();
+    showToast('Incidencia eliminada.', 'success');
   } catch (_) {
     showToast('No se pudo eliminar.', 'error');
   }

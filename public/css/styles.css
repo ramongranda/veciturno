@@ -2650,3 +2650,153 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
 }
 .btn-danger-ghost:hover { color: var(--color-danger); border-color: rgba(239, 68, 68, 0.40); }
 .btn-danger-ghost svg { width: 16px; height: 16px; }
+
+/* ==========================================================================
+   DOCUMENTOS (feature) — base para desktop y móvil
+   ========================================================================== */
+.documents-list { display: flex; flex-direction: column; gap: 8px; }
+.document-item {
+  display: flex; align-items: center; gap: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+.document-icon {
+  flex: 0 0 auto; width: 38px; height: 38px;
+  display: inline-grid; place-items: center; border-radius: 10px;
+  background: rgba(99, 102, 241, 0.12); color: var(--color-primary, #818cf8);
+}
+.document-icon svg { width: 20px; height: 20px; }
+.document-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.document-title {
+  font-weight: 600; font-size: 0.92rem; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.document-meta { font-size: 0.72rem; color: var(--text-muted); opacity: 0.85; }
+.document-cat {
+  align-self: flex-start; margin-top: 2px;
+  font-size: 0.68rem; font-weight: 600; letter-spacing: 0.02em;
+  padding: 2px 8px; border-radius: 999px;
+  background: rgba(99, 102, 241, 0.14); color: var(--color-primary, #818cf8);
+}
+.document-download {
+  flex: 0 0 auto; width: 36px; height: 36px; padding: 0;
+  display: inline-grid; place-items: center; border-radius: 9px;
+  background: transparent; border: 1px solid var(--glass-border);
+  color: var(--text-muted); cursor: pointer;
+}
+.document-download:hover { color: var(--color-primary, #818cf8); border-color: rgba(99, 102, 241, 0.40); }
+.document-download svg { width: 17px; height: 17px; }
+#document-file {
+  width: 100%; font-size: 0.9rem; color: var(--text-muted);
+  padding: 10px; border: 1px dashed var(--glass-border); border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+}
+#document-file::file-selector-button {
+  margin-right: 12px; padding: 8px 14px; border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--glass-border); background: rgba(255, 255, 255, 0.05); color: var(--text-light, #e5e7eb);
+}
+
+/* ==========================================================================
+   RESERVAS DE ZONAS COMUNES (feature)
+   ========================================================================== */
+.reservation-form { gap: 12px; }
+.reservation-row { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 10px; }
+.reservation-row .form-group { margin: 0; }
+.reservation-availability {
+  font-size: 0.8rem; color: var(--text-muted);
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  min-height: 18px;
+}
+.availability-label { font-weight: 600; }
+.availability-free { color: var(--color-success, #34d399); display: inline-flex; align-items: center; gap: 5px; }
+.availability-free svg { width: 15px; height: 15px; }
+.availability-slot {
+  padding: 2px 8px; border-radius: 999px; font-weight: 600;
+  background: rgba(245, 158, 11, 0.14); color: var(--color-warning, #fbbf24);
+}
+.reservations-mine { margin-top: 16px; }
+.reservations-list { display: flex; flex-direction: column; gap: 8px; }
+.reservation-item {
+  display: flex; align-items: center; gap: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px; padding: 10px 12px;
+}
+.reservation-icon {
+  flex: 0 0 auto; width: 36px; height: 36px;
+  display: inline-grid; place-items: center; border-radius: 10px;
+  background: rgba(52, 211, 153, 0.12); color: var(--color-success, #34d399);
+}
+.reservation-icon svg { width: 19px; height: 19px; }
+.reservation-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.reservation-title { font-weight: 600; font-size: 0.92rem; }
+.reservation-meta { font-size: 0.74rem; color: var(--text-muted); text-transform: capitalize; }
+
+/* Admin: zonas configuradas */
+.areas-list { display: flex; flex-direction: column; gap: 8px; }
+.area-item {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px; padding: 10px 12px;
+}
+.area-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.area-name { font-weight: 600; font-size: 0.92rem; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.area-hours { font-size: 0.74rem; color: var(--text-muted); }
+.area-desc { font-size: 0.74rem; color: var(--text-muted); opacity: 0.85; }
+.area-state { font-size: 0.66rem; font-weight: 700; padding: 1px 7px; border-radius: 999px; letter-spacing: 0.02em; }
+.area-on { background: rgba(52, 211, 153, 0.16); color: var(--color-success, #34d399); }
+.area-off { background: rgba(148, 163, 184, 0.16); color: var(--text-muted); }
+
+@media (max-width: 768px) {
+  .reservation-row { grid-template-columns: 1fr 1fr; }
+  .reservation-row .form-group:first-child { grid-column: 1 / -1; }
+}
+
+/* ==========================================================================
+   INCIDENCIAS (feature)
+   ========================================================================== */
+.incidents-list { display: flex; flex-direction: column; gap: 10px; }
+.incident-item {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--glass-border);
+  border-left: 3px solid var(--text-muted);
+  border-radius: 12px; padding: 12px 14px;
+}
+.incident-open { border-left-color: var(--color-warning, #fbbf24); }
+.incident-in_progress { border-left-color: #60a5fa; }
+.incident-resolved { border-left-color: var(--color-success, #34d399); }
+.incident-head { display: flex; align-items: center; gap: 8px; }
+.incident-title { font-weight: 600; font-size: 0.95rem; flex: 1; min-width: 0; }
+.incident-status {
+  font-size: 0.66rem; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+  letter-spacing: 0.02em; white-space: nowrap;
+}
+.inc-open { background: rgba(245, 158, 11, 0.16); color: var(--color-warning, #fbbf24); }
+.inc-progress { background: rgba(96, 165, 250, 0.16); color: #60a5fa; }
+.inc-resolved { background: rgba(52, 211, 153, 0.16); color: var(--color-success, #34d399); }
+.incident-text { color: var(--text-muted); font-size: 0.85rem; margin: 6px 0 0; line-height: 1.45; word-break: break-word; }
+.incident-meta {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  margin-top: 8px; font-size: 0.72rem; color: var(--text-muted); flex-wrap: wrap;
+}
+.incident-photo-btn { padding: 4px 10px; font-size: 0.72rem; display: inline-flex; align-items: center; gap: 5px; }
+.incident-photo-btn svg { width: 14px; height: 14px; }
+.incident-admin-actions {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px;
+  padding-top: 10px; border-top: 1px solid var(--glass-border);
+}
+.btn-sm { padding: 5px 10px; font-size: 0.74rem; }
+.incident-filter-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.incident-filter.active { border-color: var(--color-primary, #818cf8); color: var(--color-primary, #818cf8); }
+#incident-photo {
+  width: 100%; font-size: 0.9rem; color: var(--text-muted);
+  padding: 10px; border: 1px dashed var(--glass-border); border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+}
+#incident-photo::file-selector-button {
+  margin-right: 12px; padding: 8px 14px; border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--glass-border); background: rgba(255, 255, 255, 0.05); color: var(--text-light, #e5e7eb);
+}

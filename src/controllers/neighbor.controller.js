@@ -544,7 +544,143 @@ th{background:#f1f5f9;text-align:left}.right{text-align:right}.total{font-size:1
     } catch (err) {
       return res.status(500).json({ error: 'No se pudo renombrar el dispositivo.' });
     }
+  },
+  // ---- Documentos de la comunidad (lectura para vecinos autenticados) ----
+  listDocuments: (req, res) => {
+    try {
+      return res.json({ documents: dbService.getDocuments(200) });
+    } catch (_) {
+      return res.status(500).json({ error: 'No se pudieron cargar los documentos.' });
+    }
+  },
+  downloadDocument: async (req, res) => {
+    try {
+      const file = await dbService.getDocumentBinary(req.params.id);
+      if (!file) return res.status(404).json({ error: 'Documento no encontrado.' });
+      const inline = String(req.query.inline || '') === '1';
+      const disposition = inline ? 'inline' : 'attachment';
+      const safeName = String(file.filename || 'documento').replace(/["\\\r\n]/g, '_');
+      res.setHeader('Content-Type', file.mime || 'application/octet-stream');
+      res.setHeader('Content-Length', String(file.content.length));
+      res.setHeader('Content-Disposition', `${disposition}; filename="${safeName}"`);
+      return res.send(file.content);
+    } catch (_) {
+      return res.status(500).json({ error: 'No se pudo descargar el documento.' });
+    }
+  },
+  // ---- Zonas comunes / reservas (vecino autenticado) ----
+  listCommonAreas: (req, res) => {
+    try {
+      return res.json({ areas: dbService.getCommonAreas(false) });
+    } catch (_) {
+      return res.status(500).json({ error: 'No se pudieron cargar las zonas comunes.' });
+    }
+  },
+  listReservations: (req, res) => {
+    try {
+      const { date = '', areaId = '', mine = '' } = req.query || {};
+      const filter = { date: String(date), areaId: String(areaId), upcomingOnly: !date };
+      if (String(mine) === '1' && req.user) filter.neighborId = req.user.id;
+      return res.json({ reservations: dbService.getReservations(filter) });
+    } catch (_) {
+      return res.status(500).json({ error: 'No se pudieron cargar las reservas.' });
+    }
+  },
+  createReservation: (req, res) => {
+    try {
+      const { areaId, date, startTime, endTime } = req.body || {};
+      const neighborName = (req.user && (req.user.username || req.user.floor)) || 'Vecino';
+      const reservation = dbService.addReservation({
+        areaId: String(areaId || ''),
+        date: String(date || ''),
+        startTime: String(startTime || ''),
+        endTime: String(endTime || ''),
+        neighborId: req.user ? req.user.id : '',
+        neighborName
+      });
+      return res.status(201).json({ reservation });
+    } catch (err) {
+      return res.status(400).json({ error: err.message || 'No se pudo crear la reserva.' });
+    }
+  },
+  cancelReservation: (req, res) => {
+    try {
+      const result = dbService.deleteReservation(req.params.id, {
+        neighborId: req.user ? req.user.id : '',
+        isAdmin: !!(req.user && req.user.isAdmin)
+      });
+      if (!result.ok && result.reason === 'notfound') return res.status(404).json({ error: 'Reserva no encontrada.' });
+      if (!result.ok && result.reason === 'forbidden') return res.status(403).json({ error: 'Solo puedes cancelar tus propias reservas.' });
+      return res.json({ success: true });
+    } catch (_) {
+      return res.status(500).json({ error: 'No se pudo cancelar la reserva.' });
+    }
+  },
+  // ---- Incidencias (reporte y consulta por vecinos autenticados) ----
+  createIncident: async (req, res) => {
+    try {
+      const { title, text } = req.body || {};
+      if (!String(title || '').trim() && !String(text || '').trim()) {
+        return res.status(400).json({ error: 'Describe la incidencia (título o detalle).' });
+      }
+      let photoId = '';
+      let photoMime = '';
+      if (req.file && req.file.buffer && req.file.buffer.length) {
+        const saved = await dbService.saveIncidentPhoto(req.file.buffer, req.file.mimetype);
+        photoId = saved.photoId;
+        photoMime = saved.photoMime;
+      }
+      const neighborName = (req.user && (req.user.username || req.user.floor)) || 'Vecino';
+      const incident = dbService.addIncident({
+        source: 'app',
+        title,
+        text,
+        status: 'open',
+        neighborId: req.user ? req.user.id : '',
+        neighborName,
+        photoId,
+        photoMime
+      });
+      return res.status(201).json({ incident: mapIncidentPublic(incident) });
+    } catch (_) {
+      return res.status(500).json({ error: 'No se pudo registrar la incidencia.' });
+    }
+  },
+  listIncidents: (req, res) => {
+    try {
+      const items = dbService.getIncidents(100).map(mapIncidentPublic);
+      return res.json({ incidents: items });
+    } catch (_) {
+      return res.status(500).json({ error: 'No se pudieron cargar las incidencias.' });
+    }
+  },
+  getIncidentPhoto: async (req, res) => {
+    try {
+      const photo = await dbService.getIncidentPhoto(req.params.id);
+      if (!photo) return res.status(404).json({ error: 'Foto no encontrada.' });
+      res.setHeader('Content-Type', photo.mime || 'image/jpeg');
+      res.setHeader('Content-Length', String(photo.content.length));
+      res.setHeader('Content-Disposition', 'inline');
+      return res.send(photo.content);
+    } catch (_) {
+      return res.status(500).json({ error: 'No se pudo cargar la foto.' });
+    }
   }
 };
+
+// Vista segura de una incidencia para vecinos (oculta el teléfono de WhatsApp).
+function mapIncidentPublic(i) {
+  return {
+    id: i.id,
+    title: i.title || '',
+    text: i.text || '',
+    status: i.status || 'open',
+    source: i.source || 'app',
+    reporter: i.neighborName || (i.source === 'whatsapp' ? 'WhatsApp' : 'Vecino'),
+    hasPhoto: !!i.photoId,
+    createdAt: i.createdAt,
+    updatedAt: i.updatedAt || i.createdAt
+  };
+}
 
 module.exports = neighborController;

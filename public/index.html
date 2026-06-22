@@ -22,8 +22,8 @@
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <!-- Hojas de Estilo -->
-  <link rel="stylesheet" href="css/styles.css?v=mobile-redesign-4">
-  <link rel="stylesheet" href="css/mobile.css?v=mobile-redesign-4">
+  <link rel="stylesheet" href="css/styles.css?v=incidencias-1">
+  <link rel="stylesheet" href="css/mobile.css?v=incidencias-1">
 </head>
 <body>
 
@@ -141,6 +141,91 @@
             <h3><i data-lucide="megaphone"></i> Tablón de la comunidad</h3>
             <div id="announcements-container" class="announcements-list">
               <p class="box-desc">Cargando anuncios…</p>
+            </div>
+          </div>
+          <!-- Documentos de la comunidad (visible solo con sesión iniciada) -->
+          <div class="section-card glass-card hidden" id="documents-card">
+            <h3><i data-lucide="folder"></i> Documentos</h3>
+            <div id="documents-container" class="documents-list">
+              <p class="box-desc">Cargando documentos…</p>
+            </div>
+          </div>
+          <!-- Reservas de zonas comunes (visible solo con sesión iniciada) -->
+          <div class="section-card glass-card hidden" id="reservations-card">
+            <h3><i data-lucide="calendar-check"></i> Reservar zona común</h3>
+            <p id="reservations-empty" class="box-desc hidden">La comunidad aún no tiene zonas comunes reservables.</p>
+            <form id="reservation-form" class="auth-form reservation-form" onsubmit="handleCreateReservation(event)">
+              <div class="form-group">
+                <label for="reservation-area">Zona común</label>
+                <div class="input-wrapper">
+                  <i data-lucide="map-pin"></i>
+                  <select id="reservation-area" onchange="loadReservationAvailability()"></select>
+                </div>
+              </div>
+              <div class="reservation-row">
+                <div class="form-group">
+                  <label for="reservation-date">Fecha</label>
+                  <div class="input-wrapper">
+                    <i data-lucide="calendar"></i>
+                    <input type="date" id="reservation-date" onchange="loadReservationAvailability()">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="reservation-start">Desde</label>
+                  <input type="time" id="reservation-start">
+                </div>
+                <div class="form-group">
+                  <label for="reservation-end">Hasta</label>
+                  <input type="time" id="reservation-end">
+                </div>
+              </div>
+              <div id="reservation-availability" class="reservation-availability"></div>
+              <div id="reservation-success" class="success-msg hidden"></div>
+              <div id="reservation-error" class="error-msg hidden"></div>
+              <button type="submit" class="btn btn-primary">
+                <i data-lucide="calendar-plus"></i>
+                <span>Reservar</span>
+              </button>
+            </form>
+            <div class="reservations-mine">
+              <h3 style="font-size:0.95rem;">Mis próximas reservas</h3>
+              <div id="my-reservations-list" class="reservations-list">
+                <p class="box-desc">Cargando…</p>
+              </div>
+            </div>
+          </div>
+          <!-- Incidencias de la comunidad (visible solo con sesión iniciada) -->
+          <div class="section-card glass-card hidden" id="incidents-card">
+            <h3><i data-lucide="alert-triangle"></i> Incidencias</h3>
+            <p class="box-desc">Reporta una avería o problema en zonas comunes. La administración hará seguimiento.</p>
+            <form id="incident-form" class="auth-form" onsubmit="handleCreateIncident(event)">
+              <div class="form-group">
+                <label for="incident-title">Asunto</label>
+                <div class="input-wrapper">
+                  <i data-lucide="alert-triangle"></i>
+                  <input type="text" id="incident-title" maxlength="140" placeholder="Ej. Luz fundida en portal">
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="incident-text">Detalle</label>
+                <textarea id="incident-text" rows="3" maxlength="4000" placeholder="Describe el problema y dónde está…"></textarea>
+              </div>
+              <div class="form-group">
+                <label for="incident-photo">Foto (opcional, máx. 8 MB)</label>
+                <input type="file" id="incident-photo" accept="image/*">
+              </div>
+              <div id="incident-success" class="success-msg hidden"></div>
+              <div id="incident-error" class="error-msg hidden"></div>
+              <button type="submit" class="btn btn-primary" id="incident-submit-btn">
+                <i data-lucide="send"></i>
+                <span>Reportar incidencia</span>
+              </button>
+            </form>
+            <div style="margin-top:16px;">
+              <h3 style="font-size:0.95rem;">Incidencias de la comunidad</h3>
+              <div id="incidents-container" class="incidents-list">
+                <p class="box-desc">Cargando…</p>
+              </div>
             </div>
           </div>
           <div id="neighbor-notifications-card" class="section-card glass-card hidden">
@@ -708,6 +793,18 @@
                 <i data-lucide="megaphone"></i>
                 <span>Tablón de anuncios</span>
               </button>
+              <button class="btn btn-secondary" type="button" data-admin-panel-btn="documents" onclick="adminShowPanel('documents')">
+                <i data-lucide="folder"></i>
+                <span>Documentos</span>
+              </button>
+              <button class="btn btn-secondary" type="button" data-admin-panel-btn="areas" onclick="adminShowPanel('areas')">
+                <i data-lucide="calendar-check"></i>
+                <span>Zonas comunes</span>
+              </button>
+              <button class="btn btn-secondary" type="button" data-admin-panel-btn="incidents" onclick="adminShowPanel('incidents')">
+                <i data-lucide="alert-triangle"></i>
+                <span>Incidencias</span>
+              </button>
               <button class="btn btn-secondary" type="button" data-admin-panel-btn="whatsapp" onclick="adminShowPanel('whatsapp')">
                 <i data-lucide="message-square"></i>
                 <span>WhatsApp Servidor</span>
@@ -747,6 +844,107 @@
             <div id="admin-announcements-list" class="announcements-list">
               <p class="box-desc">Cargando…</p>
             </div>
+          </div>
+        </section>
+        <section id="admin-section-documents" class="section-card glass-card" style="display:none;">
+          <h3><i data-lucide="folder"></i> Documentos de la comunidad</h3>
+          <p class="box-desc">Sube actas, contratos, presupuestos o normativa. Cada vecino con sesión iniciada podrá consultarlos y descargarlos.</p>
+          <form id="document-form" class="auth-form" onsubmit="handleUploadDocument(event)">
+            <div class="form-group">
+              <label for="document-title">Título</label>
+              <div class="input-wrapper">
+                <i data-lucide="type"></i>
+                <input type="text" id="document-title" maxlength="160" placeholder="Ej. Acta junta ordinaria 2026">
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="document-category">Categoría</label>
+              <div class="input-wrapper">
+                <i data-lucide="tag"></i>
+                <input type="text" id="document-category" maxlength="60" list="document-categories" placeholder="Actas, Contratos, Presupuestos…">
+                <datalist id="document-categories">
+                  <option value="Actas"></option>
+                  <option value="Contratos"></option>
+                  <option value="Presupuestos"></option>
+                  <option value="Normativa"></option>
+                  <option value="Otros"></option>
+                </datalist>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="document-file">Archivo (máx. 25 MB)</label>
+              <input type="file" id="document-file" required>
+            </div>
+            <div id="document-success" class="success-msg hidden"></div>
+            <div id="document-error" class="error-msg hidden"></div>
+            <button type="submit" class="btn btn-primary" id="document-submit-btn">
+              <i data-lucide="upload"></i>
+              <span>Subir documento</span>
+            </button>
+          </form>
+          <div style="margin-top:16px;">
+            <h3 style="font-size:1rem;">Documentos publicados</h3>
+            <div id="admin-documents-list" class="documents-list">
+              <p class="box-desc">Cargando…</p>
+            </div>
+          </div>
+        </section>
+        <section id="admin-section-areas" class="section-card glass-card" style="display:none;">
+          <h3><i data-lucide="calendar-check"></i> Zonas comunes</h3>
+          <p class="box-desc">Define las zonas reservables (salón social, pádel, piscina…). Cada vecino podrá reservar franjas dentro del horario indicado.</p>
+          <form id="area-form" class="auth-form" onsubmit="handleCreateArea(event)">
+            <div class="form-group">
+              <label for="area-name">Nombre de la zona</label>
+              <div class="input-wrapper">
+                <i data-lucide="map-pin"></i>
+                <input type="text" id="area-name" maxlength="80" placeholder="Ej. Salón social" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="area-description">Descripción (opcional)</label>
+              <input type="text" id="area-description" maxlength="300" placeholder="Aforo, normas de uso, etc.">
+            </div>
+            <div class="reservation-row">
+              <div class="form-group">
+                <label for="area-open">Apertura</label>
+                <input type="time" id="area-open" value="08:00">
+              </div>
+              <div class="form-group">
+                <label for="area-close">Cierre</label>
+                <input type="time" id="area-close" value="22:00">
+              </div>
+            </div>
+            <div id="area-success" class="success-msg hidden"></div>
+            <div id="area-error" class="error-msg hidden"></div>
+            <button type="submit" class="btn btn-primary">
+              <i data-lucide="plus"></i>
+              <span>Añadir zona</span>
+            </button>
+          </form>
+          <div style="margin-top:16px;">
+            <h3 style="font-size:1rem;">Zonas configuradas</h3>
+            <div id="admin-areas-list" class="areas-list">
+              <p class="box-desc">Cargando…</p>
+            </div>
+          </div>
+          <div style="margin-top:16px;">
+            <h3 style="font-size:1rem;">Próximas reservas</h3>
+            <div id="admin-reservations-list" class="reservations-list">
+              <p class="box-desc">Cargando…</p>
+            </div>
+          </div>
+        </section>
+        <section id="admin-section-incidents" class="section-card glass-card" style="display:none;">
+          <h3><i data-lucide="alert-triangle"></i> Incidencias</h3>
+          <p class="box-desc">Incidencias reportadas por vecinos (app) y desde WhatsApp. Cambia el estado o elimínalas.</p>
+          <div class="incident-filter-row">
+            <button class="btn btn-secondary btn-sm incident-filter active" data-incident-filter="all" onclick="setIncidentFilter('all')">Todas</button>
+            <button class="btn btn-secondary btn-sm incident-filter" data-incident-filter="open" onclick="setIncidentFilter('open')">Abiertas</button>
+            <button class="btn btn-secondary btn-sm incident-filter" data-incident-filter="in_progress" onclick="setIncidentFilter('in_progress')">En curso</button>
+            <button class="btn btn-secondary btn-sm incident-filter" data-incident-filter="resolved" onclick="setIncidentFilter('resolved')">Resueltas</button>
+          </div>
+          <div id="admin-incidents-full-list" class="incidents-list" style="margin-top:12px;">
+            <p class="box-desc">Cargando…</p>
           </div>
         </section>
         <section id="admin-section-config" class="section-card glass-card">
@@ -1627,6 +1825,6 @@
   <nav id="mobile-bottom-nav" class="mobile-bottom-nav"></nav>
 
   <!-- SCRIPT DEL FRONTEND -->
-  <script src="js/app.js?v=mobile-redesign-1"></script>
+  <script src="js/app.js?v=incidencias-1"></script>
 </body>
 </html>

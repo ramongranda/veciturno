@@ -4,6 +4,7 @@ const multer = require('multer');
 const adminController = require('../controllers/admin.controller');
 const { authenticateToken, requireAdmin } = require('../middlewares/auth.middleware');
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+const uploadDoc = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
 
 // Rutas de administración protegidas por sesión y privilegios de administrador
 router.get('/community/structure', authenticateToken, requireAdmin, adminController.getCommunityStructure);
@@ -32,8 +33,16 @@ router.post('/turn/set-active', authenticateToken, requireAdmin, adminController
 router.post('/turn/set-month', authenticateToken, requireAdmin, adminController.setActiveTurnMonth);
 router.get('/notifications/logs', authenticateToken, requireAdmin, adminController.getNotificationLogs);
 router.get('/incidents', authenticateToken, requireAdmin, adminController.getIncidents);
+router.post('/incidents/:id/status', authenticateToken, requireAdmin, adminController.updateIncidentStatus);
+router.delete('/incidents/:id', authenticateToken, requireAdmin, adminController.deleteIncident);
 router.post('/announcements', authenticateToken, requireAdmin, adminController.createAnnouncement);
 router.delete('/announcements/:id', authenticateToken, requireAdmin, adminController.deleteAnnouncement);
+router.post('/documents', authenticateToken, requireAdmin, uploadDoc.single('file'), adminController.uploadDocument);
+router.delete('/documents/:id', authenticateToken, requireAdmin, adminController.deleteDocument);
+router.get('/areas', authenticateToken, requireAdmin, adminController.listCommonAreas);
+router.post('/areas', authenticateToken, requireAdmin, adminController.createCommonArea);
+router.post('/areas/:id/toggle', authenticateToken, requireAdmin, adminController.toggleCommonArea);
+router.delete('/areas/:id', authenticateToken, requireAdmin, adminController.deleteCommonArea);
 router.post('/send-test-whatsapp', authenticateToken, requireAdmin, adminController.sendTestWhatsApp);
 router.post('/notifications/force-turn-start', authenticateToken, requireAdmin, adminController.forceTurnStartNotification);
 router.post('/notifications/run-reminders', authenticateToken, requireAdmin, adminController.runWhatsAppReminders);

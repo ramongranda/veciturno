@@ -5,9 +5,42 @@ const config = require('../config/env');
 const whatsappService = require('./whatsapp.service');
 
 const DB_PATH = path.join(__dirname, '../../db/database.json');
+const DOCS_DIR = path.join(path.dirname(DB_PATH), 'documents');
 
 let dbInMemoryData = null;
 let pgPool = null;
+
+// Almacén binario genérico (tabla veciturno_documents en pg, o disco en local).
+// Compartido por Documentos y por las fotos de Incidencias.
+async function saveBinaryBlob(id, buffer, mime) {
+  const safeMime = String(mime || 'application/octet-stream').slice(0, 120);
+  if (config.DATABASE_URL && pgPool) {
+    await pgPool.query(
+      'INSERT INTO veciturno_documents (id, content, mime) VALUES ($1, $2, $3) ON CONFLICT (id) DO UPDATE SET content = $2, mime = $3',
+      [id, buffer, safeMime]
+    );
+  } else {
+    if (!fs.existsSync(DOCS_DIR)) fs.mkdirSync(DOCS_DIR, { recursive: true });
+    fs.writeFileSync(path.join(DOCS_DIR, id), buffer);
+  }
+}
+async function readBinaryBlob(id) {
+  if (config.DATABASE_URL && pgPool) {
+    const res = await pgPool.query('SELECT content FROM veciturno_documents WHERE id = $1', [id]);
+    if (res.rows.length > 0 && res.rows[0].content) return res.rows[0].content;
+    return null;
+  }
+  const fp = path.join(DOCS_DIR, id);
+  return fs.existsSync(fp) ? fs.readFileSync(fp) : null;
+}
+async function deleteBinaryBlob(id) {
+  if (config.DATABASE_URL && pgPool) {
+    await pgPool.query('DELETE FROM veciturno_documents WHERE id = $1', [id]).catch(() => {});
+  } else {
+    const fp = path.join(DOCS_DIR, id);
+    if (fs.existsSync(fp)) { try { fs.unlinkSync(fp); } catch (_) {} }
+  }
+}
 
 function loadFromLocalJSONFile() {
   try {
@@ -130,6 +163,9 @@ function buildInitialData() {
     pollRecords: [],
     turnConfirmations: [],
     announcements: [],
+    documents: [],
+    commonAreas: [],
+    reservations: [],
     settings: {
       communityName: config.COMMUNITY_NAME || 'Comunidad VeciTurno',
       whatsappGroupId: '',
@@ -181,6 +217,9 @@ function ensureDataShape(data) {
   safe.pollRecords = Array.isArray(safe.pollRecords) ? safe.pollRecords : [];
   safe.turnConfirmations = Array.isArray(safe.turnConfirmations) ? safe.turnConfirmations : [];
   safe.announcements = Array.isArray(safe.announcements) ? safe.announcements : [];
+  safe.documents = Array.isArray(safe.documents) ? safe.documents : [];
+  safe.commonAreas = Array.isArray(safe.commonAreas) ? safe.commonAreas : [];
+  safe.reservations = Array.isArray(safe.reservations) ? safe.reservations : [];
   safe.settings = safe.settings && typeof safe.settings === 'object' ? safe.settings : {};
   if (typeof safe.settings.communityName !== 'string') {
     safe.settings.communityName = config.COMMUNITY_NAME || 'Comunidad VeciTurno';
@@ -405,6 +444,17 @@ function writeDB(data) {
   }
 }
 
+function isValidHHMM(s) {
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(String(s || ''));
+}
+function isValidDate(s) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(s || ''));
+}
+function timeOverlap(aStart, aEnd, bStart, bEnd) {
+  // Franjas en formato HH:MM (24h) comparables como cadena. Solapan si se cruzan.
+  return aStart < bEnd && bStart < aEnd;
+}
+
 const dbService = {
   initialize: async () => {
     if (config.DATABASE_URL) {
@@ -419,6 +469,15 @@ const dbService = {
           CREATE TABLE IF NOT EXISTS veciturno_store (
             id INT PRIMARY KEY,
             data JSONB
+          );
+        `);
+
+        // Almacén binario de documentos de la comunidad (actas, contratos, etc.).
+        await pgPool.query(`
+          CREATE TABLE IF NOT EXISTS veciturno_documents (
+            id TEXT PRIMARY KEY,
+            content BYTEA,
+            mime TEXT
           );
         `);
 
@@ -808,16 +867,22 @@ const dbService = {
     writeDB(data);
     return data.settings;
   },
-  addIncident: ({ source = 'whatsapp', from = '', text = '', status = 'open' }) => {
+  addIncident: ({ source = 'whatsapp', from = '', title = '', text = '', status = 'open', neighborId = '', neighborName = '', photoId = '', photoMime = '' }) => {
     const data = readDB();
     data.incidents = data.incidents || [];
     const incident = {
       id: `${Date.now()}${Math.random().toString(36).slice(2, 6)}`,
       createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       source,
       from,
-      text,
-      status
+      title: String(title || '').trim().slice(0, 140),
+      text: String(text || '').trim().slice(0, 4000),
+      neighborId: String(neighborId || ''),
+      neighborName: String(neighborName || '').slice(0, 80),
+      photoId: photoId || '',
+      photoMime: photoMime || '',
+      status: ['open', 'in_progress', 'resolved'].includes(status) ? status : 'open'
     };
     data.incidents.unshift(incident);
     if (data.incidents.length > 500) data.incidents = data.incidents.slice(0, 500);
@@ -827,6 +892,41 @@ const dbService = {
   getIncidents: (limit = 100) => {
     const data = readDB();
     return (data.incidents || []).slice(0, limit);
+  },
+  // Guarda la foto de una incidencia en el almacén binario y devuelve sus referencias.
+  saveIncidentPhoto: async (buffer, mime) => {
+    if (!buffer || !buffer.length) return { photoId: '', photoMime: '' };
+    const photoId = `${Date.now()}${Math.random().toString(36).slice(2, 8)}`;
+    const photoMime = String(mime || 'image/jpeg').slice(0, 120);
+    await saveBinaryBlob(photoId, buffer, photoMime);
+    return { photoId, photoMime };
+  },
+  getIncidentPhoto: async (incidentId) => {
+    const data = readDB();
+    const inc = (data.incidents || []).find((i) => i.id === incidentId);
+    if (!inc || !inc.photoId) return null;
+    const content = await readBinaryBlob(inc.photoId);
+    if (!content) return null;
+    return { content, mime: inc.photoMime || 'image/jpeg' };
+  },
+  updateIncidentStatus: (id, status) => {
+    if (!['open', 'in_progress', 'resolved'].includes(status)) return null;
+    const data = readDB();
+    const inc = (data.incidents || []).find((i) => i.id === id);
+    if (!inc) return null;
+    inc.status = status;
+    inc.updatedAt = new Date().toISOString();
+    writeDB(data);
+    return inc;
+  },
+  deleteIncident: async (id) => {
+    const data = readDB();
+    const inc = (data.incidents || []).find((i) => i.id === id);
+    if (!inc) return false;
+    data.incidents = (data.incidents || []).filter((i) => i.id !== id);
+    writeDB(data);
+    if (inc.photoId) await deleteBinaryBlob(inc.photoId);
+    return true;
   },
   // ---- Tablón de anuncios de la comunidad ----
   getAnnouncements: (limit = 50) => {
@@ -861,6 +961,182 @@ const dbService = {
     data.announcements = (data.announcements || []).filter((a) => a.id !== id);
     writeDB(data);
     return before !== data.announcements.length;
+  },
+  // ---- Documentos de la comunidad (metadatos en JSONB, binario aparte) ----
+  getDocuments: (limit = 200) => {
+    const data = readDB();
+    const rows = (data.documents || []).slice();
+    rows.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+    return rows.slice(0, limit);
+  },
+  getDocumentMeta: (id) => {
+    const data = readDB();
+    return (data.documents || []).find((d) => d.id === id) || null;
+  },
+  addDocument: async ({ filename, title, mime, size, category = '', uploadedBy = '', buffer }) => {
+    if (!buffer || !buffer.length) throw new Error('Documento vacío.');
+    const id = `${Date.now()}${Math.random().toString(36).slice(2, 8)}`;
+    const safeMime = String(mime || 'application/octet-stream').slice(0, 120);
+
+    // Persistir el binario fuera del blob JSONB para no reserializarlo en cada escritura.
+    if (config.DATABASE_URL && pgPool) {
+      await pgPool.query(
+        'INSERT INTO veciturno_documents (id, content, mime) VALUES ($1, $2, $3) ON CONFLICT (id) DO UPDATE SET content = $2, mime = $3',
+        [id, buffer, safeMime]
+      );
+    } else {
+      if (!fs.existsSync(DOCS_DIR)) fs.mkdirSync(DOCS_DIR, { recursive: true });
+      fs.writeFileSync(path.join(DOCS_DIR, id), buffer);
+    }
+
+    const meta = {
+      id,
+      filename: String(filename || 'documento').slice(0, 200),
+      title: String(title || filename || 'Documento').trim().slice(0, 160),
+      mime: safeMime,
+      size: Number(size) || buffer.length,
+      category: String(category || '').trim().slice(0, 60),
+      uploadedBy: String(uploadedBy || '').slice(0, 80),
+      createdAt: new Date().toISOString()
+    };
+
+    const data = readDB();
+    data.documents = data.documents || [];
+    data.documents.unshift(meta);
+    if (data.documents.length > 1000) data.documents = data.documents.slice(0, 1000);
+    writeDB(data);
+    return meta;
+  },
+  getDocumentBinary: async (id) => {
+    const meta = dbService.getDocumentMeta(id);
+    if (!meta) return null;
+    let content = null;
+    if (config.DATABASE_URL && pgPool) {
+      const res = await pgPool.query('SELECT content FROM veciturno_documents WHERE id = $1', [id]);
+      if (res.rows.length > 0 && res.rows[0].content) {
+        content = res.rows[0].content;
+      }
+    } else {
+      const filePath = path.join(DOCS_DIR, id);
+      if (fs.existsSync(filePath)) content = fs.readFileSync(filePath);
+    }
+    if (!content) return null;
+    return { content, mime: meta.mime, filename: meta.filename };
+  },
+  deleteDocument: async (id) => {
+    const data = readDB();
+    const before = (data.documents || []).length;
+    data.documents = (data.documents || []).filter((d) => d.id !== id);
+    const removed = before !== data.documents.length;
+    if (removed) {
+      writeDB(data);
+      if (config.DATABASE_URL && pgPool) {
+        await pgPool.query('DELETE FROM veciturno_documents WHERE id = $1', [id]).catch(() => {});
+      } else {
+        const filePath = path.join(DOCS_DIR, id);
+        if (fs.existsSync(filePath)) { try { fs.unlinkSync(filePath); } catch (_) {} }
+      }
+    }
+    return removed;
+  },
+  // ---- Zonas comunes reservables ----
+  getCommonAreas: (includeInactive = false) => {
+    const data = readDB();
+    const rows = (data.commonAreas || []).slice();
+    rows.sort((a, b) => String(a.name).localeCompare(String(b.name)));
+    return includeInactive ? rows : rows.filter((a) => a.active !== false);
+  },
+  addCommonArea: ({ name, description = '', openHour = '08:00', closeHour = '22:00' }) => {
+    const trimmedName = String(name || '').trim();
+    if (!trimmedName) throw new Error('La zona común necesita un nombre.');
+    const data = readDB();
+    data.commonAreas = data.commonAreas || [];
+    const area = {
+      id: `${Date.now()}${Math.random().toString(36).slice(2, 6)}`,
+      name: trimmedName.slice(0, 80),
+      description: String(description || '').trim().slice(0, 300),
+      openHour: isValidHHMM(openHour) ? openHour : '08:00',
+      closeHour: isValidHHMM(closeHour) ? closeHour : '22:00',
+      active: true,
+      createdAt: new Date().toISOString()
+    };
+    data.commonAreas.unshift(area);
+    writeDB(data);
+    return area;
+  },
+  toggleCommonArea: (id) => {
+    const data = readDB();
+    const area = (data.commonAreas || []).find((a) => a.id === id);
+    if (!area) return null;
+    area.active = !(area.active !== false);
+    writeDB(data);
+    return area;
+  },
+  deleteCommonArea: (id) => {
+    const data = readDB();
+    const before = (data.commonAreas || []).length;
+    data.commonAreas = (data.commonAreas || []).filter((a) => a.id !== id);
+    // Eliminar también las reservas huérfanas de esa zona.
+    data.reservations = (data.reservations || []).filter((r) => r.areaId !== id);
+    writeDB(data);
+    return before !== data.commonAreas.length;
+  },
+  getReservations: ({ date = '', areaId = '', neighborId = '', upcomingOnly = false } = {}) => {
+    const data = readDB();
+    let rows = (data.reservations || []).slice();
+    if (date) rows = rows.filter((r) => r.date === date);
+    if (areaId) rows = rows.filter((r) => r.areaId === areaId);
+    if (neighborId) rows = rows.filter((r) => r.neighborId === String(neighborId));
+    if (upcomingOnly) {
+      const today = new Date().toISOString().slice(0, 10);
+      rows = rows.filter((r) => r.date >= today);
+    }
+    rows.sort((a, b) => String(a.date + a.startTime).localeCompare(String(b.date + b.startTime)));
+    return rows;
+  },
+  addReservation: ({ areaId, date, startTime, endTime, neighborId, neighborName }) => {
+    const data = readDB();
+    const area = (data.commonAreas || []).find((a) => a.id === areaId && a.active !== false);
+    if (!area) throw new Error('Zona común no disponible.');
+    if (!isValidDate(date)) throw new Error('Fecha no válida.');
+    if (!isValidHHMM(startTime) || !isValidHHMM(endTime)) throw new Error('Hora no válida.');
+    if (startTime >= endTime) throw new Error('La hora de fin debe ser posterior a la de inicio.');
+    const today = new Date().toISOString().slice(0, 10);
+    if (date < today) throw new Error('No se puede reservar en una fecha pasada.');
+    if (startTime < area.openHour || endTime > area.closeHour) {
+      throw new Error(`Horario disponible para ${area.name}: ${area.openHour}–${area.closeHour}.`);
+    }
+    data.reservations = data.reservations || [];
+    const conflict = data.reservations.find((r) =>
+      r.areaId === areaId && r.date === date && r.status !== 'cancelled' &&
+      timeOverlap(r.startTime, r.endTime, startTime, endTime)
+    );
+    if (conflict) throw new Error(`Franja ocupada: ${conflict.startTime}–${conflict.endTime} (${conflict.neighborName || 'reservada'}).`);
+    const reservation = {
+      id: `${Date.now()}${Math.random().toString(36).slice(2, 6)}`,
+      areaId,
+      areaName: area.name,
+      date,
+      startTime,
+      endTime,
+      neighborId: String(neighborId || ''),
+      neighborName: String(neighborName || '').slice(0, 80),
+      status: 'active',
+      createdAt: new Date().toISOString()
+    };
+    data.reservations.unshift(reservation);
+    if (data.reservations.length > 5000) data.reservations = data.reservations.slice(0, 5000);
+    writeDB(data);
+    return reservation;
+  },
+  deleteReservation: (id, { neighborId = '', isAdmin = false } = {}) => {
+    const data = readDB();
+    const r = (data.reservations || []).find((x) => x.id === id);
+    if (!r) return { ok: false, reason: 'notfound' };
+    if (!isAdmin && r.neighborId !== String(neighborId)) return { ok: false, reason: 'forbidden' };
+    data.reservations = (data.reservations || []).filter((x) => x.id !== id);
+    writeDB(data);
+    return { ok: true, reservation: r };
   },
   addTurnConfirmation: ({ floorId, month, phone, via = 'whatsapp' }) => {
     const data = readDB();

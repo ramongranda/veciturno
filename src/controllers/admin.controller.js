@@ -710,6 +710,95 @@ const adminController = {
     }
   },
 
+  // ---- Documentos de la comunidad ----
+  uploadDocument: async (req, res) => {
+    try {
+      if (!req.file || !req.file.buffer || !req.file.buffer.length) {
+        return res.status(400).json({ error: 'No se ha recibido ningún archivo.' });
+      }
+      const { title, category } = req.body || {};
+      const uploadedBy = (req.user && (req.user.username || req.user.floor)) || 'Administración';
+      const doc = await dbService.addDocument({
+        filename: req.file.originalname,
+        title,
+        mime: req.file.mimetype,
+        size: req.file.size,
+        category,
+        uploadedBy,
+        buffer: req.file.buffer
+      });
+      return res.status(201).json({ document: doc });
+    } catch (err) {
+      return res.status(500).json({ error: 'No se pudo subir el documento.' });
+    }
+  },
+  deleteDocument: async (req, res) => {
+    try {
+      const ok = await dbService.deleteDocument(req.params.id);
+      if (!ok) return res.status(404).json({ error: 'Documento no encontrado.' });
+      return res.json({ success: true });
+    } catch (_) {
+      return res.status(500).json({ error: 'No se pudo eliminar el documento.' });
+    }
+  },
+
+  // ---- Zonas comunes (gestión admin) ----
+  listCommonAreas: (req, res) => {
+    try {
+      return res.json({ areas: dbService.getCommonAreas(true) });
+    } catch (_) {
+      return res.status(500).json({ error: 'No se pudieron cargar las zonas comunes.' });
+    }
+  },
+  createCommonArea: (req, res) => {
+    try {
+      const { name, description, openHour, closeHour } = req.body || {};
+      const area = dbService.addCommonArea({ name, description, openHour, closeHour });
+      return res.status(201).json({ area });
+    } catch (err) {
+      return res.status(400).json({ error: err.message || 'No se pudo crear la zona común.' });
+    }
+  },
+  toggleCommonArea: (req, res) => {
+    try {
+      const area = dbService.toggleCommonArea(req.params.id);
+      if (!area) return res.status(404).json({ error: 'Zona común no encontrada.' });
+      return res.json({ area });
+    } catch (_) {
+      return res.status(500).json({ error: 'No se pudo actualizar la zona común.' });
+    }
+  },
+  deleteCommonArea: (req, res) => {
+    try {
+      const ok = dbService.deleteCommonArea(req.params.id);
+      if (!ok) return res.status(404).json({ error: 'Zona común no encontrada.' });
+      return res.json({ success: true });
+    } catch (_) {
+      return res.status(500).json({ error: 'No se pudo eliminar la zona común.' });
+    }
+  },
+
+  // ---- Incidencias (gestión admin) ----
+  updateIncidentStatus: (req, res) => {
+    try {
+      const { status } = req.body || {};
+      const inc = dbService.updateIncidentStatus(req.params.id, String(status || ''));
+      if (!inc) return res.status(400).json({ error: 'Incidencia o estado no válido.' });
+      return res.json({ incident: inc });
+    } catch (_) {
+      return res.status(500).json({ error: 'No se pudo actualizar la incidencia.' });
+    }
+  },
+  deleteIncident: async (req, res) => {
+    try {
+      const ok = await dbService.deleteIncident(req.params.id);
+      if (!ok) return res.status(404).json({ error: 'Incidencia no encontrada.' });
+      return res.json({ success: true });
+    } catch (_) {
+      return res.status(500).json({ error: 'No se pudo eliminar la incidencia.' });
+    }
+  },
+
   getWhatsAppGroups: async (req, res) => {
     try {
       const whatsappService = require('../services/whatsapp.service');
