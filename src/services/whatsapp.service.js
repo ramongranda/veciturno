@@ -118,12 +118,24 @@ const whatsappService = {
         clearTimeout(connectTimeout);
         connectTimeout = null;
       }
-      
-      // Limpiar la carpeta de sesión si se desconecta
-      try {
-        whatsappService.cleanSession();
-      } catch (err) {
-        console.error('Error al limpiar sesión:', err.message);
+
+      // Solo borrar credenciales si el MÓVIL desvinculó el dispositivo (LOGOUT).
+      // En cortes de red/navegación conservamos la sesión y reconectamos sin QR,
+      // de forma que la vinculación de WhatsApp quede fija entre reinicios.
+      if (String(reason).toUpperCase() === 'LOGOUT') {
+        try {
+          whatsappService.cleanSession();
+        } catch (err) {
+          console.error('Error al limpiar sesión:', err.message);
+        }
+        client = null;
+        setTimeout(() => whatsappService.initialize(), 3000);
+      } else {
+        try {
+          if (client) client.destroy().catch(() => {});
+        } catch (_) {}
+        client = null;
+        setTimeout(() => whatsappService.initialize(), 5000);
       }
     });
 
