@@ -71,6 +71,59 @@ function showToast(message, type = 'info') {
   }, 4000);
 }
 
+// Modal de confirmación estilado (sustituye a window.confirm). Devuelve Promise<boolean>.
+// Detecta acciones destructivas por el texto para pintar el botón en rojo.
+function showConfirm(message, options = {}) {
+  const text = String(message == null ? '' : message);
+  const danger = options.danger != null
+    ? options.danger
+    : /elimina|borrar|borrará|dar de baja|desvincul|reestablec|cancelar|permanente|perder/i.test(text);
+  const title = options.title || (danger ? 'Confirmar acción' : '¿Confirmar?');
+  const confirmText = options.confirmText || 'Aceptar';
+  const cancelText = options.cancelText || 'Cancelar';
+  const safe = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/\n/g, '<br>');
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'confirm-overlay';
+    overlay.innerHTML = `
+      <div class="confirm-dialog glass-card" role="alertdialog" aria-modal="true">
+        <div class="confirm-header">
+          <div class="confirm-icon ${danger ? 'danger' : ''}">
+            <i data-lucide="${danger ? 'alert-triangle' : 'help-circle'}"></i>
+          </div>
+          <h3>${title}</h3>
+        </div>
+        <div class="confirm-body">${safe}</div>
+        <div class="confirm-actions">
+          <button type="button" class="btn-secondary confirm-cancel">${cancelText}</button>
+          <button type="button" class="${danger ? 'btn-danger-ghost' : 'btn-primary'} confirm-ok">${confirmText}</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    if (window.lucide) lucide.createIcons();
+    requestAnimationFrame(() => overlay.classList.add('show'));
+
+    const close = (result) => {
+      overlay.classList.remove('show');
+      document.removeEventListener('keydown', onKey);
+      setTimeout(() => overlay.remove(), 250);
+      resolve(result);
+    };
+    const onKey = (e) => {
+      if (e.key === 'Escape') close(false);
+      else if (e.key === 'Enter') close(true);
+    };
+    overlay.querySelector('.confirm-ok').addEventListener('click', () => close(true));
+    overlay.querySelector('.confirm-cancel').addEventListener('click', () => close(false));
+    overlay.addEventListener('mousedown', (e) => { if (e.target === overlay) close(false); });
+    document.addEventListener('keydown', onKey);
+    setTimeout(() => { const ok = overlay.querySelector('.confirm-ok'); if (ok) ok.focus(); }, 60);
+  });
+}
+
 function b64urlToBuffer(b64url) {
   const pad = '='.repeat((4 - (b64url.length % 4)) % 4);
   const base64 = (b64url + pad).replace(/-/g, '+').replace(/_/g, '/');
@@ -1704,7 +1757,7 @@ async function handleProfileUpdate(event) {
 async function rotateTurn() {
   if (!state.token) return;
 
-  const confirmRotate = confirm('¿Confirmas que el turno mensual de limpieza de la escalera ha sido completado y deseas rotar al siguiente vecino?');
+  const confirmRotate = await showConfirm('¿Confirmas que el turno mensual de limpieza de la escalera ha sido completado y deseas rotar al siguiente vecino?');
   if (!confirmRotate) return;
 
   try {
@@ -1724,9 +1777,9 @@ async function rotateTurn() {
     // Recargar el dashboard con los nuevos datos
     await loadCommunityStatus();
     
-    alert('✅ ¡Turno mensual completado y rotado al siguiente vecino con éxito!');
+    showToast('✅ ¡Turno mensual completado y rotado al siguiente vecino con éxito!', 'success');
   } catch (err) {
-    alert(`Error: ${err.message}`);
+    showToast(`Error: ${err.message}`, 'error');
   }
 }
 
@@ -1897,7 +1950,7 @@ async function resetFinanceData() {
   if (successEl) successEl.classList.add('hidden');
   if (errorEl) errorEl.classList.add('hidden');
 
-  const confirmReset = window.confirm('Esto borrará movimientos, aportaciones, histórico mensual y saldo actual. ¿Continuar?');
+  const confirmReset = await showConfirm('Esto borrará movimientos, aportaciones, histórico mensual y saldo actual. ¿Continuar?');
   if (!confirmReset) return;
 
   try {
@@ -2393,7 +2446,7 @@ async function handleCreateAnnouncement(event) {
   }
 }
 async function handleDeleteAnnouncement(id) {
-  if (!confirm('¿Eliminar este anuncio?')) return;
+  if (!await showConfirm('¿Eliminar este anuncio?')) return;
   try {
     const res = await fetch(`${API_URL}/admin/announcements/${id}`, {
       method: 'DELETE',
@@ -2553,7 +2606,7 @@ async function handleUploadDocument(event) {
   }
 }
 async function handleDeleteDocument(id) {
-  if (!confirm('¿Eliminar este documento?')) return;
+  if (!await showConfirm('¿Eliminar este documento?')) return;
   try {
     const res = await fetch(`${API_URL}/admin/documents/${id}`, {
       method: 'DELETE',
@@ -2707,7 +2760,7 @@ async function loadMyReservations() {
   }
 }
 async function handleCancelReservation(id) {
-  if (!confirm('¿Cancelar esta reserva?')) return;
+  if (!await showConfirm('¿Cancelar esta reserva?')) return;
   try {
     const res = await fetch(`${API_URL}/neighbors/reservations/${id}`, {
       method: 'DELETE',
@@ -2791,7 +2844,7 @@ async function handleToggleArea(id) {
   }
 }
 async function handleDeleteArea(id) {
-  if (!confirm('¿Eliminar esta zona? Se borrarán también sus reservas.')) return;
+  if (!await showConfirm('¿Eliminar esta zona? Se borrarán también sus reservas.')) return;
   try {
     const res = await fetch(`${API_URL}/admin/areas/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${state.token}` } });
     if (!res.ok) throw new Error('fail');
@@ -2982,7 +3035,7 @@ async function handleSetIncidentStatus(id, status) {
   }
 }
 async function handleDeleteIncident(id) {
-  if (!confirm('¿Eliminar esta incidencia?')) return;
+  if (!await showConfirm('¿Eliminar esta incidencia?')) return;
   try {
     const res = await fetch(`${API_URL}/admin/incidents/${id}`, {
       method: 'DELETE',
@@ -3591,11 +3644,11 @@ async function inviteNeighborViaWhatsApp(floorId, currentPhone) {
 // Dar de baja/reinicializar a un vecino
 async function resetNeighbor(floorId, floorName, isSelf) {
   if (isSelf) {
-    if (!confirm("⚠️ ¿Estás seguro de que deseas DAR DE BAJA tu propio usuario administrador?\n\nPerderás la sesión de forma inmediata y la cuenta quedará pendiente de registro nuevamente.")) {
+    if (!await showConfirm("⚠️ ¿Estás seguro de que deseas DAR DE BAJA tu propio usuario administrador?\n\nPerderás la sesión de forma inmediata y la cuenta quedará pendiente de registro nuevamente.")) {
       return;
     }
   } else {
-    if (!confirm(`🚨 ¿Estás seguro de que deseas DAR DE BAJA al vecino de la ${floorName}?\n\nEsto borrará permanentemente su usuario, contraseña, doble factor (2FA) y huellas. Deberá volver a registrarse.`)) {
+    if (!await showConfirm(`🚨 ¿Estás seguro de que deseas DAR DE BAJA al vecino de la ${floorName}?\n\nEsto borrará permanentemente su usuario, contraseña, doble factor (2FA) y huellas. Deberá volver a registrarse.`)) {
       return;
     }
   }
@@ -3611,7 +3664,7 @@ async function resetNeighbor(floorId, floorName, isSelf) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error al reiniciar vecino.');
     
-    alert(data.message);
+    showToast(data.message, 'info');
     
     if (isSelf) {
       handleLogout();
@@ -3620,7 +3673,7 @@ async function resetNeighbor(floorId, floorName, isSelf) {
       await loadCommunityStatus();
     }
   } catch (err) {
-    alert(`Error: ${err.message}`);
+    showToast(`Error: ${err.message}`, 'error');
   }
 }
 
@@ -3640,7 +3693,7 @@ async function toggleNeighborExempt(floorId, exempt) {
     await loadAdminNeighborsManagement();
     await loadCommunityStatus();
   } catch (err) {
-    alert(`Error: ${err.message}`);
+    showToast(`Error: ${err.message}`, 'error');
   }
 }
 
@@ -3660,7 +3713,7 @@ async function toggleNeighborActive(floorId, active) {
     await loadAdminNeighborsManagement();
     await loadCommunityStatus();
   } catch (err) {
-    alert(`Error: ${err.message}`);
+    showToast(`Error: ${err.message}`, 'error');
   }
 }
 
@@ -3827,7 +3880,7 @@ async function open2FASetupModal() {
 
     showView('setup-2fa');
   } catch (err) {
-    alert(`Error: ${err.message}`);
+    showToast(`Error: ${err.message}`, 'error');
   }
 }
 
@@ -3916,7 +3969,7 @@ async function handleActivate2FA(event) {
       throw new Error(data.error || 'Código de verificación incorrecto');
     }
 
-    alert('🛡️ ¡Doble Factor de Autenticación (2FA) activado correctamente en tu cuenta!');
+    showToast('🛡️ ¡Doble Factor de Autenticación (2FA) activado correctamente en tu cuenta!', 'success');
     
     // Ocultar modal y volver al dashboard
     showView('dashboard');
@@ -3974,7 +4027,7 @@ async function testSystemWhatsApp() {
 async function handleRegisterWithout2FA() {
   if (!state.activeRegisterToken) return;
 
-  const confirmSkip = confirm('¿Estás seguro de que deseas registrarte sin activar el Doble Factor de Autenticación (2FA)? Podrás activarlo más adelante desde tu perfil para asegurar tu cuenta.');
+  const confirmSkip = await showConfirm('¿Estás seguro de que deseas registrarte sin activar el Doble Factor de Autenticación (2FA)? Podrás activarlo más adelante desde tu perfil para asegurar tu cuenta.');
   if (!confirmSkip) return;
 
   const errorEl = document.getElementById('register-error-2');
@@ -4013,7 +4066,7 @@ async function handleRegisterWithout2FA() {
     await loadCommunityStatus();
     showView('dashboard');
     
-    alert('🎉 ¡Registro completado correctamente sin 2FA! Te recomendamos activarlo más adelante desde tu perfil.');
+    showToast('🎉 ¡Registro completado correctamente sin 2FA! Te recomendamos activarlo más adelante desde tu perfil.', 'success');
   } catch (err) {
     errorEl.textContent = err.message;
     errorEl.classList.remove('hidden');
@@ -4176,7 +4229,7 @@ async function saveWhatsAppGroupConfig() {
 
 async function forceTurnStartNotification() {
   if (!state.token || !state.user || !state.user.isAdmin) return;
-  const confirmed = confirm('¿Seguro que quieres forzar el aviso del turno actual?');
+  const confirmed = await showConfirm('¿Seguro que quieres forzar el aviso del turno actual?');
   if (!confirmed) return;
 
   try {
@@ -4203,8 +4256,8 @@ async function runWhatsAppRemindersNow() {
     headers: { 'Authorization': `Bearer ${state.token}` }
   });
   const data = await res.json();
-  if (!res.ok) return alert(data.error || 'No se pudo ejecutar recordatorios.');
-  alert(data.message || 'Recordatorios ejecutados.');
+  if (!res.ok) return showToast(data.error || 'No se pudo ejecutar recordatorios.', 'error');
+  showToast(data.message || 'Recordatorios ejecutados.', 'success');
   loadNotificationLogs();
 }
 
@@ -4215,8 +4268,8 @@ async function sendMonthlySummaryNow() {
     headers: { 'Authorization': `Bearer ${state.token}` }
   });
   const data = await res.json();
-  if (!res.ok) return alert(data.error || 'No se pudo enviar el resumen mensual.');
-  alert(data.message || 'Resumen enviado.');
+  if (!res.ok) return showToast(data.error || 'No se pudo enviar el resumen mensual.', 'error');
+  showToast(data.message || 'Resumen enviado.', 'success');
   loadNotificationLogs();
 }
 
@@ -4232,8 +4285,8 @@ async function sendFinanceSummaryNow() {
     body: JSON.stringify({ month, targetType: 'group' })
   });
   const data = await res.json();
-  if (!res.ok) return alert(data.error || 'No se pudo enviar estado de cuotas.');
-  alert(data.message || 'Estado de cuotas enviado.');
+  if (!res.ok) return showToast(data.error || 'No se pudo enviar estado de cuotas.', 'error');
+  showToast(data.message || 'Estado de cuotas enviado.', 'success');
   loadNotificationLogs();
 }
 
@@ -4244,7 +4297,7 @@ async function createQuickPoll() {
   const rawOptions = prompt('Opciones separadas por coma (mínimo 2):', 'Sí,No');
   if (!rawOptions) return;
   const options = rawOptions.split(',').map(s => s.trim()).filter(Boolean);
-  if (options.length < 2) return alert('Debes indicar al menos 2 opciones.');
+  if (options.length < 2) return showToast('Debes indicar al menos 2 opciones.', 'error');
   const res = await fetch(`${API_URL}/admin/polls`, {
     method: 'POST',
     headers: {
@@ -4254,8 +4307,8 @@ async function createQuickPoll() {
     body: JSON.stringify({ question, options })
   });
   const data = await res.json();
-  if (!res.ok) return alert(data.error || 'No se pudo crear la encuesta.');
-  alert(data.message || 'Encuesta creada.');
+  if (!res.ok) return showToast(data.error || 'No se pudo crear la encuesta.', 'error');
+  showToast(data.message || 'Encuesta creada.', 'success');
   loadNotificationLogs();
 }
 
@@ -4274,8 +4327,8 @@ async function sendSegmentedMessageNow() {
     body: JSON.stringify({ text, filter: { portal, kind } })
   });
   const data = await res.json();
-  if (!res.ok) return alert(data.error || 'No se pudo enviar la difusión.');
-  alert(data.message || 'Difusión enviada.');
+  if (!res.ok) return showToast(data.error || 'No se pudo enviar la difusión.', 'error');
+  showToast(data.message || 'Difusión enviada.', 'success');
   loadNotificationLogs();
 }
 
@@ -4367,8 +4420,8 @@ async function handleSaveWhatsAppTemplates(event) {
   }
 }
 
-function resetWhatsAppTemplatesToDefault() {
-  const confirmed = confirm('¿Estás seguro de que deseas reestablecer los textos a los valores por defecto?\n\n(Deberás hacer clic en "Guardar Plantillas" para confirmar los cambios permanentemente en el servidor)');
+async function resetWhatsAppTemplatesToDefault() {
+  const confirmed = await showConfirm('¿Estás seguro de que deseas reestablecer los textos a los valores por defecto?\n\n(Deberás hacer clic en "Guardar Plantillas" para confirmar los cambios permanentemente en el servidor)');
   if (!confirmed) return;
 
   const defaults = {
@@ -4445,7 +4498,7 @@ async function loadIncidents() {
 async function disconnectSystemWhatsApp() {
   if (!state.token || !state.user || !state.user.isAdmin) return;
 
-  const confirmDisconnect = confirm('¿Estás seguro de que deseas desvincular tu número de WhatsApp del servidor de la comunidad? Las notificaciones automáticas de turnos dejarán de enviarse de forma directa.');
+  const confirmDisconnect = await showConfirm('¿Estás seguro de que deseas desvincular tu número de WhatsApp del servidor de la comunidad? Las notificaciones automáticas de turnos dejarán de enviarse de forma directa.');
   if (!confirmDisconnect) return;
 
   const descEl = document.getElementById('admin-wa-desc');
@@ -4474,12 +4527,12 @@ async function disconnectSystemWhatsApp() {
       throw new Error(data.error || 'Error al desvincular');
     }
 
-    alert('✅ Dispositivo desvinculado con éxito del servidor. Se generará un nuevo QR listo para escanear en unos segundos.');
+    showToast('✅ Dispositivo desvinculado con éxito del servidor. Se generará un nuevo QR listo para escanear en unos segundos.', 'success');
     
     // Forzar comprobación inmediata
     pollWhatsAppStatus();
   } catch (err) {
-    alert(`Error al desvincular: ${err.message}`);
+    showToast(`Error al desvincular: ${err.message}`, 'error');
     pollWhatsAppStatus(); // Volver al estado actual
   }
 }

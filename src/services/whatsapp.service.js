@@ -32,6 +32,12 @@ const whatsappService = {
     connectionStatus = 'connecting';
     console.log('[WhatsApp Autohospedado] Inicializando cliente...');
 
+    // Autocura: elimina locks de Chromium (SingletonLock/Cookie/Socket) que un
+    // pod/proceso anterior pudo dejar tras un cierre no limpio. Con almacenamiento
+    // persistente, un lock zombi impide lanzar el navegador ("profile appears to be
+    // in use by another Chromium process") y deja el bot muerto hasta borrarlo.
+    whatsappService.clearBrowserLocks();
+
     if (connectTimeout) clearTimeout(connectTimeout);
     connectTimeout = setTimeout(() => {
       if (connectionStatus === 'connecting') {
@@ -118,12 +124,24 @@ const whatsappService = {
         clearTimeout(connectTimeout);
         connectTimeout = null;
       }
-      
-      // Limpiar la carpeta de sesión si se desconecta
-      try {
-        whatsappService.cleanSession();
-      } catch (err) {
-        console.error('Error al limpiar sesión:', err.message);
+
+      // Solo borrar credenciales si el MÓVIL desvinculó el dispositivo (LOGOUT).
+      // En cortes de red/navegación conservamos la sesión y reconectamos sin QR,
+      // de forma que la vinculación de WhatsApp quede fija entre reinicios.
+      if (String(reason).toUpperCase() === 'LOGOUT') {
+        try {
+          whatsappService.cleanSession();
+        } catch (err) {
+          console.error('Error al limpiar sesión:', err.message);
+        }
+        client = null;
+        setTimeout(() => whatsappService.initialize(), 3000);
+      } else {
+        try {
+          if (client) client.destroy().catch(() => {});
+        } catch (_) {}
+        client = null;
+        setTimeout(() => whatsappService.initialize(), 5000);
       }
     });
 
@@ -566,6 +584,53 @@ const whatsappService = {
     } catch (err) {
       console.error('[WhatsApp Autohospedado] Error en restart:', err.message);
       return false;
+    }
+  },
+
+  /**
+   * Elimina los ficheros de bloqueo de Chromium sin tocar la sesión de WhatsApp.
+   * Necesario en almacenamiento persistente: un lock huérfano de un proceso muerto
+   * bloquea el arranque del navegador pero NO invalida las credenciales, así que
+   * borrar solo el lock permite reconectar sin re-escanear el QR.
+   */
+  clearBrowserLocks: () => {
+    try {
+      if (!fs.existsSync(authPath)) return;
+      const lockNames = ['SingletonLock', 'SingletonCookie', 'SingletonSocket'];
+      // Recorre authPath y cualquier subcarpeta de perfil (session, session-*).
+      const dirs = [authPath];
+      for (const entry of fs.readdirSync(authPath)) {
+        const full = path.join(authPath, entry);
+        try {
+          if (fs.statSync(full).isDirectory()) dirs.push(full);
+        } catch (_) {}
+      }
+      for (const dir of dirs) {
+        for (const name of lockNames) {
+          const lockPath = path.join(dir, name);
+          // lstatSync NO sigue el symlink: detecta también SingletonLock/SingletonSocket,
+          // que Chromium crea como enlaces (p. ej. SingletonLock -> <hostname>-<pid>).
+          // Tras cambiar de pod el objetivo no existe → fs.existsSync (que SÍ sigue el
+          // symlink) los daría por inexistentes y no se borrarían, dejando el navegador
+          // bloqueado. rmSync con force elimina el propio enlace.
+          let present = false;
+          try {
+            fs.lstatSync(lockPath);
+            present = true;
+          } catch (_) {
+            present = false;
+          }
+          if (!present) continue;
+          try {
+            fs.rmSync(lockPath, { force: true });
+            console.log(`[WhatsApp Autohospedado] Lock de Chromium eliminado: ${lockPath}`);
+          } catch (err) {
+            console.error(`[WhatsApp Autohospedado] No se pudo borrar lock ${lockPath}:`, err.message);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[WhatsApp Autohospedado] Error al limpiar locks de Chromium:', err.message);
     }
   },
 

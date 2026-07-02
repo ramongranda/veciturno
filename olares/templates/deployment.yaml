@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: veciturno
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: veciturno
+spec:
+  replicas: 1
+  # Recreate (no RollingUpdate): whatsapp-web.js/Chromium usa una sola sesión de
+  # navegador. Dos réplicas a la vez corromperían .wwebjs_auth.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: veciturno
+  template:
+    metadata:
+      labels:
+        app: veciturno
+    spec:
+      securityContext:
+        # El Dockerfile corre como UID 1000. Fijamos fsGroup para que el volumen
+        # persistente sea escribible por ese usuario.
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+        - name: veciturno
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.port }}
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: PORT
+              value: "{{ .Values.port }}"
+            # Chromium del sistema (instalado por el Dockerfile).
+            - name: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
+              value: "true"
+            - name: PUPPETEER_EXECUTABLE_PATH
+              value: "/usr/bin/chromium"
+            # NO se define DISABLE_WHATSAPP → el bot arranca.
+            # Variables de negocio inyectadas por Olares (declaradas en OlaresManifest envs).
+            - name: JWT_SECRET
+              value: "{{ .Values.olaresEnv.JWT_SECRET }}"
+            - name: COMMUNITY_NAME
+              value: "{{ .Values.olaresEnv.COMMUNITY_NAME }}"
+            - name: BOOTSTRAP_TOKEN
+              value: "{{ .Values.olaresEnv.BOOTSTRAP_TOKEN }}"
+            - name: START_MONTH
+              value: "{{ .Values.olaresEnv.START_MONTH }}"
+            - name: START_FLOOR_ID
+              value: "{{ .Values.olaresEnv.START_FLOOR_ID }}"
+            - name: APP_BASE_URL
+              value: "{{ .Values.olaresEnv.APP_BASE_URL }}"
+          volumeMounts:
+            # Monta el almacenamiento persistente sobre /usr/src/app/db, que
+            # contiene .wwebjs_auth (sesión WhatsApp), database.json y documents.
+            # → la vinculación de WhatsApp y los datos quedan FIJOS.
+            - name: appdata
+              mountPath: /usr/src/app/db
+            - name: appcache
+              mountPath: /usr/src/app/.wwebjs_cache
+            # /dev/shm ampliado para que Chromium no crashee por memoria compartida.
+            - name: dshm
+              mountPath: /dev/shm
+          resources:
+            requests:
+              cpu: "{{ .Values.resources.requests.cpu }}"
+              memory: {{ .Values.resources.requests.memory }}
+            limits:
+              cpu: "{{ .Values.resources.limits.cpu }}"
+              memory: {{ .Values.resources.limits.memory }}
+      volumes:
+        - name: appdata
+          hostPath:
+            path: "{{ .Values.userspace.appData }}/veciturno/db"
+            type: DirectoryOrCreate
+        - name: appcache
+          hostPath:
+            path: "{{ .Values.userspace.appCache }}/veciturno/wwebjs_cache"
+            type: DirectoryOrCreate
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 256Mi
