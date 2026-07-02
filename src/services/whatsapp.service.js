@@ -32,6 +32,12 @@ const whatsappService = {
     connectionStatus = 'connecting';
     console.log('[WhatsApp Autohospedado] Inicializando cliente...');
 
+    // Autocura: elimina locks de Chromium (SingletonLock/Cookie/Socket) que un
+    // pod/proceso anterior pudo dejar tras un cierre no limpio. Con almacenamiento
+    // persistente, un lock zombi impide lanzar el navegador ("profile appears to be
+    // in use by another Chromium process") y deja el bot muerto hasta borrarlo.
+    whatsappService.clearBrowserLocks();
+
     if (connectTimeout) clearTimeout(connectTimeout);
     connectTimeout = setTimeout(() => {
       if (connectionStatus === 'connecting') {
@@ -578,6 +584,42 @@ const whatsappService = {
     } catch (err) {
       console.error('[WhatsApp Autohospedado] Error en restart:', err.message);
       return false;
+    }
+  },
+
+  /**
+   * Elimina los ficheros de bloqueo de Chromium sin tocar la sesión de WhatsApp.
+   * Necesario en almacenamiento persistente: un lock huérfano de un proceso muerto
+   * bloquea el arranque del navegador pero NO invalida las credenciales, así que
+   * borrar solo el lock permite reconectar sin re-escanear el QR.
+   */
+  clearBrowserLocks: () => {
+    try {
+      if (!fs.existsSync(authPath)) return;
+      const lockNames = ['SingletonLock', 'SingletonCookie', 'SingletonSocket'];
+      // Recorre authPath y cualquier subcarpeta de perfil (session, session-*).
+      const dirs = [authPath];
+      for (const entry of fs.readdirSync(authPath)) {
+        const full = path.join(authPath, entry);
+        try {
+          if (fs.statSync(full).isDirectory()) dirs.push(full);
+        } catch (_) {}
+      }
+      for (const dir of dirs) {
+        for (const name of lockNames) {
+          const lockPath = path.join(dir, name);
+          if (fs.existsSync(lockPath)) {
+            try {
+              fs.rmSync(lockPath, { force: true });
+              console.log(`[WhatsApp Autohospedado] Lock de Chromium eliminado: ${lockPath}`);
+            } catch (err) {
+              console.error(`[WhatsApp Autohospedado] No se pudo borrar lock ${lockPath}:`, err.message);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[WhatsApp Autohospedado] Error al limpiar locks de Chromium:', err.message);
     }
   },
 
