@@ -608,13 +608,24 @@ const whatsappService = {
       for (const dir of dirs) {
         for (const name of lockNames) {
           const lockPath = path.join(dir, name);
-          if (fs.existsSync(lockPath)) {
-            try {
-              fs.rmSync(lockPath, { force: true });
-              console.log(`[WhatsApp Autohospedado] Lock de Chromium eliminado: ${lockPath}`);
-            } catch (err) {
-              console.error(`[WhatsApp Autohospedado] No se pudo borrar lock ${lockPath}:`, err.message);
-            }
+          // lstatSync NO sigue el symlink: detecta también SingletonLock/SingletonSocket,
+          // que Chromium crea como enlaces (p. ej. SingletonLock -> <hostname>-<pid>).
+          // Tras cambiar de pod el objetivo no existe → fs.existsSync (que SÍ sigue el
+          // symlink) los daría por inexistentes y no se borrarían, dejando el navegador
+          // bloqueado. rmSync con force elimina el propio enlace.
+          let present = false;
+          try {
+            fs.lstatSync(lockPath);
+            present = true;
+          } catch (_) {
+            present = false;
+          }
+          if (!present) continue;
+          try {
+            fs.rmSync(lockPath, { force: true });
+            console.log(`[WhatsApp Autohospedado] Lock de Chromium eliminado: ${lockPath}`);
+          } catch (err) {
+            console.error(`[WhatsApp Autohospedado] No se pudo borrar lock ${lockPath}:`, err.message);
           }
         }
       }
