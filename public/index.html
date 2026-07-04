@@ -18,12 +18,12 @@
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <!-- Hojas de Estilo -->
-  <link rel="stylesheet" href="css/styles.css?v=redesign-0.7.0">
-  <link rel="stylesheet" href="css/mobile.css?v=redesign-0.7.0">
+  <link rel="stylesheet" href="css/styles.css?v=portal-noche-0.8.0">
+  <link rel="stylesheet" href="css/mobile.css?v=portal-noche-0.8.0">
 </head>
 <body>
 
@@ -93,55 +93,35 @@
       <!-- GRID PRINCIPAL -->
       <div class="dashboard-grid">
         
-        <!-- COLUMNA IZQUIERDA: TURNO ACTIVO -->
-        <div class="dashboard-main-card glass-card">
-          <div class="card-badge">Es turno de Limpieza</div>
-          
-          <div class="active-turn-content">
-            <div id="active-floor-avatar" class="floor-avatar animate-pulse">
-              <span id="active-floor-badge">-</span>
-            </div>
-            <h2 id="active-floor-title">Cargando...</h2>
-            <div class="active-status-tag">
-              <span class="active-dot"></span>
-              <span>Activo</span>
-            </div>
-            <div id="active-turn-month" class="active-month-badge">Cargando mes...</div>
-            <p id="active-floor-desc">Le toca la limpieza mensual de la escalera</p>
-            
-            <!-- Separador gradiente visual -->
-            <div class="turn-divider">
-              <span class="turn-divider-line"></span>
-              <span class="turn-divider-icon"><i data-lucide="repeat" style="width:12px;height:12px;"></i></span>
-              <span class="turn-divider-line"></span>
-            </div>
-
-            <!-- Indicador Premium del Siguiente Turno -->
-            <div class="next-turn-card">
-              <div class="next-turn-card-inner">
-                <div class="next-avatar-glow" id="next-floor-avatar-badge">-</div>
-                <div class="next-card-details">
-                  <span class="next-card-label">Siguiente turno</span>
-                  <span id="next-floor-name" class="next-card-name">Piso -</span>
-                </div>
-                <div class="next-card-schedule">
-                  <i data-lucide="calendar-clock" style="width:13px;height:13px;"></i>
-                  <span id="next-turn-month-label">Próximo mes</span>
-                </div>
+        <!-- COLUMNA IZQUIERDA: EL PORTAL DE NOCHE
+             La fachada del edificio con la ventana del turno encendida.
+             Una sola fuente de luz: el ámbar del piso al que le toca. -->
+        <div class="dashboard-main-card glass-card night-hero">
+          <div class="nh-grid">
+            <div class="nh-copy">
+              <div class="nh-month" id="active-turn-month">Cargando mes…</div>
+              <h2 class="nh-title">Esta luz es del <em id="active-floor-title">…</em></h2>
+              <p class="nh-sub" id="active-floor-desc">
+                Le toca la limpieza mensual de la escalera. Cuando termine,
+                la luz bajará al siguiente piso del portal.
+              </p>
+              <div class="nh-actions">
+                <button type="button" class="btn-lantern" onclick="document.getElementById('history-container')?.scrollIntoView({ behavior: 'smooth', block: 'center' })">
+                  Ver historial de turnos
+                </button>
               </div>
             </div>
 
-            <!-- La escalera: el edificio con la rotación completa proyectada.
-                 La metáfora del portal real, en la portada de cada vecino. -->
-            <div class="home-building-block">
-              <h4 class="home-building-title">
-                <i data-lucide="building-2"></i>
-                <span>La escalera — rotación de turnos</span>
-              </h4>
-              <div id="building-home"></div>
+            <div class="facade-scene">
+              <div class="light-pool" aria-hidden="true"></div>
+              <div class="facade" id="facade-home" aria-label="Fachada del edificio: la ventana encendida marca el piso al que le toca el turno"></div>
+              <div class="sidewalk" aria-hidden="true"></div>
+              <div class="facade-cap">El portal, ahora mismo</div>
             </div>
-
           </div>
+
+          <div class="nh-rota-label">La rotación del año</div>
+          <div class="rota-strip" id="rota-strip"></div>
         </div>
 
         <!-- COLUMNA DERECHA: LOS 3 VECINOS / PISOS -->
@@ -1876,6 +1856,6 @@
   <nav id="mobile-bottom-nav" class="mobile-bottom-nav"></nav>
 
   <!-- SCRIPT DEL FRONTEND -->
-  <script src="js/app.js?v=redesign-0.7.0"></script>
+  <script src="js/app.js?v=portal-noche-0.8.0"></script>
 </body>
 </html>

@@ -400,6 +400,101 @@ function renderBuildingView(container, data, opts = {}) {
   container.appendChild(building);
 }
 
+// La fachada del portal de noche: cada piso es una ventana; la del turno
+// activo está encendida (ámbar). El siguiente en rotación se marca en verde.
+function renderFacade(container, data) {
+  if (!container) return;
+  container.innerHTML = '';
+
+  const activeFloorId = data.state.currentTurnFloorId;
+  const rotation = [...data.neighbors]
+    .filter((n) => !n.exemptFromCleaning)
+    .sort((a, b) => Number(a.id) - Number(b.id));
+  const rotIndex = rotation.findIndex(n => n.id === activeFloorId);
+  const baseMonth = data.state.currentMonth ? new Date(data.state.currentMonth) : new Date();
+  const monthName = (offset) => {
+    const d = new Date(baseMonth.getFullYear(), baseMonth.getMonth() + offset, 1);
+    const label = d.toLocaleDateString('es-ES', { month: 'long' });
+    return label.charAt(0).toUpperCase() + label.slice(1);
+  };
+  const monthShort = (offset) => {
+    const d = new Date(baseMonth.getFullYear(), baseMonth.getMonth() + offset, 1);
+    const label = d.toLocaleDateString('es-ES', { month: 'short' });
+    return label.charAt(0).toUpperCase() + label.slice(1).replace('.', '');
+  };
+
+  const stacked = [...data.neighbors].sort((a, b) => {
+    const fa = Number(a.floorNumber != null ? a.floorNumber : a.id);
+    const fb = Number(b.floorNumber != null ? b.floorNumber : b.id);
+    return fb - fa;
+  });
+
+  stacked.forEach((neighbor) => {
+    const isActive = neighbor.id === activeFloorId;
+    const idx = rotation.findIndex(n => n.id === neighbor.id);
+    const offset = (idx >= 0 && rotIndex >= 0) ? (idx - rotIndex + rotation.length) % rotation.length : -1;
+
+    let turnLabel = '';
+    let chip = '';
+    if (neighbor.exemptFromCleaning) {
+      turnLabel = 'Exento de turno';
+      chip = '<span class="f-chip">—</span>';
+    } else if (isActive) {
+      turnLabel = 'Le toca ahora';
+      chip = `<span class="f-chip">${monthShort(0)}</span>`;
+    } else if (offset >= 1) {
+      turnLabel = `Turno en ${monthName(offset).toLowerCase()}`;
+      chip = `<span class="f-chip">${monthShort(offset)}</span>`;
+    }
+
+    const row = document.createElement('div');
+    row.className = `floor-row${isActive ? ' lit' : ''}${offset === 1 ? ' next' : ''}`;
+    row.innerHTML = `
+      <div class="window" aria-hidden="true"></div>
+      <div class="f-label">
+        <span class="f-name">${neighbor.floor}</span>
+        <span class="f-turn">${turnLabel}</span>
+      </div>
+      ${chip}
+    `;
+    container.appendChild(row);
+  });
+
+  const portal = document.createElement('div');
+  portal.className = 'portal';
+  portal.setAttribute('aria-hidden', 'true');
+  container.appendChild(portal);
+}
+
+// Cinta de rotación del año: los próximos meses con su piso asignado.
+function renderRotaStrip(container, data) {
+  if (!container) return;
+  container.innerHTML = '';
+
+  const activeFloorId = data.state.currentTurnFloorId;
+  const rotation = [...data.neighbors]
+    .filter((n) => !n.exemptFromCleaning)
+    .sort((a, b) => Number(a.id) - Number(b.id));
+  const rotIndex = rotation.findIndex(n => n.id === activeFloorId);
+  if (rotIndex < 0 || !rotation.length) return;
+  const baseMonth = data.state.currentMonth ? new Date(data.state.currentMonth) : new Date();
+
+  const count = Math.min(Math.max(rotation.length, 4), 8);
+  for (let offset = 0; offset < count; offset += 1) {
+    const neighbor = rotation[(rotIndex + offset) % rotation.length];
+    const d = new Date(baseMonth.getFullYear(), baseMonth.getMonth() + offset, 1);
+    let label = d.toLocaleDateString('es-ES', { month: 'long' });
+    label = label.charAt(0).toUpperCase() + label.slice(1);
+    const card = document.createElement('div');
+    card.className = `rota-card${offset === 0 ? ' now' : ''}`;
+    card.innerHTML = `
+      <span class="rota-m">${label}</span>
+      <span class="rota-who">${neighbor.floor}</span>
+    `;
+    container.appendChild(card);
+  }
+}
+
 function renderDashboard(data) {
   const activeFloorId = data.state.currentTurnFloorId;
   const activeNeighbor = data.neighbors.find(n => n.id === activeFloorId);
@@ -440,8 +535,8 @@ function renderDashboard(data) {
   }
   
   if (activeNeighbor) {
-    activeBadgeEl.textContent = activeNeighbor.id;
-    activeTitleEl.textContent = activeNeighbor.floor;
+    if (activeBadgeEl) activeBadgeEl.textContent = activeNeighbor.id;
+    if (activeTitleEl) activeTitleEl.textContent = activeNeighbor.floor;
 
     // Calcular siguiente turno ignorando unidades exentas
     const orderedNeighbors = [...data.neighbors]
@@ -499,9 +594,10 @@ function renderDashboard(data) {
   }
 
 
-  // 2. El edificio como interfaz: se renderiza en la home del vecino (compacto)
-  // y en el panel admin de Visualización (con selector de turno al tocar piso).
-  renderBuildingView(document.getElementById('building-home'), data, { compact: true });
+  // 2. El Portal de Noche en la home (fachada + cinta de rotación) y el
+  // edificio interactivo en el panel admin de Visualización.
+  renderFacade(document.getElementById('facade-home'), data);
+  renderRotaStrip(document.getElementById('rota-strip'), data);
   renderBuildingView(document.getElementById('neighbors-container'), data, {
     onFloorClick: (neighbor) => {
       const sel = document.getElementById('admin-force-floor');

@@ -3303,3 +3303,292 @@ table td,
   backdrop-filter: none;
   background: rgba(17, 24, 39, 0.55);
 }
+
+/* ==========================================================================
+   EL PORTAL DE NOCHE — rediseño de la portada
+   Noche urbana con una sola fuente de luz: la ventana ámbar del piso en
+   turno. Serif editorial (Fraunces) para lo que en el portal iría grabado.
+   ========================================================================== */
+:root {
+  --pn-night: #070B14;
+  --pn-amber: #FFB84D;
+  --pn-amber-deep: #F59E0B;
+  --pn-moon: #94A7C7;
+  --pn-moon-dim: #5A6B8C;
+  --pn-ink: #F2EFE7;
+  --pn-line: rgba(148, 167, 199, 0.14);
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+}
+
+/* Fondo global: de gris SaaS a noche urbana con resplandor ámbar lejano */
+body {
+  background-color: var(--pn-night);
+  background-image:
+    radial-gradient(1100px 500px at 78% -80px, rgba(255, 184, 77, 0.05), transparent 60%),
+    linear-gradient(180deg, #05080F 0%, var(--pn-night) 40%, #0A1120 100%);
+  background-attachment: fixed;
+}
+
+/* La placa del portal: el nombre de la comunidad, grabado */
+.logo-text h1 { font-family: var(--font-display); }
+
+/* ===== Hero nocturno ===== */
+.night-hero { overflow: visible; }
+.nh-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 36px;
+  align-items: center;
+}
+@media (max-width: 760px) { .nh-grid { grid-template-columns: 1fr; gap: 28px; } }
+
+.nh-month {
+  font-family: monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--pn-amber);
+  margin-bottom: 14px;
+}
+.nh-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.9rem, 4.2vw, 3.1rem);
+  line-height: 1.05;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--pn-ink);
+  margin: 0 0 12px;
+  text-wrap: balance;
+}
+.nh-title em {
+  font-style: normal;
+  color: var(--pn-amber);
+  text-shadow: 0 0 32px rgba(255, 184, 77, 0.35);
+}
+.nh-sub {
+  color: var(--pn-moon);
+  font-size: 0.98rem;
+  max-width: 44ch;
+  margin-bottom: 22px;
+}
+.nh-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+.btn-lantern {
+  background: linear-gradient(180deg, var(--pn-amber), var(--pn-amber-deep));
+  color: #1A1206;
+  font-weight: 800;
+  font-size: 0.88rem;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 20px;
+  cursor: pointer;
+  box-shadow: 0 6px 24px rgba(245, 158, 11, 0.25);
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+.btn-lantern:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(245, 158, 11, 0.38); }
+
+/* ===== La fachada ===== */
+.facade-scene { position: relative; display: flex; flex-direction: column; align-items: center; }
+.facade {
+  width: min(290px, 84vw);
+  background: linear-gradient(180deg, #131C2E 0%, #0E1524 100%);
+  border: 1px solid rgba(148, 167, 199, 0.18);
+  border-radius: 10px 10px 4px 4px;
+  padding: 16px 18px 0;
+  position: relative;
+  box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.8);
+}
+.facade::before {
+  content: "";
+  position: absolute;
+  top: -10px; left: -10px; right: -10px;
+  height: 10px;
+  background: #16203A;
+  border-radius: 8px 8px 0 0;
+  border: 1px solid rgba(148, 167, 199, 0.2);
+  border-bottom: none;
+}
+.floor-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 2px;
+  border-bottom: 1px dashed rgba(148, 167, 199, 0.1);
+}
+.floor-row:last-of-type { border-bottom: none; }
+.window {
+  width: 44px; height: 32px; flex: none;
+  border-radius: 4px 4px 2px 2px;
+  background: #0A101D;
+  border: 2px solid #2A3A57;
+  position: relative;
+  transition: all 0.4s ease;
+}
+.window::after {
+  content: "";
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(#2A3A57, #2A3A57) 50% 0 / 2px 100% no-repeat,
+    linear-gradient(#2A3A57, #2A3A57) 0 50% / 100% 2px no-repeat;
+}
+.floor-row.lit .window {
+  background: radial-gradient(circle at 50% 60%, #FFD98F 0%, var(--pn-amber) 55%, var(--pn-amber-deep) 100%);
+  border-color: #B8842D;
+  box-shadow:
+    0 0 22px 4px rgba(255, 184, 77, 0.45),
+    0 0 60px 12px rgba(255, 184, 77, 0.15);
+  animation: pn-flicker 4.5s ease-in-out infinite;
+}
+.floor-row.lit .window::after {
+  background:
+    linear-gradient(rgba(120, 80, 15, 0.5), rgba(120, 80, 15, 0.5)) 50% 0 / 2px 100% no-repeat,
+    linear-gradient(rgba(120, 80, 15, 0.5), rgba(120, 80, 15, 0.5)) 0 50% / 100% 2px no-repeat;
+}
+@keyframes pn-flicker {
+  0%, 100% { filter: brightness(1); }
+  48% { filter: brightness(0.96); }
+  52% { filter: brightness(1.05); }
+}
+.f-label { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.f-name {
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--pn-moon);
+}
+.floor-row.lit .f-name { color: var(--pn-ink); }
+.f-turn {
+  font-family: monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--pn-moon-dim);
+}
+.floor-row.lit .f-turn { color: var(--pn-amber); }
+.f-chip {
+  font-family: monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+  border: 1px solid var(--pn-line);
+  color: var(--pn-moon-dim);
+  flex: none;
+}
+.floor-row.lit .f-chip {
+  background: var(--pn-amber);
+  color: #1A1206;
+  border-color: transparent;
+  font-weight: 700;
+}
+.floor-row.next .f-chip { color: #4ADE80; border-color: rgba(74, 222, 128, 0.35); }
+.portal {
+  width: 72px; height: 44px;
+  margin: 6px auto 0;
+  background: #0A101D;
+  border: 2px solid #2A3A57;
+  border-bottom: none;
+  border-radius: 26px 26px 0 0;
+  position: relative;
+}
+.portal::after {
+  content: "37";
+  position: absolute;
+  top: 7px; left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  color: var(--pn-amber);
+  text-shadow: 0 0 8px rgba(255, 184, 77, 0.6);
+}
+.sidewalk {
+  width: min(340px, 92vw);
+  height: 8px;
+  background: linear-gradient(90deg, transparent, #182338 18%, #182338 82%, transparent);
+  border-radius: 999px;
+}
+.light-pool {
+  position: absolute;
+  width: 220px; height: 90px;
+  background: radial-gradient(ellipse at center, rgba(255, 184, 77, 0.10), transparent 70%);
+  filter: blur(6px);
+  pointer-events: none;
+  right: 4%; top: 26%;
+}
+.facade-cap {
+  margin-top: 12px;
+  font-family: monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--pn-moon-dim);
+}
+
+/* ===== Cinta de rotación ===== */
+.nh-rota-label {
+  font-family: monospace;
+  font-size: 0.66rem;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--pn-moon-dim);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 30px 0 12px;
+}
+.nh-rota-label::after { content: ""; flex: 1; height: 1px; background: var(--pn-line); }
+.rota-strip {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 4px 2px 8px;
+  scrollbar-width: none;
+}
+.rota-strip::-webkit-scrollbar { display: none; }
+.rota-card {
+  flex: none;
+  min-width: 138px;
+  border: 1px solid var(--pn-line);
+  border-radius: 14px;
+  padding: 12px 15px;
+  background: rgba(148, 167, 199, 0.03);
+}
+.rota-card.now {
+  border-color: rgba(255, 184, 77, 0.5);
+  background: rgba(255, 184, 77, 0.10);
+  box-shadow: 0 0 24px rgba(255, 184, 77, 0.08);
+}
+.rota-m {
+  font-family: monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--pn-moon-dim);
+  display: block;
+  margin-bottom: 3px;
+}
+.rota-card.now .rota-m { color: var(--pn-amber); }
+.rota-who {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--pn-ink);
+}
+
+/* ===== El mostrador: tarjetas laterales en clave nocturna ===== */
+.dashboard-side-column .section-card {
+  background: linear-gradient(180deg, rgba(16, 26, 46, 0.6), rgba(11, 18, 32, 0.4));
+  border-color: var(--pn-line);
+  transition: border-color 0.2s ease;
+}
+.dashboard-side-column .section-card:hover { border-color: rgba(255, 184, 77, 0.3); }
+.dashboard-side-column .section-card h3 {
+  font-family: var(--font-display);
+  letter-spacing: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .floor-row.lit .window { animation: none; }
+  .btn-lantern:hover { transform: none; }
+}
