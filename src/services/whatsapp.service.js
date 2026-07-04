@@ -39,6 +39,9 @@ const whatsappService = {
     whatsappService.clearBrowserLocks();
 
     if (connectTimeout) clearTimeout(connectTimeout);
+    // 120s: restaurar una sesión existente (perfil de Chromium de decenas de MB)
+    // puede superar con creces los 45s en hardware modesto. Un timeout corto aquí
+    // provocaba reinicios en cadena justo durante la restauración.
     connectTimeout = setTimeout(() => {
       if (connectionStatus === 'connecting') {
         console.warn('[WhatsApp Autohospedado] Tiempo de espera agotado en estado connecting. Reiniciando cliente...');
@@ -46,7 +49,7 @@ const whatsappService = {
           console.error('[WhatsApp Autohospedado] Error al reiniciar tras timeout:', err.message);
         });
       }
-    }, 45000);
+    }, 120000);
 
     client = new Client({
       authStrategy: new LocalAuth({
@@ -578,7 +581,10 @@ const whatsappService = {
       connectedPhone = '';
       lastSendError = '';
 
-      whatsappService.cleanSession();
+      // NUNCA borrar credenciales en un reinicio: restart() se usa tras timeouts
+      // y desde el botón "Reiniciar Cliente", donde el usuario espera reconectar
+      // sin re-escanear el QR. Para desvincular existe logout(). Los locks de
+      // Chromium los limpia initialize() vía clearBrowserLocks().
       whatsappService.initialize();
       return true;
     } catch (err) {
