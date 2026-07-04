@@ -4320,19 +4320,114 @@ async function createQuickPoll() {
   loadNotificationLogs();
 }
 
+// Difusión con previsualización: el mensaje se ve como burbuja de WhatsApp y
+// el contador de destinatarios se calcula en vivo con la misma lógica que el
+// backend (teléfono presente + filtros de portal/tipo). Nunca se envía a ciegas.
 async function sendSegmentedMessageNow() {
   if (!state.token || !state.user || !state.user.isAdmin) return;
-  const text = prompt('Mensaje a enviar:');
-  if (!text) return;
-  const portal = prompt('Portal (vacío=todos):', '') || '';
-  const kind = prompt('Tipo (vivienda/comercial o vacío=todos):', '') || '';
+  if (!state.statusData || !Array.isArray(state.statusData.neighbors)) {
+    await loadCommunityStatus();
+  }
+  const neighbors = (state.statusData && state.statusData.neighbors) || [];
+  const portals = [...new Set(neighbors.map(n => String(n.portal || '').trim()).filter(Boolean))].sort();
+
+  // Réplica exacta del filtro del backend (whatsapp.service.sendSegmentedMessage)
+  const countTargets = (portal, kind) => neighbors.filter((n) => {
+    if (!n.phone) return false;
+    if (portal && String(n.portal || '').toUpperCase() !== portal.toUpperCase()) return false;
+    if (kind && (n.kind || 'vivienda') !== kind) return false;
+    return true;
+  }).length;
+
+  const esc = (v) => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+
+  const result = await new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'confirm-overlay';
+    overlay.innerHTML = `
+      <div class="confirm-dialog glass-card broadcast-dialog" role="dialog" aria-modal="true" aria-label="Difusión segmentada">
+        <div class="confirm-header">
+          <div class="confirm-icon"><i data-lucide="send"></i></div>
+          <h3>Difusión segmentada</h3>
+        </div>
+        <div class="form-group">
+          <label for="bc-text">Mensaje</label>
+          <textarea id="bc-text" rows="4" maxlength="1000" placeholder="Escribe el aviso para los vecinos…"></textarea>
+        </div>
+        <div class="broadcast-filters">
+          <div class="form-group">
+            <label for="bc-portal">Portal</label>
+            <select id="bc-portal">
+              <option value="">Todos</option>
+              ${portals.map(p => `<option value="${esc(p)}">${esc(p)}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="bc-kind">Tipo</label>
+            <select id="bc-kind">
+              <option value="">Todos</option>
+              <option value="vivienda">Vivienda</option>
+              <option value="comercial">Comercial</option>
+            </select>
+          </div>
+        </div>
+        <div class="broadcast-preview">
+          <span class="broadcast-preview-label">Así lo verán:</span>
+          <div class="wa-bubble" id="bc-bubble"><em class="wa-bubble-empty">El mensaje aparecerá aquí…</em></div>
+        </div>
+        <div class="confirm-actions">
+          <button type="button" class="btn-secondary confirm-cancel">Cancelar</button>
+          <button type="button" class="btn-primary confirm-ok" id="bc-send" disabled>Se enviará a 0 vecinos</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    if (window.lucide) lucide.createIcons();
+    requestAnimationFrame(() => overlay.classList.add('show'));
+
+    const textEl = overlay.querySelector('#bc-text');
+    const portalEl = overlay.querySelector('#bc-portal');
+    const kindEl = overlay.querySelector('#bc-kind');
+    const bubbleEl = overlay.querySelector('#bc-bubble');
+    const sendBtn = overlay.querySelector('#bc-send');
+
+    const refresh = () => {
+      const text = textEl.value.trim();
+      const n = countTargets(portalEl.value, kindEl.value);
+      bubbleEl.innerHTML = text
+        ? esc(text).replace(/\n/g, '<br>')
+        : '<em class="wa-bubble-empty">El mensaje aparecerá aquí…</em>';
+      sendBtn.textContent = n === 1 ? 'Enviar a 1 vecino' : `Enviar a ${n} vecinos`;
+      sendBtn.disabled = !text || n === 0;
+    };
+    textEl.addEventListener('input', refresh);
+    portalEl.addEventListener('change', refresh);
+    kindEl.addEventListener('change', refresh);
+    refresh();
+
+    const close = (value) => {
+      overlay.classList.remove('show');
+      setTimeout(() => overlay.remove(), 250);
+      resolve(value);
+    };
+    sendBtn.addEventListener('click', () => close({
+      text: textEl.value.trim(),
+      portal: portalEl.value,
+      kind: kindEl.value
+    }));
+    overlay.querySelector('.confirm-cancel').addEventListener('click', () => close(null));
+    overlay.addEventListener('mousedown', (e) => { if (e.target === overlay) close(null); });
+    setTimeout(() => textEl.focus(), 60);
+  });
+
+  if (!result) return;
+
   const res = await fetch(`${API_URL}/admin/notifications/segmented`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${state.token}`
     },
-    body: JSON.stringify({ text, filter: { portal, kind } })
+    body: JSON.stringify({ text: result.text, filter: { portal: result.portal, kind: result.kind } })
   });
   const data = await res.json();
   if (!res.ok) return showToast(data.error || 'No se pudo enviar la difusión.', 'error');

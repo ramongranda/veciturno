@@ -764,51 +764,65 @@
                 <i data-lucide="x"></i>
               </button>
             </div>
-            <nav class="admin-menu-nav">
-              <button class="btn btn-secondary" type="button" data-admin-panel-btn="config" onclick="adminShowPanel('config')">
-                <i data-lucide="sliders-horizontal"></i>
-                <span>Configuración</span>
-              </button>
-              <button class="btn btn-secondary" type="button" data-admin-panel-btn="fees" onclick="adminShowPanel('fees')">
-                <i data-lucide="wallet"></i>
-                <span>Cuotas</span>
-              </button>
-              <button class="btn btn-secondary" type="button" data-admin-panel-btn="finance" onclick="adminShowPanel('finance')">
-                <i data-lucide="file-spreadsheet"></i>
-                <span>Finanzas</span>
-              </button>
-              <button class="btn btn-secondary" type="button" data-admin-panel-btn="users" onclick="adminShowPanel('users')">
-                <i data-lucide="users"></i>
-                <span>Usuarios y Seguridad</span>
-              </button>
-              <button class="btn btn-secondary" type="button" data-admin-panel-btn="visualization" onclick="adminShowPanel('visualization')">
-                <i data-lucide="building"></i>
-                <span>Visualización</span>
-              </button>
-              <button class="btn btn-secondary" type="button" data-admin-panel-btn="invites" onclick="adminShowPanel('invites')">
-                <i data-lucide="link"></i>
-                <span>Invitaciones</span>
-              </button>
-              <button class="btn btn-secondary" type="button" data-admin-panel-btn="announcements" onclick="adminShowPanel('announcements')">
-                <i data-lucide="megaphone"></i>
-                <span>Tablón de anuncios</span>
-              </button>
-              <button class="btn btn-secondary" type="button" data-admin-panel-btn="documents" onclick="adminShowPanel('documents')">
-                <i data-lucide="folder"></i>
-                <span>Documentos</span>
-              </button>
-              <button class="btn btn-secondary" type="button" data-admin-panel-btn="areas" onclick="adminShowPanel('areas')">
-                <i data-lucide="calendar-check"></i>
-                <span>Zonas comunes</span>
-              </button>
-              <button class="btn btn-secondary" type="button" data-admin-panel-btn="incidents" onclick="adminShowPanel('incidents')">
-                <i data-lucide="alert-triangle"></i>
-                <span>Incidencias</span>
-              </button>
-              <button class="btn btn-secondary" type="button" data-admin-panel-btn="whatsapp" onclick="adminShowPanel('whatsapp')">
-                <i data-lucide="message-square"></i>
-                <span>WhatsApp Servidor</span>
-              </button>
+            <!-- Menú reagrupado en 4 bloques semánticos: el escaneo pasa de 11
+                 ítems planos a una decisión de primer nivel. -->
+            <nav class="admin-menu-nav" aria-label="Menú de administración">
+              <div class="admin-menu-group">
+                <span class="admin-menu-group-label">Comunidad</span>
+                <button class="btn btn-secondary" type="button" data-admin-panel-btn="users" onclick="adminShowPanel('users')">
+                  <i data-lucide="users"></i>
+                  <span>Vecinos y seguridad</span>
+                </button>
+                <button class="btn btn-secondary" type="button" data-admin-panel-btn="invites" onclick="adminShowPanel('invites')">
+                  <i data-lucide="link"></i>
+                  <span>Invitaciones</span>
+                </button>
+                <button class="btn btn-secondary" type="button" data-admin-panel-btn="visualization" onclick="adminShowPanel('visualization')">
+                  <i data-lucide="building"></i>
+                  <span>Visualización</span>
+                </button>
+                <button class="btn btn-secondary" type="button" data-admin-panel-btn="areas" onclick="adminShowPanel('areas')">
+                  <i data-lucide="calendar-check"></i>
+                  <span>Zonas comunes</span>
+                </button>
+              </div>
+              <div class="admin-menu-group">
+                <span class="admin-menu-group-label">Dinero</span>
+                <button class="btn btn-secondary" type="button" data-admin-panel-btn="fees" onclick="adminShowPanel('fees')">
+                  <i data-lucide="wallet"></i>
+                  <span>Cuotas</span>
+                </button>
+                <button class="btn btn-secondary" type="button" data-admin-panel-btn="finance" onclick="adminShowPanel('finance')">
+                  <i data-lucide="file-spreadsheet"></i>
+                  <span>Finanzas</span>
+                </button>
+              </div>
+              <div class="admin-menu-group">
+                <span class="admin-menu-group-label">Comunicación</span>
+                <button class="btn btn-secondary" type="button" data-admin-panel-btn="whatsapp" onclick="adminShowPanel('whatsapp')">
+                  <i data-lucide="message-square"></i>
+                  <span>WhatsApp Servidor</span>
+                </button>
+                <button class="btn btn-secondary" type="button" data-admin-panel-btn="announcements" onclick="adminShowPanel('announcements')">
+                  <i data-lucide="megaphone"></i>
+                  <span>Tablón de anuncios</span>
+                </button>
+                <button class="btn btn-secondary" type="button" data-admin-panel-btn="incidents" onclick="adminShowPanel('incidents')">
+                  <i data-lucide="alert-triangle"></i>
+                  <span>Incidencias</span>
+                </button>
+                <button class="btn btn-secondary" type="button" data-admin-panel-btn="documents" onclick="adminShowPanel('documents')">
+                  <i data-lucide="folder"></i>
+                  <span>Documentos</span>
+                </button>
+              </div>
+              <div class="admin-menu-group">
+                <span class="admin-menu-group-label">Sistema</span>
+                <button class="btn btn-secondary" type="button" data-admin-panel-btn="config" onclick="adminShowPanel('config')">
+                  <i data-lucide="sliders-horizontal"></i>
+                  <span>Configuración</span>
+                </button>
+              </div>
             </nav>
           </aside>
 
@@ -1392,6 +1406,38 @@
                   <span class="wa-status-sub" id="admin-wa-sub"></span>
                 </div>
               </div>
+
+              <!-- Estado / Vinculación por QR: vive junto al semáforo — si hay
+                   que escanear, es lo primero que debe verse, no lo último. -->
+              <div id="admin-wa-wrapper" class="qr-container" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 14px; min-height: 120px; margin-bottom: 16px; background: rgba(255,255,255,0.01);">
+                <div class="loading-spinner" id="admin-wa-spinner">Cargando estado...</div>
+
+                <!-- Área de Vinculación QR (Oculta por defecto) -->
+                <div id="admin-wa-qr-box" class="hidden" style="text-align: center; width: 100%;">
+                  <p style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 8px; line-height: 1.3;">
+                    Escanea este código QR desde tu WhatsApp móvil (Dispositivos Vinculados) para emparejar la pasarela propia de VeciTurno:
+                  </p>
+                  <img id="admin-wa-qr-img" src="" alt="Vincular WhatsApp QR" style="width: 150px; height: 150px; border-radius: 8px; border: 4px solid #fff; margin: 4px auto 8px;">
+                </div>
+
+                <!-- Área Conectada (Oculta por defecto) -->
+                <div id="admin-wa-connected-box" class="hidden" style="text-align: center; width: 100%;">
+                  <div class="success-msg wa-connected-status">
+                    <i data-lucide="shield-check" style="width: 14px; height: 14px;"></i>
+                    <span id="admin-wa-phone-span">Conectado</span>
+                  </div>
+
+                  <div id="admin-wa-success" class="success-msg hidden" style="margin-bottom: 10px; font-size: 0.75rem; padding: 8px 12px;"></div>
+                  <div id="admin-wa-error" class="error-msg hidden" style="margin-bottom: 10px; font-size: 0.75rem; padding: 8px 12px;"></div>
+
+                  <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <button type="button" class="btn btn-whatsapp btn-full" onclick="testSystemWhatsApp()" style="padding: 10px; font-size: 0.8rem; width: 100%;">
+                      <i data-lucide="send"></i>
+                      <span>Enviar Notificación de Prueba</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
               
               <div class="form-group" style="margin-bottom: 10px;">
                 <label for="admin-wa-group-select">Grupo para Notificaciones de Turnos</label>
@@ -1457,17 +1503,6 @@
                   </button>
                 </div>
 
-                <!-- Categoría 4: Soporte del Sistema -->
-                <div class="action-group">
-                  <div class="action-group-title">
-                    <i data-lucide="cpu" class="section-icon"></i>
-                    <span>Soporte del Sistema</span>
-                  </div>
-                  <button type="button" class="btn btn-secondary wa-action-btn" onclick="restartSystemWhatsApp()">
-                    <i data-lucide="refresh-cw"></i>
-                    <span>Reiniciar Cliente</span>
-                  </button>
-                </div>
               </div>
 
               <!-- Registro de Notificaciones -->
@@ -1486,36 +1521,34 @@
                 </div>
               </div>
               
-              <!-- Contenedor del Estado / Vinculación por QR -->
-              <div id="admin-wa-wrapper" class="qr-container" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 14px; min-height: 180px; margin-top: 16px; margin-bottom: 12px; background: rgba(255,255,255,0.01);">
-                <div class="loading-spinner" id="admin-wa-spinner">Cargando estado...</div>
-                
-                <!-- Área de Vinculación QR (Oculta por defecto) -->
-                <div id="admin-wa-qr-box" class="hidden" style="text-align: center; width: 100%;">
-                  <p style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 8px; line-height: 1.3;">
-                    Escanea este código QR desde tu WhatsApp móvil (Dispositivos Vinculados) para emparejar la pasarela propia de VeciTurno:
-                  </p>
-                  <img id="admin-wa-qr-img" src="" alt="Vincular WhatsApp QR" style="width: 150px; height: 150px; border-radius: 8px; border: 4px solid #fff; margin: 4px auto 8px;">
-                </div>
-                
-                <!-- Área Conectada (Oculta por defecto) -->
-                <div id="admin-wa-connected-box" class="hidden" style="text-align: center; width: 100%;">
-                  <div class="success-msg wa-connected-status">
-                    <i data-lucide="shield-check" style="width: 14px; height: 14px;"></i>
-                    <span id="admin-wa-phone-span">Conectado</span>
-                  </div>
-                  
-                  <div id="admin-wa-success" class="success-msg hidden" style="margin-bottom: 10px; font-size: 0.75rem; padding: 8px 12px;"></div>
-                  <div id="admin-wa-error" class="error-msg hidden" style="margin-bottom: 10px; font-size: 0.75rem; padding: 8px 12px;"></div>
-
-                  <div style="display: flex; flex-direction: column; gap: 8px;">
-                    <button type="button" class="btn btn-whatsapp btn-full" onclick="testSystemWhatsApp()" style="padding: 10px; font-size: 0.8rem; width: 100%;">
-                      <i data-lucide="send"></i>
-                      <span>Enviar Notificación de Prueba</span>
+              <!-- Zona de mantenimiento: acciones de sistema separadas de las
+                   cotidianas. Reiniciar reconecta sin perder la vinculación;
+                   Desvincular la destruye — por eso viven aquí, al final y
+                   con su gravedad a la vista. -->
+              <div class="wa-danger-zone" style="margin-top: 16px;">
+                <h4 class="wa-danger-title">
+                  <i data-lucide="wrench"></i>
+                  <span>Mantenimiento del sistema</span>
+                </h4>
+                <div class="wa-danger-actions">
+                  <div class="wa-danger-row">
+                    <div class="wa-danger-info">
+                      <strong>Reiniciar cliente</strong>
+                      <span>Reconecta el navegador del bot. La vinculación se conserva.</span>
+                    </div>
+                    <button type="button" class="btn btn-secondary" onclick="restartSystemWhatsApp()">
+                      <i data-lucide="refresh-cw"></i>
+                      <span>Reiniciar</span>
                     </button>
-                    <button type="button" class="btn btn-danger-outline btn-full" onclick="disconnectSystemWhatsApp()" style="padding: 10px; font-size: 0.8rem; width: 100%;">
+                  </div>
+                  <div class="wa-danger-row">
+                    <div class="wa-danger-info">
+                      <strong>Desvincular dispositivo</strong>
+                      <span>Cierra la sesión de WhatsApp. Habrá que escanear el QR de nuevo.</span>
+                    </div>
+                    <button type="button" class="btn btn-danger-outline" onclick="disconnectSystemWhatsApp()">
                       <i data-lucide="log-out"></i>
-                      <span>Desvincular Dispositivo</span>
+                      <span>Desvincular</span>
                     </button>
                   </div>
                 </div>

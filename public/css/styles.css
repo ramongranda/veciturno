@@ -672,7 +672,26 @@ body.modal-open {
 .admin-menu-nav {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 20px;
+}
+
+/* Grupos semánticos del menú: la etiqueta hace de decisión de primer nivel. */
+.admin-menu-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-menu-group-label {
+  font-family: var(--font-title);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+  opacity: 0.85;
+  padding: 0 12px;
+  margin-bottom: 2px;
 }
 
 .admin-menu-nav .btn {
@@ -3002,6 +3021,99 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
   .confirm-actions { flex-direction: column-reverse; }
   .confirm-actions button { width: 100%; }
 }
+
+/* ===== Zona de mantenimiento del bot (Fase 2) =====
+   Separada de las acciones cotidianas: lo que puede romper la vinculación
+   vive al final, con descripción de consecuencias junto a cada botón. */
+.wa-danger-zone {
+  border: 1px solid rgba(239, 68, 68, 0.18);
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: rgba(239, 68, 68, 0.03);
+}
+.wa-danger-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+.wa-danger-title svg { width: 14px; height: 14px; }
+.wa-danger-actions { display: flex; flex-direction: column; gap: 12px; }
+.wa-danger-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.wa-danger-info { display: flex; flex-direction: column; gap: 2px; min-width: 200px; flex: 1; }
+.wa-danger-info strong { font-size: 0.85rem; }
+.wa-danger-info span { font-size: 0.75rem; color: var(--text-muted); }
+
+/* ===== Difusión segmentada con previsualización (Fase 2) ===== */
+.broadcast-dialog { max-width: 520px; }
+.broadcast-dialog textarea,
+.broadcast-dialog select {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  color: var(--text-main);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  padding: 10px 12px;
+  resize: vertical;
+}
+.broadcast-dialog textarea:focus,
+.broadcast-dialog select:focus {
+  outline: 2px solid rgba(59, 130, 246, 0.45);
+  outline-offset: 1px;
+}
+.broadcast-dialog label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.broadcast-dialog .form-group { margin-bottom: 14px; }
+.broadcast-filters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 480px) {
+  .broadcast-filters { grid-template-columns: 1fr; }
+}
+.broadcast-preview { margin: 4px 0 20px; }
+.broadcast-preview-label {
+  display: block;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+/* Burbuja al estilo WhatsApp (modo oscuro): el admin ve exactamente lo que
+   recibirá el vecino antes de tocar Enviar. */
+.wa-bubble {
+  background: #005c4b;
+  color: #e9edef;
+  border-radius: 12px;
+  border-top-left-radius: 3px;
+  padding: 10px 14px;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  max-width: 92%;
+  word-wrap: break-word;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+.wa-bubble-empty { color: rgba(233, 237, 239, 0.5); font-style: italic; }
 
 /* ===== Disciplina tipográfica y de ritmo (Fase 1 del rediseño) ===== */
 /* Titulares con tracking intencional: el peso alto pide aire negativo. */
