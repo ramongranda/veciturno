@@ -3022,6 +3022,120 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
   .confirm-actions button { width: 100%; }
 }
 
+/* ===== El edificio como interfaz (Fase 3) =====
+   Los pisos se apilan como en el portal real: ático arriba, bajo abajo.
+   El turno se lee de un vistazo, como en el portero automático. */
+.building-view {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 560px;
+  margin: 4px auto;
+  padding: 12px 12px 16px;
+  border: 1px solid var(--glass-border);
+  border-radius: 14px 14px 10px 10px;
+  background: rgba(255, 255, 255, 0.015);
+  position: relative;
+}
+/* Tejado sutil */
+.building-view::before {
+  content: "";
+  position: absolute;
+  top: -7px;
+  left: 18px;
+  right: 18px;
+  height: 7px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 6px 6px 0 0;
+}
+.building-floor {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.15s ease;
+}
+.building-floor:hover {
+  border-color: rgba(59, 130, 246, 0.35);
+  transform: translateX(3px);
+}
+.building-floor.active {
+  border-color: rgba(59, 130, 246, 0.55);
+  background: rgba(59, 130, 246, 0.08);
+  box-shadow: 0 0 18px rgba(59, 130, 246, 0.12);
+}
+.bf-door {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-title);
+  font-weight: 800;
+  font-size: 0.9rem;
+  border-radius: 8px 8px 3px 3px; /* silueta de puerta */
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--glass-border);
+  color: var(--text-muted);
+}
+.building-floor.active .bf-door {
+  background: var(--color-primary);
+  border-color: transparent;
+  color: #fff;
+}
+.bf-info { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
+.bf-name { font-weight: 700; font-size: 0.9rem; }
+.building-floor.active .bf-name { color: var(--text-main); }
+.bf-meta { font-size: 0.72rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.bf-nophone { color: var(--color-danger); opacity: 0.85; }
+.bf-badge {
+  flex: none;
+  font-family: var(--font-title);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.bf-badge.now {
+  background: var(--color-primary);
+  color: #fff;
+  animation: bf-glow 2.4s ease-in-out infinite;
+}
+.bf-badge.next {
+  background: rgba(16, 185, 129, 0.14);
+  color: var(--color-success);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+.bf-badge.future {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+  border: 1px solid var(--glass-border);
+}
+.bf-badge.exempt {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px dashed var(--glass-border);
+  opacity: 0.7;
+}
+@keyframes bf-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.35); }
+  50% { box-shadow: 0 0 12px 2px rgba(59, 130, 246, 0.25); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bf-badge.now { animation: none; }
+  .building-floor:hover { transform: none; }
+}
+@media (max-width: 480px) {
+  .bf-meta { display: none; }
+}
+
 /* ===== Zona de mantenimiento del bot (Fase 2) =====
    Separada de las acciones cotidianas: lo que puede romper la vinculación
    vive al final, con descripción de consecuencias junto a cada botón. */
@@ -3114,6 +3228,28 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 .wa-bubble-empty { color: rgba(233, 237, 239, 0.5); font-style: italic; }
+.broadcast-dialog input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  color: var(--text-main);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  padding: 10px 12px;
+}
+.broadcast-dialog input:focus {
+  outline: 2px solid rgba(59, 130, 246, 0.45);
+  outline-offset: 1px;
+}
+.fm-hint {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 5px;
+  line-height: 1.4;
+}
+.fm-invalid { border-color: rgba(239, 68, 68, 0.55) !important; }
 
 /* ===== Disciplina tipográfica y de ritmo (Fase 1 del rediseño) ===== */
 /* Titulares con tracking intencional: el peso alto pide aire negativo. */

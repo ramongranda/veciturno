@@ -124,6 +124,67 @@ function showConfirm(message, options = {}) {
   });
 }
 
+// Modal de formulario genérico (sustituye a window.prompt). Devuelve un objeto
+// {campoId: valor} o null si se cancela. Los campos siguen el estilo de la app.
+function showFormModal({ title, icon = 'edit-3', confirmText = 'Aceptar', fields = [] }) {
+  const esc = (v) => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'confirm-overlay';
+    overlay.innerHTML = `
+      <div class="confirm-dialog glass-card broadcast-dialog" role="dialog" aria-modal="true" aria-label="${esc(title)}">
+        <div class="confirm-header">
+          <div class="confirm-icon"><i data-lucide="${esc(icon)}"></i></div>
+          <h3>${esc(title)}</h3>
+        </div>
+        ${fields.map((f) => `
+          <div class="form-group">
+            <label for="fm-${esc(f.id)}">${esc(f.label)}</label>
+            ${f.type === 'textarea'
+              ? `<textarea id="fm-${esc(f.id)}" rows="3" placeholder="${esc(f.placeholder || '')}">${esc(f.value || '')}</textarea>`
+              : `<input id="fm-${esc(f.id)}" type="${esc(f.type || 'text')}" placeholder="${esc(f.placeholder || '')}" value="${esc(f.value || '')}">`}
+            ${f.hint ? `<span class="fm-hint">${esc(f.hint)}</span>` : ''}
+          </div>`).join('')}
+        <div class="confirm-actions">
+          <button type="button" class="btn-secondary confirm-cancel">Cancelar</button>
+          <button type="button" class="btn-primary confirm-ok">${esc(confirmText)}</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    if (window.lucide) lucide.createIcons();
+    requestAnimationFrame(() => overlay.classList.add('show'));
+
+    const close = (value) => {
+      overlay.classList.remove('show');
+      document.removeEventListener('keydown', onKey);
+      setTimeout(() => overlay.remove(), 250);
+      resolve(value);
+    };
+    const collect = () => {
+      const out = {};
+      for (const f of fields) {
+        const el = overlay.querySelector(`#fm-${f.id}`);
+        out[f.id] = el ? el.value.trim() : '';
+        if (f.required && !out[f.id]) {
+          el.focus();
+          el.classList.add('fm-invalid');
+          return null;
+        }
+      }
+      return out;
+    };
+    const onKey = (e) => { if (e.key === 'Escape') close(null); };
+    overlay.querySelector('.confirm-ok').addEventListener('click', () => {
+      const values = collect();
+      if (values) close(values);
+    });
+    overlay.querySelector('.confirm-cancel').addEventListener('click', () => close(null));
+    overlay.addEventListener('mousedown', (e) => { if (e.target === overlay) close(null); });
+    document.addEventListener('keydown', onKey);
+    setTimeout(() => { const first = overlay.querySelector('input, textarea'); if (first) first.focus(); }, 60);
+  });
+}
+
 // Pilota el semáforo de estado del bot de WhatsApp (componente .wa-status).
 // Estados: connected | qr | connecting | loading | disconnected | error
 function setWaStatus(stateName, title, sub = '') {
@@ -362,47 +423,80 @@ function renderDashboard(data) {
   }
 
 
-  // 2. Renderizar lista de vecinos / pisos
+  // 2. El edificio como interfaz: los pisos se apilan como en el portal real
+  // (ático arriba, bajo abajo) y el turno se lee como se lee el portero
+  // automático. Cada piso muestra su mes proyectado siguiendo la rotación.
   const neighborsContainer = document.getElementById('neighbors-container');
   neighborsContainer.innerHTML = '';
 
-  data.neighbors.forEach(neighbor => {
+  // Orden de rotación (misma lógica que el backend: no exentos, por id)
+  const rotation = [...data.neighbors]
+    .filter((n) => !n.exemptFromCleaning)
+    .sort((a, b) => Number(a.id) - Number(b.id));
+  const rotIndex = rotation.findIndex(n => n.id === activeFloorId);
+  const baseMonth = data.state.currentMonth ? new Date(data.state.currentMonth) : new Date();
+  const monthShort = (offset) => {
+    const d = new Date(baseMonth.getFullYear(), baseMonth.getMonth() + offset, 1);
+    const label = d.toLocaleDateString('es-ES', { month: 'short' });
+    return label.charAt(0).toUpperCase() + label.slice(1).replace('.', '');
+  };
+
+  // Apilado como edificio: planta más alta arriba. floorNumber si existe; id como fallback.
+  const stacked = [...data.neighbors].sort((a, b) => {
+    const fa = Number(a.floorNumber != null ? a.floorNumber : a.id);
+    const fb = Number(b.floorNumber != null ? b.floorNumber : b.id);
+    return fb - fa;
+  });
+
+  const building = document.createElement('div');
+  building.className = 'building-view';
+  building.setAttribute('aria-label', 'Edificio: rotación de turnos por piso');
+
+  stacked.forEach((neighbor) => {
     const isActive = neighbor.id === activeFloorId;
     const isRegistered = neighbor.registered;
-    
+    const idx = rotation.findIndex(n => n.id === neighbor.id);
+    const offset = (idx >= 0 && rotIndex >= 0) ? (idx - rotIndex + rotation.length) % rotation.length : -1;
+
+    let turnBadge;
+    if (neighbor.exemptFromCleaning) {
+      turnBadge = '<span class="bf-badge exempt">Exento</span>';
+    } else if (isActive) {
+      turnBadge = '<span class="bf-badge now">Le toca ahora</span>';
+    } else if (offset === 1) {
+      turnBadge = `<span class="bf-badge next">Siguiente · ${monthShort(1)}</span>`;
+    } else if (offset > 1) {
+      turnBadge = `<span class="bf-badge future">${monthShort(offset)}</span>`;
+    } else {
+      turnBadge = '';
+    }
+
     const row = document.createElement('div');
-    row.className = `neighbor-row ${isActive ? 'active' : ''}`;
-    
+    row.className = `building-floor ${isActive ? 'active' : ''}`;
     row.innerHTML = `
-      <div class="neighbor-info">
-        <div class="neighbor-mini-avatar">
-          ${neighbor.id}
-        </div>
-        <div class="neighbor-details">
-          <span class="neighbor-name">${neighbor.floor} ${neighbor.isAdmin ? '👑' : ''}</span>
-          <span class="neighbor-status-badge">
-            <i data-lucide="${isActive ? 'sparkles' : (isRegistered ? 'check-circle' : 'circle-dashed')}"></i>
-            ${isActive ? 'Turno Activo' : (isRegistered ? 'Registrado' : 'Pendiente de Registro')}
-          </span>
-          <span class="history-date">Cuota: ${(Number(neighbor.monthlyFee || 0)).toFixed(2)} €/mes</span>
-        </div>
+      <div class="bf-door" aria-hidden="true">${neighbor.id}</div>
+      <div class="bf-info">
+        <span class="bf-name">${neighbor.floor} ${neighbor.isAdmin ? '👑' : ''}</span>
+        <span class="bf-meta">
+          ${isRegistered ? 'Registrado' : 'Pendiente de registro'}
+          · ${(Number(neighbor.monthlyFee || 0)).toFixed(2)} €/mes
+          ${neighbor.phone ? '· 📱' : '· <span class="bf-nophone">sin número</span>'}
+        </span>
       </div>
-      <div class="neighbor-action">
-        ${neighbor.phone ? `
-          <span class="badge badge-success" title="${neighbor.phone}">
-            <i data-lucide="phone-call" style="width: 12px; height: 12px; margin-right: 4px;"></i>
-            Con número
-          </span>
-        ` : `
-          <span class="badge badge-danger">
-            Sin número
-          </span>
-        `}
-      </div>
+      ${turnBadge}
     `;
-    
-    neighborsContainer.appendChild(row);
+    // Tocar un piso preselecciona ese vecino en el formulario de control de turno
+    row.addEventListener('click', () => {
+      const sel = document.getElementById('admin-force-floor');
+      if (sel) {
+        sel.value = String(neighbor.id);
+        sel.closest('form')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    });
+    building.appendChild(row);
   });
+
+  neighborsContainer.appendChild(building);
 
   // 3. Renderizar el historial
   const historyContainer = document.getElementById('history-container');
@@ -3619,13 +3713,21 @@ async function loadAdminNeighborsManagement() {
 async function inviteNeighborViaWhatsApp(floorId, currentPhone) {
   let phone = currentPhone;
   if (!phone) {
-    const input = prompt("Introduce el número de teléfono móvil de España (9 dígitos, ej. 600112233) para enviar la invitación por WhatsApp:");
-    if (input === null) return; // Cancelado por usuario
-    phone = input.trim();
-    if (!phone) {
-      showToast("Es necesario un número de teléfono móvil para enviar la invitación.", "error");
-      return;
-    }
+    const values = await showFormModal({
+      title: 'Invitar por WhatsApp',
+      icon: 'send',
+      confirmText: 'Enviar invitación',
+      fields: [{
+        id: 'phone',
+        label: 'Teléfono móvil del vecino',
+        type: 'tel',
+        placeholder: '600112233',
+        hint: '9 dígitos, España. Recibirá el enlace de registro por WhatsApp.',
+        required: true
+      }]
+    });
+    if (!values) return; // Cancelado por usuario
+    phone = values.phone;
   }
 
   try {
@@ -4283,7 +4385,19 @@ async function sendMonthlySummaryNow() {
 
 async function sendFinanceSummaryNow() {
   if (!state.token || !state.user || !state.user.isAdmin) return;
-  const month = prompt('Mes a enviar (YYYY-MM). Déjalo vacío para último registro:') || '';
+  const values = await showFormModal({
+    title: 'Enviar estado de cuotas',
+    icon: 'piggy-bank',
+    confirmText: 'Enviar al grupo',
+    fields: [{
+      id: 'month',
+      label: 'Mes a enviar',
+      type: 'month',
+      hint: 'Déjalo vacío para usar el último registro disponible.'
+    }]
+  });
+  if (!values) return;
+  const month = values.month || '';
   const res = await fetch(`${API_URL}/admin/notifications/finance-summary`, {
     method: 'POST',
     headers: {
@@ -4300,11 +4414,31 @@ async function sendFinanceSummaryNow() {
 
 async function createQuickPoll() {
   if (!state.token || !state.user || !state.user.isAdmin) return;
-  const question = prompt('Pregunta de la encuesta:');
-  if (!question) return;
-  const rawOptions = prompt('Opciones separadas por coma (mínimo 2):', 'Sí,No');
-  if (!rawOptions) return;
-  const options = rawOptions.split(',').map(s => s.trim()).filter(Boolean);
+  const values = await showFormModal({
+    title: 'Encuesta rápida',
+    icon: 'list-checks',
+    confirmText: 'Crear encuesta',
+    fields: [
+      {
+        id: 'question',
+        label: 'Pregunta',
+        type: 'text',
+        placeholder: '¿Cambiamos el día de limpieza?',
+        required: true
+      },
+      {
+        id: 'options',
+        label: 'Opciones (separadas por coma)',
+        type: 'text',
+        value: 'Sí,No',
+        hint: 'Mínimo 2 opciones. Los vecinos votan respondiendo VOTO <número>.',
+        required: true
+      }
+    ]
+  });
+  if (!values) return;
+  const question = values.question;
+  const options = values.options.split(',').map(s => s.trim()).filter(Boolean);
   if (options.length < 2) return showToast('Debes indicar al menos 2 opciones.', 'error');
   const res = await fetch(`${API_URL}/admin/polls`, {
     method: 'POST',
