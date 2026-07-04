@@ -3592,3 +3592,185 @@ body {
   .floor-row.lit .window { animation: none; }
   .btn-lantern:hover { transform: none; }
 }
+
+/* ==========================================================================
+   PORTAL DE NOCHE — Fase 2: fidelidad total al mockup
+   Muere el grid de dos columnas: la portada respira como una página
+   editorial. Hero al aire, mostrador a lo ancho, header como placa.
+   ========================================================================== */
+
+/* --- Layout: una sola columna vertical --- */
+.dashboard-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* --- Hero al aire: la tarjeta desaparece, queda la noche --- */
+.night-hero,
+.night-hero.glass-card {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  padding: 56px 8px 40px;
+  overflow: visible;
+}
+.nh-grid { gap: 56px; }
+.facade { width: min(330px, 86vw); }
+.nh-sub { font-size: 1.05rem; }
+
+/* --- Header como placa de portal --- */
+.app-header {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--pn-line);
+  border-radius: 0;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+.logo-icon { display: none; }
+.logo-text h1 {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  background: none;
+  -webkit-background-clip: initial;
+  -webkit-text-fill-color: var(--pn-ink);
+  color: var(--pn-ink);
+  letter-spacing: 0.02em;
+}
+.logo-text span {
+  font-family: monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--pn-moon-dim);
+}
+/* Botones del header: píldoras fantasma */
+.app-header .btn,
+.app-header .btn-secondary {
+  background: transparent;
+  border: 1px solid var(--pn-line);
+  border-radius: 999px;
+  color: var(--pn-moon);
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 8px 16px;
+  box-shadow: none;
+}
+.app-header .btn:hover {
+  color: var(--pn-ink);
+  border-color: rgba(148, 167, 199, 0.35);
+  background: transparent;
+  transform: none;
+}
+.live-indicator {
+  border: 1px solid rgba(74, 222, 128, 0.3);
+  border-radius: 999px;
+  background: transparent;
+  color: #4ADE80;
+  font-size: 0.8rem;
+  padding: 8px 16px;
+}
+
+/* --- Etiqueta de sección genérica del concepto --- */
+.pn-section-label {
+  font-family: monospace;
+  font-size: 0.66rem;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--pn-moon-dim);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 26px 0 16px;
+  padding: 0 8px;
+}
+.pn-section-label::after { content: ""; flex: 1; height: 1px; background: var(--pn-line); }
+
+/* --- El mostrador: las tarjetas de servicios a lo ancho --- */
+.dashboard-side-column {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+.dashboard-side-column .section-card {
+  border-radius: 16px;
+  padding: 20px;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+.dashboard-side-column .section-card:hover { transform: translateY(-2px); }
+/* Punto de luz ámbar junto a cada título del mostrador */
+.dashboard-side-column .section-card h3 {
+  font-size: 1.05rem;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.dashboard-side-column .section-card h3::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--pn-amber);
+  box-shadow: 0 0 8px rgba(255, 184, 77, 0.7);
+  flex: none;
+}
+.dashboard-side-column .section-card h3 i,
+.dashboard-side-column .section-card h3 svg { display: none; }
+
+/* --- Formularios en la noche: nada de campos blancos --- */
+.dashboard-side-column textarea,
+.dashboard-side-column input[type="text"],
+.dashboard-side-column input[type="file"],
+.dashboard-side-column select {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--pn-line);
+  border-radius: 10px;
+  color: var(--pn-ink);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  padding: 10px 12px;
+  width: 100%;
+}
+.dashboard-side-column textarea:focus,
+.dashboard-side-column input:focus,
+.dashboard-side-column select:focus {
+  outline: 2px solid rgba(255, 184, 77, 0.4);
+  outline-offset: 1px;
+}
+.dashboard-side-column input[type="file"]::file-selector-button {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--pn-line);
+  border-radius: 8px;
+  color: var(--pn-moon);
+  padding: 7px 12px;
+  margin-right: 12px;
+  cursor: pointer;
+}
+
+/* --- Acciones del mostrador en ámbar: la luz marca lo accionable --- */
+.dashboard-side-column .btn-primary,
+.dashboard-side-column .btn-whatsapp {
+  background: linear-gradient(180deg, var(--pn-amber), var(--pn-amber-deep));
+  color: #1A1206;
+  font-weight: 800;
+  border: none;
+  box-shadow: 0 4px 18px rgba(245, 158, 11, 0.22);
+}
+.dashboard-side-column .btn-primary:hover,
+.dashboard-side-column .btn-whatsapp:hover {
+  background: linear-gradient(180deg, #FFC569, var(--pn-amber));
+  transform: translateY(-1px);
+}
+
+/* Móvil: hero compacto y mostrador a una columna */
+@media (max-width: 760px) {
+  .night-hero, .night-hero.glass-card { padding: 34px 4px 28px; }
+  .nh-grid { gap: 34px; }
+  .dashboard-side-column { grid-template-columns: 1fr; }
+}
