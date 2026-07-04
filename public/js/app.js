@@ -124,6 +124,17 @@ function showConfirm(message, options = {}) {
   });
 }
 
+// Pilota el semáforo de estado del bot de WhatsApp (componente .wa-status).
+// Estados: connected | qr | connecting | loading | disconnected | error
+function setWaStatus(stateName, title, sub = '') {
+  const box = document.getElementById('admin-wa-status');
+  const titleEl = document.getElementById('admin-wa-desc');
+  const subEl = document.getElementById('admin-wa-sub');
+  if (box) box.dataset.state = stateName;
+  if (titleEl) titleEl.textContent = title;
+  if (subEl) subEl.textContent = sub;
+}
+
 function b64urlToBuffer(b64url) {
   const pad = '='.repeat((4 - (b64url.length % 4)) % 4);
   const base64 = (b64url + pad).replace(/-/g, '+').replace(/_/g, '/');
@@ -4126,16 +4137,16 @@ async function pollWhatsAppStatus() {
 
     // Manejar la actualización visual según el estado de la pasarela
     if (data.status === 'connecting') {
-      descEl.textContent = 'Estado: Conectando con WhatsApp Web...';
+      setWaStatus('connecting', 'Conectando con WhatsApp Web…');
       spinnerEl.classList.remove('hidden');
       qrBox.classList.add('hidden');
       connectedBox.classList.add('hidden');
-    } 
+    }
     else if (data.status === 'qr') {
-      descEl.textContent = 'Estado: Pendiente de Vinculación';
+      setWaStatus('qr', 'Pendiente de vinculación', 'Escanea el código QR con el móvil de la comunidad');
       spinnerEl.classList.add('hidden');
       connectedBox.classList.add('hidden');
-      
+
       // Mostrar QR
       if (data.qrCodeUrl) {
         qrImg.src = data.qrCodeUrl;
@@ -4145,22 +4156,22 @@ async function pollWhatsAppStatus() {
         spinnerEl.textContent = 'Generando QR...';
         qrBox.classList.add('hidden');
       }
-    } 
+    }
     else if (data.status === 'connected') {
-      descEl.textContent = 'Estado: Vinculado Correctamente';
+      setWaStatus('connected', 'WhatsApp en línea', data.phoneConnected ? `Vinculado como ${data.phoneConnected}` : '');
       spinnerEl.classList.add('hidden');
       qrBox.classList.add('hidden');
-      
+
       // Mostrar área de conexión exitosa y teléfono
       phoneSpan.innerHTML = `Conectado como: <strong>${data.phoneConnected}</strong>`;
       connectedBox.classList.remove('hidden');
-      
+
       // Recargar iconos insertados dinámicamente
       lucide.createIcons();
-    } 
+    }
     else {
       // Disconnected
-      descEl.textContent = 'Estado: Pasarela apagada o desvinculada.';
+      setWaStatus('disconnected', 'Pasarela apagada o desvinculada', 'Reintentando conexión automáticamente…');
       spinnerEl.classList.remove('hidden');
       spinnerEl.textContent = 'Inicializando cliente...';
       qrBox.classList.add('hidden');
@@ -4168,10 +4179,7 @@ async function pollWhatsAppStatus() {
     }
   } catch (err) {
     console.error('Error al sondear WhatsApp status:', err);
-    const retryDescEl = document.getElementById('admin-wa-desc');
-    if (retryDescEl) {
-      retryDescEl.textContent = 'Estado: Error al comunicar con el servidor.';
-    }
+    setWaStatus('error', 'Sin conexión con el servidor', err && err.message ? err.message : '');
   }
 }
 
@@ -4459,11 +4467,47 @@ async function loadNotificationLogs() {
       container.innerHTML = '<div class="history-item">Sin notificaciones registradas todavía.</div>';
       return;
     }
+    // Un log operativo se escanea por color y forma antes que por texto:
+    // chip de estado + tipo humanizado + hora tabular. El error técnico crudo
+    // no pertenece a la UI: se traduce y el detalle vive plegado.
+    const TYPE_LABELS = {
+      turn_cleanup_start: 'Aviso de turno',
+      turn_cleanup_reminder: 'Recordatorio de turno',
+      monthly_summary: 'Resumen mensual',
+      finance_summary: 'Estado de cuotas',
+      segmented_broadcast: 'Difusión',
+      turn_confirmation: 'Confirmación de turno',
+      invite_neighbor: 'Invitación',
+      whatsapp_poll: 'Encuesta'
+    };
+    const humanizeError = (raw) => {
+      const s = String(raw || '');
+      if (/detached Frame|Target closed|Session closed|Protocol error|Execution context/i.test(s)) {
+        return 'El navegador del bot perdió la sesión durante el envío';
+      }
+      if (/Cliente no vinculado|no está registrado|Sin grupo|no tiene teléfono/i.test(s)) return s;
+      if (/timeout|net::|ERR_|ECONN/i.test(s)) return 'Fallo de red durante el envío';
+      return s;
+    };
+    const esc = (v) => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;');
     container.innerHTML = logs.map((log) => {
-      const when = new Date(log.createdAt).toLocaleString('es-ES');
-      const status = log.status === 'sent' ? 'Enviado' : 'Fallido';
-      const detail = log.error ? ` · ${log.error}` : '';
-      return `<div class="history-item"><div class="history-meta"><span class="history-floor">${log.notificationType} · ${log.mode} · ${log.channel}</span><span class="history-by">${status}${detail}</span></div><span class="history-date">${when}</span></div>`;
+      const d = new Date(log.createdAt);
+      const when = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+      const ok = log.status === 'sent';
+      const type = TYPE_LABELS[log.notificationType] || log.notificationType;
+      const channel = log.channel === 'group' ? 'grupo' : 'individual';
+      const mode = log.mode === 'automatic' ? 'auto' : 'manual';
+      const human = ok ? '' : humanizeError(log.error);
+      const showRaw = !ok && log.error && human !== log.error;
+      return `<div class="log-row">
+        <time class="log-time">${when}</time>
+        <span class="log-chip ${ok ? 'sent' : 'fail'}">${ok ? 'OK' : 'FALLO'}</span>
+        <div class="log-body">
+          <span class="log-title">${esc(type)} <span class="log-ctx">· ${channel} · ${mode}</span></span>
+          ${human ? `<span class="log-err">${esc(human)}</span>` : ''}
+          ${showRaw ? `<details class="log-raw"><summary>Detalle técnico</summary><code>${esc(log.error)}</code></details>` : ''}
+        </div>
+      </div>`;
     }).join('');
   } catch (err) {
     container.innerHTML = `<div class="history-item">Error cargando registro: ${err.message}</div>`;
@@ -4507,7 +4551,7 @@ async function disconnectSystemWhatsApp() {
   const connectedBox = document.getElementById('admin-wa-connected-box');
 
   // Mostrar cargando
-  descEl.textContent = 'Desvinculando dispositivo...';
+  setWaStatus('connecting', 'Desvinculando dispositivo…');
   spinnerEl.classList.remove('hidden');
   spinnerEl.textContent = 'Cerrando sesión de WhatsApp...';
   qrBox.classList.add('hidden');
@@ -4545,7 +4589,7 @@ async function restartSystemWhatsApp() {
   const qrBox = document.getElementById('admin-wa-qr-box');
   const connectedBox = document.getElementById('admin-wa-connected-box');
 
-  descEl.textContent = 'Reiniciando cliente de WhatsApp...';
+  setWaStatus('connecting', 'Reiniciando cliente de WhatsApp…');
   spinnerEl.classList.remove('hidden');
   spinnerEl.textContent = 'Reiniciando...';
   qrBox.classList.add('hidden');
@@ -4561,12 +4605,12 @@ async function restartSystemWhatsApp() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'No se pudo reiniciar WhatsApp.');
 
-    descEl.textContent = data.message || 'Cliente reiniciado.';
+    setWaStatus('connecting', data.message || 'Cliente reiniciado.');
     setTimeout(() => {
       pollWhatsAppStatus();
     }, 2000);
   } catch (err) {
-    descEl.textContent = `Error: ${err.message}`;
+    setWaStatus('error', 'No se pudo reiniciar el cliente', err.message);
   }
 }
   const monthLabel = (monthValue) => {

@@ -97,6 +97,7 @@ body.modal-open {
   border-radius: 20px;
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
+  -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px);
   margin-bottom: 24px;
   box-shadow: var(--shadow-lg);
@@ -196,28 +197,32 @@ body.modal-open {
   flex-shrink: 0;
 }
 
+/* Ley del primario único: un solo botón acento por vista, plano y sin fuegos
+   artificiales. La jerarquía la da el color, no el gradiente. */
 .btn-primary {
-  background: linear-gradient(135deg, #3b82f6, #7c3aed);
+  background: var(--color-primary);
   color: #fff;
-  box-shadow: 0 4px 15px rgba(124, 58, 237, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 2px 10px rgba(59, 130, 246, 0.25);
+  border: 1px solid transparent;
 }
 
 .btn-primary:hover {
-  background: linear-gradient(135deg, #2563eb, #6d28d9);
-  transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 8px 24px rgba(124, 58, 237, 0.38);
+  background: var(--color-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.32);
 }
 
+/* Secundario = fantasma silencioso: no compite, acompaña. */
 .btn-secondary {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: var(--text-main);
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  color: var(--text-muted);
 }
 
 .btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.09);
-  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.20);
+  color: var(--text-main);
   transform: translateY(-1px);
 }
 
@@ -233,14 +238,14 @@ body.modal-open {
 }
 
 .btn-success {
-  background: linear-gradient(135deg, var(--color-success), var(--color-success-hover));
+  background: var(--color-success);
   color: #fff;
-  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.25);
 }
 
 .btn-success:hover {
-  background: linear-gradient(135deg, var(--color-success-hover), #047857);
-  transform: translateY(-2px);
+  background: var(--color-success-hover);
+  transform: translateY(-1px);
 }
 
 .btn-whatsapp {
@@ -279,8 +284,8 @@ body.modal-open {
 .glass-card {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
-  backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
   border-radius: 24px;
   padding: 24px;
   box-shadow: var(--shadow-lg);
@@ -571,6 +576,7 @@ body.modal-open {
 .history-date {
   color: var(--text-muted);
   font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
 }
 
 /* MODALES Y CAPAS */
@@ -597,6 +603,7 @@ body.modal-open {
   width: 100vw;
   height: 100vh;
   background: rgba(3, 7, 18, 0.8);
+  -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
   z-index: 100;
   display: none; /* Se maneja con .active */
@@ -1543,9 +1550,10 @@ body.modal-open {
   border-radius: 16px;
   padding: 16px;
   border: 1px solid rgba(255, 255, 255, 0.09);
-  background: linear-gradient(150deg, rgba(18, 32, 59, 0.7), rgba(13, 25, 47, 0.65));
-  backdrop-filter: blur(12px);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+  /* Sin blur anidado: una sola capa de vidrio por vista (el contenedor).
+     Menos backdrop-filter apilados = scroll fluido en móviles modestos. */
+  background: rgba(15, 27, 48, 0.85);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.30);
   transition: var(--transition-smooth);
 }
 
@@ -1873,8 +1881,8 @@ input[type='number'] {
   gap: 12px;
   padding: 14px 20px;
   background: rgba(20, 20, 25, 0.7);
-  backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
   color: #fff;
@@ -2005,9 +2013,10 @@ input[type='number'] {
 .recommendation-banner .btn {
   padding: 8px 16px;
   font-size: 0.85rem;
-  background: linear-gradient(135deg, var(--color-warning), #d97706);
-  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.2);
-  border: none;
+  background: rgba(245, 158, 11, 0.10);
+  color: var(--color-warning);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  box-shadow: none;
   flex-shrink: 0;
 }
 
@@ -2163,8 +2172,8 @@ input[type='number'] {
   right: 0;
   min-width: 220px;
   background: rgba(17, 24, 39, 0.95);
-  backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   padding: 8px;
@@ -2219,8 +2228,8 @@ input[type='number'] {
 
   .header-dropdown-overlay.active {
     background: rgba(3, 7, 18, 0.58);
-    backdrop-filter: blur(5px);
     -webkit-backdrop-filter: blur(5px);
+    backdrop-filter: blur(5px);
   }
 
   .header-dropdown {
@@ -2258,6 +2267,7 @@ input[type='number'] {
   position: fixed;
   inset: 0;
   background: rgba(3, 7, 18, 0.7);
+  -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
   z-index: 199;
   opacity: 0;
@@ -2344,8 +2354,8 @@ input[type='number'] {
   left: 0;
   right: 0;
   background: rgba(11, 15, 25, 0.92);
-  backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   z-index: 50;
   padding: 6px 0 max(6px, env(safe-area-inset-bottom));
@@ -2448,18 +2458,21 @@ input[type='number'] {
    FASE 3 P2+P3: FAVICON, MISC POLISH
    ========================================================================== */
 
-/* Warning button style extracted */
+/* Acción masiva/sensible ("Forzar Aviso Turno"): contenida, no festiva.
+   El ámbar marca precaución con un outline sereno en vez del gradiente
+   más llamativo de la vista. */
 .btn-warning-solid {
-  background: linear-gradient(135deg, var(--color-warning), #d97706);
-  color: #fff;
-  border: none;
-  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.2);
+  background: rgba(245, 158, 11, 0.08);
+  color: var(--color-warning);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  box-shadow: none;
 }
 
 .btn-warning-solid:hover {
-  background: linear-gradient(135deg, #d97706, #b45309);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.3);
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.55);
+  transform: translateY(-1px);
+  box-shadow: none;
 }
 
 /* Danger outline button */
@@ -2801,6 +2814,125 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
   border: 1px solid var(--glass-border); background: rgba(255, 255, 255, 0.05); color: var(--text-light, #e5e7eb);
 }
 
+/* ===== Registro de notificaciones semántico ===== */
+.log-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 9px 4px;
+  border-bottom: 1px solid var(--glass-border);
+  font-size: 0.84rem;
+}
+.log-row:last-child { border-bottom: none; }
+.log-time {
+  font-family: monospace;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  flex: none;
+  min-width: 74px;
+}
+.log-chip {
+  font-family: monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  flex: none;
+  font-weight: 700;
+}
+.log-chip.sent { color: var(--color-success); background: rgba(16, 185, 129, 0.12); }
+.log-chip.fail { color: var(--color-danger); background: rgba(239, 68, 68, 0.12); }
+.log-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.log-title { font-weight: 600; color: var(--text-main); }
+.log-ctx { font-weight: 400; color: var(--text-muted); font-size: 0.78rem; }
+.log-err { color: var(--text-muted); font-size: 0.78rem; }
+.log-raw summary {
+  cursor: pointer;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  opacity: 0.75;
+}
+.log-raw code {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  padding: 6px 8px;
+  margin-top: 4px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 6px;
+  word-break: break-all;
+}
+
+/* ===== Estado del bot de WhatsApp (semáforo con pulso) ===== */
+.wa-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.03);
+  transition: border-color 0.3s ease, background 0.3s ease;
+}
+.wa-status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--text-muted);
+}
+.wa-status-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.wa-status-title { font-weight: 700; font-size: 0.92rem; line-height: 1.35; }
+.wa-status-sub {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.wa-status-sub:empty { display: none; }
+
+/* Verde vivo: conectado (con latido) */
+.wa-status[data-state="connected"] {
+  border-color: rgba(16, 185, 129, 0.30);
+  background: rgba(16, 185, 129, 0.06);
+}
+.wa-status[data-state="connected"] .wa-status-dot {
+  background: var(--color-success);
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.45);
+  animation: wa-pulse 2s infinite;
+}
+/* Ámbar: esperando escaneo de QR o conectando */
+.wa-status[data-state="qr"],
+.wa-status[data-state="connecting"],
+.wa-status[data-state="loading"] {
+  border-color: rgba(245, 158, 11, 0.28);
+  background: rgba(245, 158, 11, 0.05);
+}
+.wa-status[data-state="qr"] .wa-status-dot,
+.wa-status[data-state="connecting"] .wa-status-dot,
+.wa-status[data-state="loading"] .wa-status-dot {
+  background: var(--color-warning);
+}
+/* Rojo: caído o error de comunicación */
+.wa-status[data-state="disconnected"],
+.wa-status[data-state="error"] {
+  border-color: rgba(239, 68, 68, 0.30);
+  background: rgba(239, 68, 68, 0.06);
+}
+.wa-status[data-state="disconnected"] .wa-status-dot,
+.wa-status[data-state="error"] .wa-status-dot {
+  background: var(--color-danger);
+}
+@keyframes wa-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.45); }
+  70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wa-status[data-state="connected"] .wa-status-dot { animation: none; }
+}
+
 /* ===== Modal de confirmación (showConfirm) — sustituye a window.confirm ===== */
 .confirm-overlay {
   position: fixed;
@@ -2811,8 +2943,8 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
   justify-content: center;
   padding: 20px;
   background: rgba(2, 6, 23, 0.62);
-  backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
   opacity: 0;
   transition: opacity 0.2s ease;
 }
@@ -2869,4 +3001,32 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
 @media (max-width: 480px) {
   .confirm-actions { flex-direction: column-reverse; }
   .confirm-actions button { width: 100%; }
+}
+
+/* ===== Disciplina tipográfica y de ritmo (Fase 1 del rediseño) ===== */
+/* Titulares con tracking intencional: el peso alto pide aire negativo. */
+.section-card h3,
+.admin-subsection-title,
+.modal-header h2 {
+  letter-spacing: -0.015em;
+}
+
+/* Cifras alineadas allí donde forman columnas. */
+table td,
+.finance-kpi-card,
+.history-item {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Ritmo de 8pt en los grupos de acciones: 12px dentro del grupo,
+   el doble entre grupos. Dos valores, ninguna excepción. */
+.action-group { gap: 12px; }
+.admin-grid { gap: 24px; }
+
+/* Una sola capa de vidrio: si una glass-card vive dentro de otra,
+   la interior pierde el blur (conserva fondo y borde). */
+.glass-card .glass-card {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: rgba(17, 24, 39, 0.55);
 }
