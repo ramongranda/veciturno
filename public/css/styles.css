@@ -3593,6 +3593,11 @@ body {
   .btn-lantern:hover { transform: none; }
 }
 
+/* "Secciones" es el botón de volver del panel a la lista en MÓVIL (flujo de
+   dos pantallas). En escritorio el menú siempre está visible al lado, así que
+   el botón no hace nada: se oculta. mobile.css lo muestra cuando corresponde. */
+.admin-back-btn { display: none; }
+
 /* ==========================================================================
    PORTAL DE NOCHE — Fase 2: fidelidad total al mockup
    Muere el grid de dos columnas: la portada respira como una página
