@@ -324,6 +324,82 @@ async function loadCommunityStatus() {
 }
 
 // Renderizar el Dashboard principal
+// El edificio como interfaz: los pisos se apilan como en el portal real
+// (ático arriba, bajo abajo) y el turno se lee como en el portero automático.
+// Cada piso muestra su mes proyectado siguiendo el orden de rotación.
+// opts.compact → oculta metadatos (vista vecino); opts.onFloorClick → hace
+// cada piso interactivo (vista admin: seleccionar turno).
+function renderBuildingView(container, data, opts = {}) {
+  if (!container) return;
+  container.innerHTML = '';
+
+  const activeFloorId = data.state.currentTurnFloorId;
+
+  // Orden de rotación (misma lógica que el backend: no exentos, por id)
+  const rotation = [...data.neighbors]
+    .filter((n) => !n.exemptFromCleaning)
+    .sort((a, b) => Number(a.id) - Number(b.id));
+  const rotIndex = rotation.findIndex(n => n.id === activeFloorId);
+  const baseMonth = data.state.currentMonth ? new Date(data.state.currentMonth) : new Date();
+  const monthShort = (offset) => {
+    const d = new Date(baseMonth.getFullYear(), baseMonth.getMonth() + offset, 1);
+    const label = d.toLocaleDateString('es-ES', { month: 'short' });
+    return label.charAt(0).toUpperCase() + label.slice(1).replace('.', '');
+  };
+
+  // Apilado como edificio: planta más alta arriba. floorNumber si existe; id como fallback.
+  const stacked = [...data.neighbors].sort((a, b) => {
+    const fa = Number(a.floorNumber != null ? a.floorNumber : a.id);
+    const fb = Number(b.floorNumber != null ? b.floorNumber : b.id);
+    return fb - fa;
+  });
+
+  const building = document.createElement('div');
+  building.className = `building-view${opts.compact ? ' compact' : ''}`;
+  building.setAttribute('aria-label', 'Edificio: rotación de turnos por piso');
+
+  stacked.forEach((neighbor) => {
+    const isActive = neighbor.id === activeFloorId;
+    const isRegistered = neighbor.registered;
+    const idx = rotation.findIndex(n => n.id === neighbor.id);
+    const offset = (idx >= 0 && rotIndex >= 0) ? (idx - rotIndex + rotation.length) % rotation.length : -1;
+
+    let turnBadge;
+    if (neighbor.exemptFromCleaning) {
+      turnBadge = '<span class="bf-badge exempt">Exento</span>';
+    } else if (isActive) {
+      turnBadge = '<span class="bf-badge now">Le toca ahora</span>';
+    } else if (offset === 1) {
+      turnBadge = `<span class="bf-badge next">Siguiente · ${monthShort(1)}</span>`;
+    } else if (offset > 1) {
+      turnBadge = `<span class="bf-badge future">${monthShort(offset)}</span>`;
+    } else {
+      turnBadge = '';
+    }
+
+    const row = document.createElement('div');
+    row.className = `building-floor ${isActive ? 'active' : ''}${opts.onFloorClick ? '' : ' static'}`;
+    row.innerHTML = `
+      <div class="bf-door" aria-hidden="true">${neighbor.id}</div>
+      <div class="bf-info">
+        <span class="bf-name">${neighbor.floor} ${neighbor.isAdmin ? '👑' : ''}</span>
+        <span class="bf-meta">
+          ${isRegistered ? 'Registrado' : 'Pendiente de registro'}
+          · ${(Number(neighbor.monthlyFee || 0)).toFixed(2)} €/mes
+          ${neighbor.phone ? '· 📱' : '· <span class="bf-nophone">sin número</span>'}
+        </span>
+      </div>
+      ${turnBadge}
+    `;
+    if (opts.onFloorClick) {
+      row.addEventListener('click', () => opts.onFloorClick(neighbor));
+    }
+    building.appendChild(row);
+  });
+
+  container.appendChild(building);
+}
+
 function renderDashboard(data) {
   const activeFloorId = data.state.currentTurnFloorId;
   const activeNeighbor = data.neighbors.find(n => n.id === activeFloorId);
@@ -423,80 +499,18 @@ function renderDashboard(data) {
   }
 
 
-  // 2. El edificio como interfaz: los pisos se apilan como en el portal real
-  // (ático arriba, bajo abajo) y el turno se lee como se lee el portero
-  // automático. Cada piso muestra su mes proyectado siguiendo la rotación.
-  const neighborsContainer = document.getElementById('neighbors-container');
-  neighborsContainer.innerHTML = '';
-
-  // Orden de rotación (misma lógica que el backend: no exentos, por id)
-  const rotation = [...data.neighbors]
-    .filter((n) => !n.exemptFromCleaning)
-    .sort((a, b) => Number(a.id) - Number(b.id));
-  const rotIndex = rotation.findIndex(n => n.id === activeFloorId);
-  const baseMonth = data.state.currentMonth ? new Date(data.state.currentMonth) : new Date();
-  const monthShort = (offset) => {
-    const d = new Date(baseMonth.getFullYear(), baseMonth.getMonth() + offset, 1);
-    const label = d.toLocaleDateString('es-ES', { month: 'short' });
-    return label.charAt(0).toUpperCase() + label.slice(1).replace('.', '');
-  };
-
-  // Apilado como edificio: planta más alta arriba. floorNumber si existe; id como fallback.
-  const stacked = [...data.neighbors].sort((a, b) => {
-    const fa = Number(a.floorNumber != null ? a.floorNumber : a.id);
-    const fb = Number(b.floorNumber != null ? b.floorNumber : b.id);
-    return fb - fa;
-  });
-
-  const building = document.createElement('div');
-  building.className = 'building-view';
-  building.setAttribute('aria-label', 'Edificio: rotación de turnos por piso');
-
-  stacked.forEach((neighbor) => {
-    const isActive = neighbor.id === activeFloorId;
-    const isRegistered = neighbor.registered;
-    const idx = rotation.findIndex(n => n.id === neighbor.id);
-    const offset = (idx >= 0 && rotIndex >= 0) ? (idx - rotIndex + rotation.length) % rotation.length : -1;
-
-    let turnBadge;
-    if (neighbor.exemptFromCleaning) {
-      turnBadge = '<span class="bf-badge exempt">Exento</span>';
-    } else if (isActive) {
-      turnBadge = '<span class="bf-badge now">Le toca ahora</span>';
-    } else if (offset === 1) {
-      turnBadge = `<span class="bf-badge next">Siguiente · ${monthShort(1)}</span>`;
-    } else if (offset > 1) {
-      turnBadge = `<span class="bf-badge future">${monthShort(offset)}</span>`;
-    } else {
-      turnBadge = '';
-    }
-
-    const row = document.createElement('div');
-    row.className = `building-floor ${isActive ? 'active' : ''}`;
-    row.innerHTML = `
-      <div class="bf-door" aria-hidden="true">${neighbor.id}</div>
-      <div class="bf-info">
-        <span class="bf-name">${neighbor.floor} ${neighbor.isAdmin ? '👑' : ''}</span>
-        <span class="bf-meta">
-          ${isRegistered ? 'Registrado' : 'Pendiente de registro'}
-          · ${(Number(neighbor.monthlyFee || 0)).toFixed(2)} €/mes
-          ${neighbor.phone ? '· 📱' : '· <span class="bf-nophone">sin número</span>'}
-        </span>
-      </div>
-      ${turnBadge}
-    `;
-    // Tocar un piso preselecciona ese vecino en el formulario de control de turno
-    row.addEventListener('click', () => {
+  // 2. El edificio como interfaz: se renderiza en la home del vecino (compacto)
+  // y en el panel admin de Visualización (con selector de turno al tocar piso).
+  renderBuildingView(document.getElementById('building-home'), data, { compact: true });
+  renderBuildingView(document.getElementById('neighbors-container'), data, {
+    onFloorClick: (neighbor) => {
       const sel = document.getElementById('admin-force-floor');
       if (sel) {
         sel.value = String(neighbor.id);
         sel.closest('form')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
-    });
-    building.appendChild(row);
+    }
   });
-
-  neighborsContainer.appendChild(building);
 
   // 3. Renderizar el historial
   const historyContainer = document.getElementById('history-container');

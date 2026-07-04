@@ -3135,6 +3135,31 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
 @media (max-width: 480px) {
   .bf-meta { display: none; }
 }
+/* Variante compacta (home del vecino): sin metadatos ni cursor de acción */
+.building-view.compact .bf-meta { display: none; }
+.building-floor.static { cursor: default; }
+.building-floor.static:hover { transform: none; border-color: var(--glass-border); }
+.building-floor.static.active:hover { border-color: rgba(59, 130, 246, 0.55); }
+
+/* Bloque del edificio en la portada */
+.home-building-block {
+  width: 100%;
+  margin-top: 22px;
+}
+.home-building-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--font-title);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+.home-building-title svg { width: 15px; height: 15px; color: var(--color-primary); }
 
 /* ===== Zona de mantenimiento del bot (Fase 2) =====
    Separada de las acciones cotidianas: lo que puede romper la vinculación
