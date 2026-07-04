@@ -324,6 +324,18 @@ async function loadCommunityStatus() {
 }
 
 // Renderizar el Dashboard principal
+// Altura real de cada unidad para apilar el edificio (ático arriba).
+// floorNumber puede venir como texto ("Primer Piso"), así que solo se usa si
+// es numérico; si no, el id numérico. Los locales/comerciales van a pie de
+// calle (debajo del todo, junto al portal).
+function floorRank(n) {
+  if ((n.kind || '') === 'comercial') return -1;
+  const fn = Number(n.floorNumber);
+  if (Number.isFinite(fn)) return fn;
+  const idn = Number(n.id);
+  return Number.isFinite(idn) ? idn : 0;
+}
+
 // El edificio como interfaz: los pisos se apilan como en el portal real
 // (ático arriba, bajo abajo) y el turno se lee como en el portero automático.
 // Cada piso muestra su mes proyectado siguiendo el orden de rotación.
@@ -348,11 +360,7 @@ function renderBuildingView(container, data, opts = {}) {
   };
 
   // Apilado como edificio: planta más alta arriba. floorNumber si existe; id como fallback.
-  const stacked = [...data.neighbors].sort((a, b) => {
-    const fa = Number(a.floorNumber != null ? a.floorNumber : a.id);
-    const fb = Number(b.floorNumber != null ? b.floorNumber : b.id);
-    return fb - fa;
-  });
+  const stacked = [...data.neighbors].sort((a, b) => floorRank(b) - floorRank(a));
 
   const building = document.createElement('div');
   building.className = `building-view${opts.compact ? ' compact' : ''}`;
@@ -423,11 +431,7 @@ function renderFacade(container, data) {
     return label.charAt(0).toUpperCase() + label.slice(1).replace('.', '');
   };
 
-  const stacked = [...data.neighbors].sort((a, b) => {
-    const fa = Number(a.floorNumber != null ? a.floorNumber : a.id);
-    const fb = Number(b.floorNumber != null ? b.floorNumber : b.id);
-    return fb - fa;
-  });
+  const stacked = [...data.neighbors].sort((a, b) => floorRank(b) - floorRank(a));
 
   stacked.forEach((neighbor) => {
     const isActive = neighbor.id === activeFloorId;
