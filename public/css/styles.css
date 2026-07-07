@@ -3742,6 +3742,11 @@ body {
   padding: 10px 12px;
   width: 100%;
 }
+/* Los campos con icono dentro (.input-wrapper) necesitan hueco a la izquierda */
+.dashboard-side-column .input-wrapper input,
+.dashboard-side-column .input-wrapper select {
+  padding-left: 42px;
+}
 .dashboard-side-column textarea:focus,
 .dashboard-side-column input:focus,
 .dashboard-side-column select:focus {
