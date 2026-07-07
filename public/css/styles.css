@@ -3779,3 +3779,56 @@ body {
   .nh-grid { gap: 34px; }
   .dashboard-side-column { grid-template-columns: 1fr; }
 }
+
+/* ==========================================================================
+   PORTAL DE NOCHE — ajustes móviles
+   El header placa recupera el cristal cuando se vuelve sticky en móvil
+   (el override transparente de escritorio dejaba el scroll pasando por
+   detrás), y el hero/cinta se compactan para pantallas estrechas.
+   ========================================================================== */
+@media (max-width: 768px) {
+  /* Header sticky: fondo de noche translúcido para que el contenido no
+     se lea a través al hacer scroll. */
+  .app-header {
+    background: rgba(7, 11, 20, 0.88);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--pn-line);
+  }
+  /* La dirección de la comunidad no debe pelear con la hamburguesa */
+  .logo-text span {
+    display: block;
+    max-width: 52vw;
+    font-size: 0.52rem;
+    letter-spacing: 0.14em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .logo-text h1 { font-size: 1.15rem; }
+
+  /* Hero compacto y centrado */
+  .night-hero,
+  .night-hero.glass-card { padding: 26px 2px 20px; }
+  .nh-copy { text-align: center; }
+  .nh-sub { margin-left: auto; margin-right: auto; }
+  .nh-actions { justify-content: center; }
+  .nh-title { font-size: clamp(1.7rem, 8.5vw, 2.4rem); }
+  .facade { width: min(300px, 88vw); }
+
+  /* Cinta de rotación: aire lateral y tarjetas más compactas */
+  .rota-strip { padding: 4px 6px 10px; }
+  .rota-card { min-width: 122px; padding: 10px 13px; }
+  .nh-rota-label { margin: 22px 0 10px; }
+
+  /* Mostrador y etiquetas de sección */
+  .pn-section-label { margin: 18px 0 12px; }
+  .dashboard-side-column { gap: 12px; }
+  .dashboard-side-column .section-card { padding: 16px; }
+}
+
+@media (max-width: 400px) {
+  .facade { width: 92vw; padding: 12px 12px 0; }
+  .f-name { font-size: 0.84rem; }
+  .rota-card { min-width: 112px; }
+}
