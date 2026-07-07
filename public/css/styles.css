@@ -3832,3 +3832,13 @@ body {
   .f-name { font-size: 0.84rem; }
   .rota-card { min-width: 112px; }
 }
+
+/* La cinta de rotación debe ocupar el ancho del hero y scrollear dentro de
+   su propia caja. Sin esto, el align-items:center del contenedor la centra
+   como bloque max-content y la corta por la izquierda en móvil. */
+.night-hero .nh-grid,
+.night-hero .nh-rota-label,
+.night-hero .rota-strip {
+  width: 100%;
+  align-self: stretch;
+}
