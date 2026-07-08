@@ -2419,6 +2419,7 @@ function adminShowPanel(panelKey) {
   if (panelKey === 'invites' && grid && invites) {
     grid.style.display = '';
     grid.classList.remove('admin-grid-single-panel');
+    invites.dataset.exp = 'Comunidad · Invitaciones';
     if (users) {
       users.style.display = 'flex';
       users.style.flexDirection = 'column';
@@ -2437,6 +2438,7 @@ function adminShowPanel(panelKey) {
   if (panelKey === 'whatsapp' && grid && invites) {
     grid.style.display = '';
     grid.classList.add('admin-grid-single-panel');
+    invites.dataset.exp = 'Comunicación · Portería';
     invites.style.display = 'flex';
     invites.style.flexDirection = 'column';
     if (invitesTable) invitesTable.style.display = 'none';
@@ -3614,7 +3616,7 @@ async function loadAdminNeighborsManagement() {
       
       let statusBadge = '';
       if (n.isAdmin) {
-        statusBadge = `<span class="badge" style="background: rgba(59, 130, 246, 0.1); color: var(--color-primary); display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="shield" style="width: 12px; height: 12px;"></i>Admin</span>`;
+        statusBadge = `<span class="badge badge-admin" style="display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="shield" style="width: 12px; height: 12px;"></i>Admin</span>`;
       } else if (isRegistered) {
         let authType = 'Activo';
         if (n.deactivated) {
@@ -3628,29 +3630,29 @@ async function loadAdminNeighborsManagement() {
         }
 
         if (n.deactivated) {
-          statusBadge = `<span class="badge" style="background: rgba(239, 68, 68, 0.1); color: #f87171; display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="user-x" style="width: 12px; height: 12px;"></i>Desactivado</span>`;
+          statusBadge = `<span class="badge badge-off" style="display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="user-x" style="width: 12px; height: 12px;"></i>Desactivado</span>`;
         } else {
           statusBadge = `<span class="badge badge-success" title="Registrado como @${n.username}" style="display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="user-check" style="width: 12px; height: 12px;"></i>${authType}</span>`;
         }
       } else {
-        statusBadge = `<span class="badge" style="background: rgba(245, 158, 11, 0.1); color: var(--color-warning); display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="user-x" style="width: 12px; height: 12px;"></i>Pendiente</span>`;
+        statusBadge = `<span class="badge badge-pending" style="display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="user-x" style="width: 12px; height: 12px;"></i>Pendiente</span>`;
       }
       
       const exemptBadge = n.exemptFromCleaning 
-        ? `<button class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.7rem; border-color: rgba(239, 68, 68, 0.2); background: rgba(239, 68, 68, 0.05); color: #f87171; display: inline-flex; align-items: center; gap: 4px; height: 26px;" onclick="toggleNeighborExempt('${n.id}', false)" title="Haga clic para INCLUIR en limpieza">
+        ? `<button class="btn btn-secondary chip-toggle is-exempt" style="padding: 4px 8px; font-size: 0.7rem; display: inline-flex; align-items: center; gap: 4px; height: 26px;" onclick="toggleNeighborExempt('${n.id}', false)" title="Haga clic para INCLUIR en limpieza">
             <i data-lucide="moon" style="width: 12px; height: 12px;"></i>Exento
            </button>`
-        : `<button class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.7rem; border-color: rgba(16, 185, 129, 0.2); background: rgba(16, 185, 129, 0.05); color: #34d399; display: inline-flex; align-items: center; gap: 4px; height: 26px;" onclick="toggleNeighborExempt('${n.id}', true)" title="Haga clic para EXIMIR de limpieza">
+        : `<button class="btn btn-secondary chip-toggle is-active" style="padding: 4px 8px; font-size: 0.7rem; display: inline-flex; align-items: center; gap: 4px; height: 26px;" onclick="toggleNeighborExempt('${n.id}', true)" title="Haga clic para EXIMIR de limpieza">
             <i data-lucide="sun" style="width: 12px; height: 12px;"></i>Activo
            </button>`;
 
       const phoneDisplay = n.phone 
         ? `<span style="font-size: 0.8rem; font-family: monospace;">${n.phone}</span>`
-        : `<span style="color: var(--text-muted); font-style: italic; font-size: 0.75rem;">Sin número</span>`;
+        : `<span class="muted-note">Sin número</span>`;
       
       const isSelf = state.user?.id === n.id;
       const editButton = `
-        <button class="btn btn-secondary" style="padding: 4px 8px; border-color: rgba(255, 255, 255, 0.15); background: rgba(255, 255, 255, 0.02); color: var(--text-main); display: inline-flex; align-items: center; gap: 4px; height: 28px; margin-right: 4px;" onclick="openEditNeighborModal('${n.id}')" title="Modificar Vivienda / Vecino">
+        <button class="btn btn-secondary" style="padding: 4px 8px; display: inline-flex; align-items: center; gap: 4px; height: 28px; margin-right: 4px;" onclick="openEditNeighborModal('${n.id}')" title="Modificar Vivienda / Vecino">
           <i data-lucide="edit-3" style="width: 12px; height: 12px;"></i>
           <span style="font-size: 0.72rem;">Modificar</span>
         </button>

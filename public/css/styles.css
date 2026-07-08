@@ -4166,3 +4166,350 @@ body {
   .ledger-filters { grid-template-columns: 1fr; }
   .ledger-folios { grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 12px; }
 }
+
+/* ==========================================================
+   LA CONSERJERÍA (sección Administración)
+   Tablero de llaves, expedientes en carpeta manila y el
+   portero de noche en su ventanilla. Solo piel: misma lógica.
+   ========================================================== */
+:root {
+  --cj-manila: #D9BC8B;
+  --cj-manila-2: #CBAC77;
+  --cj-manila-edge: #B08F55;
+  --cj-brass: #C9A25E;
+  --cj-brass-hi: #E8C88A;
+  --cj-wood: #1A140D;
+  --cj-wood-2: #241B10;
+}
+
+/* --- El tablero de llaves (menú lateral) --- */
+.admin-sidebar.glass-card {
+  background: linear-gradient(180deg, var(--cj-wood-2), var(--cj-wood));
+  border: 1px solid rgba(201, 162, 94, 0.25);
+  box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.5), 0 20px 44px -18px rgba(0, 0, 0, 0.9);
+  backdrop-filter: none;
+}
+.admin-sidebar h3 {
+  font-family: var(--font-display, serif);
+  color: var(--cj-brass-hi);
+  border: none;
+}
+.admin-sidebar .admin-menu-group-label { color: rgba(232, 200, 138, 0.6); }
+.admin-sidebar .admin-menu-group { border-top: 1px solid rgba(255, 184, 77, 0.12); padding-top: 10px; }
+
+.admin-menu-nav .btn.btn-secondary {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 4px 2px;
+  width: 100%;
+}
+.admin-menu-nav .btn.btn-secondary:hover {
+  background: transparent;
+  transform: none;
+}
+.llave-anilla {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  border: 2.5px solid var(--cj-brass);
+  border-radius: 50%;
+  position: relative;
+  transition: transform 0.15s ease;
+}
+.llave-anilla::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  transform: translateX(-50%);
+  width: 3px;
+  height: 7px;
+  background: var(--cj-brass);
+  border-radius: 0 0 2px 2px;
+}
+.admin-menu-nav .btn.btn-secondary > span:last-child {
+  font-family: ui-monospace, monospace;
+  font-size: 0.64rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #E9DFC8;
+  background: rgba(217, 188, 139, 0.14);
+  border: 1px solid rgba(217, 188, 139, 0.3);
+  border-radius: 3px;
+  padding: 6px 10px;
+  transition: background 0.15s ease;
+  text-align: left;
+}
+.admin-menu-nav .btn.btn-secondary:hover .llave-anilla { transform: rotate(-14deg); }
+.admin-menu-nav .btn.btn-secondary:hover > span:last-child { background: rgba(217, 188, 139, 0.24); }
+.admin-menu-nav .btn.admin-menu-btn-active {
+  background: transparent;
+  border: none;
+}
+.admin-menu-nav .admin-menu-btn-active .llave-anilla {
+  border-color: var(--pn-amber);
+  box-shadow: 0 0 12px rgba(255, 184, 77, 0.5);
+}
+.admin-menu-nav .admin-menu-btn-active .llave-anilla::after { background: var(--pn-amber); }
+.admin-menu-nav .admin-menu-btn-active > span:last-child {
+  background: var(--pn-amber);
+  border-color: var(--pn-amber);
+  color: #1A1206;
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
+}
+
+/* --- Las carpetas manila (paneles) --- */
+.admin-content > .section-card.glass-card,
+#admin-section-users,
+#admin-section-invites {
+  background: linear-gradient(180deg, var(--cj-manila), var(--cj-manila-2));
+  border: none;
+  border-radius: 10px;
+  box-shadow:
+    0 2px 0 var(--cj-manila-edge), 0 5px 0 #9A7C47,
+    0 26px 50px -18px rgba(0, 0, 0, 0.85);
+  color: var(--lb-ink);
+  backdrop-filter: none;
+}
+#admin-section-users,
+#admin-section-invites { padding: 24px; }
+
+/* Pestaña de expediente */
+.admin-content [data-exp] { position: relative; margin-top: 36px; }
+.admin-content [data-exp]::before {
+  content: attr(data-exp);
+  position: absolute;
+  top: -27px;
+  left: 18px;
+  font-family: ui-monospace, monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--lb-ink);
+  background: var(--cj-manila);
+  border-radius: 8px 8px 0 0;
+  padding: 7px 16px 6px;
+  box-shadow: 0 -4px 10px -6px rgba(0, 0, 0, 0.7);
+}
+
+/* --- Tinta sobre manila: textos, títulos, listas --- */
+.admin-content h3:not(#admin-section-whatsapp *),
+.admin-content h4:not(#admin-section-whatsapp *) {
+  color: var(--lb-ink);
+  font-family: var(--font-display, serif);
+  border-bottom-color: rgba(43, 36, 22, 0.35);
+}
+.admin-content p:not(#admin-section-whatsapp *),
+.admin-content .box-desc:not(#admin-section-whatsapp *),
+.admin-content .input-hint:not(#admin-section-whatsapp *),
+.admin-content label:not(#admin-section-whatsapp *) {
+  color: var(--lb-ink-soft);
+}
+.admin-content .checkbox-row:not(#admin-section-whatsapp *) { color: var(--lb-ink); }
+.admin-content .history-item:not(#admin-section-whatsapp *),
+.admin-content .announcement-item:not(#admin-section-whatsapp *) {
+  background: rgba(255, 251, 240, 0.55);
+  border: 1px dotted rgba(43, 36, 22, 0.4);
+  color: var(--lb-ink);
+}
+.admin-content .history-floor:not(#admin-section-whatsapp *) { color: var(--lb-ink); }
+.admin-content .history-by:not(#admin-section-whatsapp *) { color: var(--lb-ink-soft); }
+.admin-content code:not(#admin-section-whatsapp *) {
+  background: rgba(255, 251, 240, 0.7);
+  color: var(--lb-ink);
+  border: 1px solid rgba(43, 36, 22, 0.25);
+}
+
+/* Fichas de cartón: cajas anidadas dentro de la carpeta */
+.admin-content .section-card .section-card,
+.admin-content .section-card .glass-card,
+#admin-section-users .section-card,
+#admin-section-users .glass-card {
+  background: var(--lb-paper);
+  border: none;
+  border-radius: 4px;
+  box-shadow: 0 1px 0 #D8C9A4, 0 10px 22px -12px rgba(0, 0, 0, 0.55);
+  backdrop-filter: none;
+}
+
+/* Campos a máquina */
+.admin-content .input-wrapper input:not(#admin-section-whatsapp *),
+.admin-content .input-wrapper select:not(#admin-section-whatsapp *) {
+  background: rgba(255, 251, 240, 0.55);
+  border: 1px solid rgba(43, 36, 22, 0.35);
+  color: var(--lb-ink);
+}
+.admin-content textarea:not(#admin-section-whatsapp *) {
+  background: rgba(255, 251, 240, 0.55);
+  border: 1px solid rgba(43, 36, 22, 0.35);
+  color: var(--lb-ink);
+  border-radius: 10px;
+}
+.admin-content .input-wrapper input:not(#admin-section-whatsapp *)::placeholder,
+.admin-content textarea:not(#admin-section-whatsapp *)::placeholder { color: var(--lb-ink-soft); }
+.admin-content .input-wrapper i:not(#admin-section-whatsapp *),
+.admin-content .input-wrapper svg:not(#admin-section-whatsapp *) { color: var(--lb-ink-soft); }
+.admin-content .input-wrapper input:not(#admin-section-whatsapp *):focus,
+.admin-content .input-wrapper select:not(#admin-section-whatsapp *):focus,
+.admin-content textarea:not(#admin-section-whatsapp *):focus {
+  border-color: var(--lb-ink);
+  background: #FFFBF0;
+  box-shadow: none;
+  outline: none;
+}
+.admin-content input[type="file"]:not(#admin-section-whatsapp *) { color: var(--lb-ink-soft); }
+.admin-content input[type="file"]:not(#admin-section-whatsapp *)::file-selector-button {
+  background: rgba(255, 251, 240, 0.7);
+  border: 1px solid rgba(43, 36, 22, 0.35);
+  color: var(--lb-ink);
+  border-radius: 6px;
+  padding: 7px 12px;
+  margin-right: 12px;
+  cursor: pointer;
+}
+
+/* Botón-tampón y secundarios de tinta */
+.admin-content .btn-primary:not(#admin-section-whatsapp *) {
+  background: var(--lb-ink);
+  color: var(--lb-paper);
+  border: none;
+  box-shadow: 0 3px 0 #14100A;
+  font-weight: 700;
+}
+.admin-content .btn-primary:not(#admin-section-whatsapp *):hover {
+  background: #3A3120;
+  transform: none;
+}
+.admin-content .btn-primary:not(#admin-section-whatsapp *):active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #14100A;
+}
+.admin-content .btn-secondary:not(#admin-section-whatsapp *):not(.admin-back-btn):not(.admin-mobile-menu-btn) {
+  background: transparent;
+  border: 1px solid rgba(43, 36, 22, 0.45);
+  color: var(--lb-ink);
+}
+.admin-content .btn-secondary:not(#admin-section-whatsapp *):not(.admin-back-btn):not(.admin-mobile-menu-btn):hover {
+  background: rgba(255, 251, 240, 0.5);
+  border-color: var(--lb-ink);
+}
+.admin-content .btn-warning-solid:not(#admin-section-whatsapp *) {
+  background: transparent;
+  border: 1px solid rgba(166, 58, 43, 0.6);
+  color: var(--lb-ink-red);
+}
+
+/* --- La ventanilla del portero (panel WhatsApp): sigue siendo de noche --- */
+#admin-section-whatsapp {
+  background:
+    radial-gradient(420px 200px at 50% 0%, rgba(255, 184, 77, 0.16), transparent 70%),
+    linear-gradient(180deg, #101826, #0B1120);
+  border: 1px solid rgba(148, 167, 199, 0.28);
+  border-radius: 12px;
+  padding: 22px;
+  box-shadow: 0 0 40px rgba(255, 184, 77, 0.08), inset 0 0 40px rgba(0, 0, 0, 0.4);
+}
+#admin-section-whatsapp::before {
+  content: "La ventanilla del portero";
+  display: block;
+  font-family: ui-monospace, monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: rgba(148, 167, 199, 0.65);
+  margin-bottom: 12px;
+}
+
+/* Móvil: carpetas a ras y pestañas pequeñas */
+@media (max-width: 768px) {
+  .admin-content [data-exp]::before { left: 10px; font-size: 0.56rem; padding: 6px 12px 5px; }
+  #admin-section-users, #admin-section-invites { padding: 18px 14px; }
+  #admin-section-whatsapp { padding: 16px 12px; }
+}
+
+/* --- Conserjería: ajustes tras captura real --- */
+/* La llave en mano vence al resaltado azul antiguo (que lleva !important) */
+.admin-menu-nav .btn.btn-secondary.admin-menu-btn-active {
+  background: transparent !important;
+  border-color: transparent !important;
+}
+.admin-menu-nav .btn.btn-secondary.admin-menu-btn-active > span:last-child {
+  background: var(--pn-amber);
+  border-color: var(--pn-amber);
+  color: #1A1206;
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
+}
+
+/* Tabla de usuarios en tinta sobre manila */
+.admin-content .admin-table:not(#admin-section-whatsapp *) { color: var(--lb-ink); }
+.admin-content .admin-table:not(#admin-section-whatsapp *) th {
+  color: var(--lb-ink-soft);
+  border-color: rgba(43, 36, 22, 0.4);
+}
+.admin-content .admin-table:not(#admin-section-whatsapp *) td {
+  color: var(--lb-ink);
+  border-color: rgba(43, 36, 22, 0.22);
+}
+
+/* Verdes fuera de la portería: pasan a tampón de tinta */
+.admin-content .btn-whatsapp:not(#admin-section-whatsapp *),
+.admin-content .btn-success:not(#admin-section-whatsapp *) {
+  background: var(--lb-ink);
+  color: var(--lb-paper);
+  border: none;
+  box-shadow: 0 3px 0 #14100A;
+  font-weight: 700;
+}
+.admin-content .btn-whatsapp:not(#admin-section-whatsapp *):hover,
+.admin-content .btn-success:not(#admin-section-whatsapp *):hover {
+  background: #3A3120;
+  transform: none;
+}
+
+/* Chips {placeholder} de plantillas, legibles sobre manila */
+.admin-content .template-placeholders .btn-xs:not(#admin-section-whatsapp *) {
+  background: rgba(255, 251, 240, 0.7);
+  border: 1px solid rgba(43, 36, 22, 0.35);
+  color: var(--lb-ink);
+}
+
+/* La ventanilla reafirma su noche: la tinta del expediente no entra */
+#admin-section-whatsapp { color: var(--pn-moon); }
+#admin-section-whatsapp h3,
+#admin-section-whatsapp h4,
+#admin-section-whatsapp strong { color: #EDF2FB; }
+#admin-section-whatsapp p,
+#admin-section-whatsapp .box-desc,
+#admin-section-whatsapp label,
+#admin-section-whatsapp .input-hint { color: var(--pn-moon); }
+#admin-section-whatsapp .history-item {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(148, 167, 199, 0.18);
+  color: var(--pn-moon);
+}
+#admin-section-whatsapp .history-floor { color: #EDF2FB; }
+#admin-section-whatsapp .history-by { color: var(--pn-moon); }
+
+/* Chips de la tabla de usuarios: tinta semántica sobre manila */
+.admin-table .badge-admin { background: rgba(37, 99, 235, 0.12); color: #1D4ED8; }
+.admin-table .badge-success { background: rgba(31, 107, 58, 0.12); color: #1F6B3A; }
+.admin-table .badge-off { background: rgba(166, 58, 43, 0.12); color: #A63A2B; }
+.admin-table .badge-pending { background: rgba(138, 90, 0, 0.14); color: #8A5A00; }
+.admin-table .chip-toggle.is-active {
+  background: rgba(31, 107, 58, 0.08) !important;
+  border-color: rgba(31, 107, 58, 0.45) !important;
+  color: #1F6B3A !important;
+}
+.admin-table .chip-toggle.is-exempt {
+  background: rgba(166, 58, 43, 0.08) !important;
+  border-color: rgba(166, 58, 43, 0.45) !important;
+  color: #A63A2B !important;
+}
+.admin-table .muted-note { color: var(--lb-ink-soft); font-style: italic; font-size: 0.75rem; }

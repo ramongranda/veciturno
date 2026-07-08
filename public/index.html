@@ -22,8 +22,8 @@
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <!-- Hojas de Estilo -->
-  <link rel="stylesheet" href="css/styles.css?v=portal-noche-0.9.2">
-  <link rel="stylesheet" href="css/mobile.css?v=portal-noche-0.9.2">
+  <link rel="stylesheet" href="css/styles.css?v=portal-noche-0.10.2">
+  <link rel="stylesheet" href="css/mobile.css?v=portal-noche-0.10.2">
 </head>
 <body>
 
@@ -743,14 +743,14 @@
           <div class="modal-icon text-warning">
             <i data-lucide="shield-alert"></i>
           </div>
-          <h2>Consola de Administración</h2>
-          <p>Gestiona enlaces de registro e invitaciones</p>
+          <h2>La Conserjería</h2>
+          <p>Coge una llave para abrir su expediente</p>
         </div>
 
         <div class="admin-workspace">
           <aside class="admin-sidebar glass-card" id="admin-sidebar">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-              <h3 style="margin: 0;">Menú Admin</h3>
+              <h3 style="margin: 0;">Conserjería</h3>
               <button class="btn btn-secondary btn-icon admin-mobile-menu-btn" onclick="toggleAdminSidebar(false)" style="padding: 4px 8px; width: auto; min-width: auto; height: auto;">
                 <i data-lucide="x"></i>
               </button>
@@ -761,56 +761,56 @@
               <div class="admin-menu-group">
                 <span class="admin-menu-group-label">Comunidad</span>
                 <button class="btn btn-secondary" type="button" data-admin-panel-btn="users" onclick="adminShowPanel('users')">
-                  <i data-lucide="users"></i>
+                  <span class="llave-anilla" aria-hidden="true"></span>
                   <span>Vecinos y seguridad</span>
                 </button>
                 <button class="btn btn-secondary" type="button" data-admin-panel-btn="invites" onclick="adminShowPanel('invites')">
-                  <i data-lucide="link"></i>
+                  <span class="llave-anilla" aria-hidden="true"></span>
                   <span>Invitaciones</span>
                 </button>
                 <button class="btn btn-secondary" type="button" data-admin-panel-btn="visualization" onclick="adminShowPanel('visualization')">
-                  <i data-lucide="building"></i>
+                  <span class="llave-anilla" aria-hidden="true"></span>
                   <span>Visualización</span>
                 </button>
                 <button class="btn btn-secondary" type="button" data-admin-panel-btn="areas" onclick="adminShowPanel('areas')">
-                  <i data-lucide="calendar-check"></i>
+                  <span class="llave-anilla" aria-hidden="true"></span>
                   <span>Zonas comunes</span>
                 </button>
               </div>
               <div class="admin-menu-group">
                 <span class="admin-menu-group-label">Dinero</span>
                 <button class="btn btn-secondary" type="button" data-admin-panel-btn="fees" onclick="adminShowPanel('fees')">
-                  <i data-lucide="wallet"></i>
+                  <span class="llave-anilla" aria-hidden="true"></span>
                   <span>Cuotas</span>
                 </button>
                 <button class="btn btn-secondary" type="button" data-admin-panel-btn="finance" onclick="adminShowPanel('finance')">
-                  <i data-lucide="file-spreadsheet"></i>
+                  <span class="llave-anilla" aria-hidden="true"></span>
                   <span>Finanzas</span>
                 </button>
               </div>
               <div class="admin-menu-group">
                 <span class="admin-menu-group-label">Comunicación</span>
                 <button class="btn btn-secondary" type="button" data-admin-panel-btn="whatsapp" onclick="adminShowPanel('whatsapp')">
-                  <i data-lucide="message-square"></i>
+                  <span class="llave-anilla" aria-hidden="true"></span>
                   <span>WhatsApp Servidor</span>
                 </button>
                 <button class="btn btn-secondary" type="button" data-admin-panel-btn="announcements" onclick="adminShowPanel('announcements')">
-                  <i data-lucide="megaphone"></i>
+                  <span class="llave-anilla" aria-hidden="true"></span>
                   <span>Tablón de anuncios</span>
                 </button>
                 <button class="btn btn-secondary" type="button" data-admin-panel-btn="incidents" onclick="adminShowPanel('incidents')">
-                  <i data-lucide="alert-triangle"></i>
+                  <span class="llave-anilla" aria-hidden="true"></span>
                   <span>Incidencias</span>
                 </button>
                 <button class="btn btn-secondary" type="button" data-admin-panel-btn="documents" onclick="adminShowPanel('documents')">
-                  <i data-lucide="folder"></i>
+                  <span class="llave-anilla" aria-hidden="true"></span>
                   <span>Documentos</span>
                 </button>
               </div>
               <div class="admin-menu-group">
                 <span class="admin-menu-group-label">Sistema</span>
                 <button class="btn btn-secondary" type="button" data-admin-panel-btn="config" onclick="adminShowPanel('config')">
-                  <i data-lucide="sliders-horizontal"></i>
+                  <span class="llave-anilla" aria-hidden="true"></span>
                   <span>Configuración</span>
                 </button>
               </div>
@@ -818,7 +818,7 @@
           </aside>
 
           <div class="admin-content">
-        <section id="admin-section-announcements" class="section-card glass-card" style="display:none;">
+        <section id="admin-section-announcements" data-exp="Comunicación · Tablón" class="section-card glass-card" style="display:none;">
           <h3><i data-lucide="megaphone"></i> Tablón de anuncios</h3>
           <p class="box-desc">Publica avisos para toda la comunidad. Aparecen en el panel de inicio de cada vecino.</p>
           <form id="announcement-form" class="auth-form" onsubmit="handleCreateAnnouncement(event)">
@@ -851,7 +851,7 @@
             </div>
           </div>
         </section>
-        <section id="admin-section-documents" class="section-card glass-card" style="display:none;">
+        <section id="admin-section-documents" data-exp="Comunicación · Documentos" class="section-card glass-card" style="display:none;">
           <h3><i data-lucide="folder"></i> Documentos de la comunidad</h3>
           <p class="box-desc">Sube actas, contratos, presupuestos o normativa. Cada vecino con sesión iniciada podrá consultarlos y descargarlos.</p>
           <form id="document-form" class="auth-form" onsubmit="handleUploadDocument(event)">
@@ -894,7 +894,7 @@
             </div>
           </div>
         </section>
-        <section id="admin-section-areas" class="section-card glass-card" style="display:none;">
+        <section id="admin-section-areas" data-exp="Comunidad · Zonas comunes" class="section-card glass-card" style="display:none;">
           <h3><i data-lucide="calendar-check"></i> Zonas comunes</h3>
           <p class="box-desc">Define las zonas reservables (salón social, pádel, piscina…). Cada vecino podrá reservar franjas dentro del horario indicado.</p>
           <form id="area-form" class="auth-form" onsubmit="handleCreateArea(event)">
@@ -939,7 +939,7 @@
             </div>
           </div>
         </section>
-        <section id="admin-section-incidents" class="section-card glass-card" style="display:none;">
+        <section id="admin-section-incidents" data-exp="Comunicación · Incidencias" class="section-card glass-card" style="display:none;">
           <h3><i data-lucide="alert-triangle"></i> Incidencias</h3>
           <p class="box-desc">Incidencias reportadas por vecinos (app) y desde WhatsApp. Cambia el estado o elimínalas.</p>
           <div class="incident-filter-row">
@@ -952,7 +952,7 @@
             <p class="box-desc">Cargando…</p>
           </div>
         </section>
-        <section id="admin-section-config" class="section-card glass-card">
+        <section id="admin-section-config" data-exp="Sistema · Configuración" class="section-card glass-card">
           <h3>Configuración General</h3>
           <p class="box-desc">Desde esta consola puedes gestionar el acceso de vecinos, invitaciones y el canal oficial de WhatsApp de la comunidad.</p>
           <div class="section-card" style="margin-bottom: 12px;">
@@ -1087,7 +1087,7 @@
           </form>
         </section>
 
-        <section id="admin-section-fees" class="section-card glass-card">
+        <section id="admin-section-fees" data-exp="Dinero · Cuotas" class="section-card glass-card">
           <h3>Cuotas</h3>
           <p class="box-desc">Gestiona cuotas base y overrides por unidad por separado de la estructura del edificio.</p>
           <div class="section-card admin-subsection">
@@ -1124,7 +1124,7 @@
           </div>
         </section>
 
-        <section id="admin-section-finance" class="section-card glass-card">
+        <section id="admin-section-finance" data-exp="Dinero · Finanzas" class="section-card glass-card">
           <h3>Finanzas</h3>
           <p class="box-desc">Carga y actualiza datos financieros sin mezclarlo con la gestión de estructura o cuotas.</p>
           <div class="section-card admin-subsection">
@@ -1224,7 +1224,7 @@
 
         <div class="admin-grid">
           <!-- Formulario Generador -->
-          <div id="admin-section-users" class="admin-action-box" style="display: flex; flex-direction: column; gap: 20px;">
+          <div id="admin-section-users" data-exp="Comunidad · Vecinos" class="admin-action-box" style="display: flex; flex-direction: column; gap: 20px;">
             <!-- Resumen de Seguridad Consolidado -->
             <div id="admin-section-security-summary-card" class="section-card glass-card" style="padding: 14px 18px; margin-bottom: 5px; width: 100%;">
               <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
@@ -1362,7 +1362,7 @@
           </div>
 
           <!-- Tabla/Lista de Enlaces -->
-          <div id="admin-section-invites" class="admin-list-box">
+          <div id="admin-section-invites" data-exp="Comunidad · Invitaciones" class="admin-list-box">
             <h3>Enlaces Generados</h3>
             <div class="invite-table-container">
               <table class="admin-table">
@@ -1549,7 +1549,7 @@
         </div>
       </div>
 
-        <section id="admin-section-visualization" class="section-card glass-card" style="margin-top: 18px;">
+        <section id="admin-section-visualization" data-exp="Comunidad · Edificio" class="section-card glass-card" style="margin-top: 18px;">
           <div class="admin-force-turn-card">
             <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
               <div>
@@ -1595,7 +1595,7 @@
         </section>
 
         <!-- Personalización de Plantillas de WhatsApp -->
-        <section id="admin-section-whatsapp-templates" class="section-card glass-card" style="margin-top: 18px;">
+        <section id="admin-section-whatsapp-templates" data-exp="Comunicación · Plantillas" class="section-card glass-card" style="margin-top: 18px;">
           <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 14px;">
             <div>
               <h3 style="margin: 0; display: flex; align-items: center; gap: 8px; border-bottom: none; padding-bottom: 0;">
@@ -1847,6 +1847,6 @@
   <nav id="mobile-bottom-nav" class="mobile-bottom-nav"></nav>
 
   <!-- SCRIPT DEL FRONTEND -->
-  <script src="js/app.js?v=portal-noche-0.9.2"></script>
+  <script src="js/app.js?v=portal-noche-0.10.2"></script>
 </body>
 </html>
