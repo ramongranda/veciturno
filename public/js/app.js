@@ -1006,10 +1006,11 @@ async function downloadFinanceCertificate() {
 
 async function loadFinanceOverview() {
   if (!state.token || !state.user) return;
-  const summaryEl = document.getElementById('finance-summary-cards');
-  const monthlyEl = document.getElementById('finance-monthly-chart');
+  const monthPageEl = document.getElementById('ledger-month-page');
+  const quotaPageEl = document.getElementById('ledger-quota-page');
+  const foliosEl = document.getElementById('ledger-folios');
   const tableEl = document.getElementById('finance-contributions-table');
-  if (!summaryEl || !monthlyEl || !tableEl) return;
+  if (!monthPageEl || !quotaPageEl || !foliosEl || !tableEl) return;
   try {
     const res = await fetch(`${API_URL}/neighbors/finance/overview`, {
       headers: { 'Authorization': `Bearer ${state.token}` }
@@ -1019,136 +1020,198 @@ async function loadFinanceOverview() {
     financeOverviewData = data;
     renderFinanceOverview();
   } catch (err) {
-    const errorHtml = `<div class="history-item">${err.message}</div>`;
-    summaryEl.innerHTML = errorHtml;
-    monthlyEl.innerHTML = errorHtml;
-    const donutsEl = document.getElementById('finance-donut-panels');
-    const paymentEl = document.getElementById('finance-payment-check');
-    const evolutionEl = document.getElementById('finance-expense-evolution');
-    if (donutsEl) donutsEl.innerHTML = errorHtml;
-    if (paymentEl) paymentEl.innerHTML = errorHtml;
-    if (evolutionEl) evolutionEl.innerHTML = errorHtml;
+    const errorHtml = `<div class="ledger-empty">${escapeHtml(err.message)}</div>`;
+    monthPageEl.innerHTML = errorHtml;
+    quotaPageEl.innerHTML = errorHtml;
+    foliosEl.innerHTML = `<div class="ledger-folios-empty">${escapeHtml(err.message)}</div>`;
     tableEl.innerHTML = errorHtml;
   }
+}
+
+// ==========================================
+// EL LIBRO DE CUENTAS DEL PORTAL
+// La vista de finanzas es un libro contable: página del mes (Debe/Haber),
+// lista de cuotas con sello, folios por mes y registro de gastos.
+// ==========================================
+
+let ledgerSelectedMonth = null;
+const LEDGER_MONTH_NAMES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+function ledgerMonthName(month) {
+  const m = String(month || '');
+  if (!/^\d{4}-\d{2}$/.test(m)) return m || 'Sin mes';
+  const name = LEDGER_MONTH_NAMES[Number(m.slice(5, 7)) - 1] || m;
+  return `${name} de ${m.slice(0, 4)}`;
+}
+
+// "12 JUL" a partir de dateValue (ISO o dd/mm/aaaa); si no hay fecha, el mes corto
+function ledgerDateLabel(dateValue, month) {
+  const s = String(dateValue || '').trim();
+  let day = '';
+  let mm = '';
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const dmy = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+  if (iso) {
+    day = iso[3];
+    mm = iso[2];
+  } else if (dmy) {
+    day = dmy[1].padStart(2, '0');
+    mm = dmy[2].padStart(2, '0');
+  }
+  if (day && mm) {
+    const name = LEDGER_MONTH_NAMES[Number(mm) - 1] || '';
+    return `${day} ${name.slice(0, 3).toUpperCase()}`.trim();
+  }
+  const m = String(month || '');
+  if (/^\d{4}-\d{2}$/.test(m)) {
+    const name = LEDGER_MONTH_NAMES[Number(m.slice(5, 7)) - 1] || '';
+    return name.slice(0, 3).toUpperCase();
+  }
+  return s.slice(0, 8);
+}
+
+// Un renglón del libro. side: 'haber' (ingreso), 'debe' (gasto, tinta roja) o 'carry' (suma anterior)
+function ledgerLine({ date, concept, sub, amount, side }) {
+  const amtText = `${side === 'debe' ? '−' : ''}${fmtEur(Math.abs(Number(amount || 0)))}`;
+  const debeCell = side === 'debe'
+    ? `<span class="lr-amt is-debe">${amtText}</span>`
+    : '<span class="lr-amt is-blank"></span>';
+  const haberCell = side === 'debe'
+    ? '<span class="lr-amt is-blank"></span>'
+    : `<span class="lr-amt">${amtText}</span>`;
+  return `<div class="ledger-row${side === 'carry' ? ' is-carry' : ''}">
+    <span class="lr-date">${escapeHtml(date || '')}</span>
+    <span class="lr-concept">${escapeHtml(concept || '')}${sub ? `<small>${escapeHtml(sub)}</small>` : ''}</span>
+    ${debeCell}${haberCell}
+  </div>`;
 }
 
 function renderFinanceOverview() {
   const data = financeOverviewData;
   if (!data) return;
-  const summaryEl = document.getElementById('finance-summary-cards');
-  const donutsEl = document.getElementById('finance-donut-panels');
-  const monthlyEl = document.getElementById('finance-monthly-chart');
-  const paymentEl = document.getElementById('finance-payment-check');
-  if (!summaryEl || !monthlyEl || !donutsEl || !paymentEl) return;
+  const monthPageEl = document.getElementById('ledger-month-page');
+  const quotaPageEl = document.getElementById('ledger-quota-page');
+  const foliosEl = document.getElementById('ledger-folios');
+  if (!monthPageEl || !quotaPageEl || !foliosEl) return;
 
-  const saldoCuenta = data.currentBankBalance === null || data.currentBankBalance === undefined
-    ? 'Sin dato'
-    : fmtEur(data.currentBankBalance);
-  const pc = data.paymentCheck || {};
-  const saldoPrincipal = (data.currentBankBalance === null || data.currentBankBalance === undefined)
-    ? Number(data.totals?.balance || 0)
-    : Number(data.currentBankBalance);
   const monthly = Array.isArray(data.monthly) ? data.monthly : [];
-  const currentMonth = monthly[0] || null;
-  const currentYear = (currentMonth?.month || '').slice(0, 4);
-  const yearRows = monthly.filter((m) => String(m.month || '').startsWith(currentYear));
-  const yearExpenses = yearRows.reduce((a, m) => a + Number(m.expenseInsurance || 0) + Number(m.expenseElectricity || 0), 0);
-  summaryEl.innerHTML = `
-    <div class="finance-kpi-card"><div class="finance-kpi-title">Saldo Total Actual</div><div class="finance-kpi-value">${fmtEur(saldoPrincipal)}</div></div>
-    <div class="finance-kpi-card"><div class="finance-kpi-title">Gastos Acumulados</div><div class="finance-kpi-value">${fmtEur(data.totals?.expenses || 0)}</div></div>
-    <div class="finance-kpi-card"><div class="finance-kpi-title">Gastos Año en Curso ${currentYear ? `(${currentYear})` : ''}</div><div class="finance-kpi-value">${fmtEur(yearExpenses)}</div></div>
-  `;
+  const monthsAsc = monthly.slice().sort((a, b) => String(a.month).localeCompare(String(b.month)));
 
-  const prevYear = currentYear ? String(Number(currentYear) - 1) : '';
-  const prevYearRows = monthly.filter((m) => prevYear && String(m.month || '').startsWith(prevYear));
-  const yearIncome = yearRows.reduce((a, m) => a + Number(m.incomeFees || 0), 0);
-  const prevYearIncome = prevYearRows.reduce((a, m) => a + Number(m.incomeFees || 0), 0);
-  const prevYearExpenses = prevYearRows.reduce((a, m) => a + Number(m.expenseInsurance || 0) + Number(m.expenseElectricity || 0), 0);
-  const monthIncome = Number(currentMonth?.incomeFees || 0);
-  const monthExpenses = Number(currentMonth ? (Number(currentMonth.expenseInsurance || 0) + Number(currentMonth.expenseElectricity || 0)) : 0);
-  const totalIncome = Number(data.totals?.income || 0);
-  const totalExpenses = Number(data.totals?.expenses || 0);
+  // Saldo acumulado mes a mes; si hay saldo bancario real, ancla el último mes a esa cifra
+  let run = 0;
+  const cumByMonth = new Map();
+  monthsAsc.forEach((m) => {
+    run += Number(m.balance || 0);
+    cumByMonth.set(m.month, run);
+  });
+  const bank = data.currentBankBalance;
+  const offset = (bank === null || bank === undefined) ? 0 : Number(bank) - run;
+  const saldoAt = (month) => Number(((cumByMonth.get(month) || 0) + offset).toFixed(2));
 
-  donutsEl.innerHTML = [
-    renderDonutCard('Mes Actual', monthIncome, monthExpenses),
-    renderDonutCard(`Año ${currentYear || 'Actual'}`, yearIncome, yearExpenses),
-    renderDonutCard(`Año ${prevYear || 'Anterior'}`, prevYearIncome, prevYearExpenses),
-    renderDonutCard('Acumulado', totalIncome, totalExpenses)
-  ].join('');
-
-  const maxVal = Math.max(1, ...monthly.map((m) => Math.max(Number(m.incomeFees || 0), Number(m.expenseInsurance || 0) + Number(m.expenseElectricity || 0))));
-  const recent = monthly.slice(0, 6).reverse();
-  if (!recent.length) {
-    monthlyEl.innerHTML = '<div class="history-item">Sin meses disponibles.</div>';
+  // --- Página izquierda: el mes abierto ---
+  if (!monthsAsc.length) {
+    monthPageEl.innerHTML = '<div class="ledger-empty">El libro está en blanco. Importa el Excel de finanzas desde Administración.</div>';
   } else {
-    const bars = recent.map((m) => {
-      const ing = Number(m.incomeFees || 0);
-      const gas = Number(m.expenseInsurance || 0) + Number(m.expenseElectricity || 0);
-      const ingH = Math.max(8, Math.round((ing / maxVal) * 100));
-      const gasH = Math.max(8, Math.round((gas / maxVal) * 100));
-      return `<div class="finance-mini-bar-col" title="${m.month} · Ingresos ${fmtEur(ing)} · Gastos ${fmtEur(gas)}"><div class="finance-mini-bar-stack"><div class="finance-mini-income" style="height:${ingH}%"></div><div class="finance-mini-expense" style="height:${gasH}%"></div></div><div class="finance-mini-month">${m.month.slice(5)}</div></div>`;
-    }).join('');
-    monthlyEl.innerHTML = `
-      <div class="finance-trend-grid">
-        <div class="finance-trend-card">
-          <div class="finance-kpi-title" style="margin-bottom:8px;">Tendencia 6 últimos meses (Ingresos vs Gastos)</div>
-          <div class="finance-mini-bars">${bars}</div>
-        </div>
-        <div class="finance-trend-card">
-          <div class="finance-kpi-title" style="margin-bottom:8px;">Salud Financiera</div>
-          <div class="finance-health-pill"><span>Ingresos:</span><strong>${fmtEur(data.totals?.income || 0)}</strong></div>
-          <div style="height:8px"></div>
-          <div class="finance-health-pill"><span>Gastos:</span><strong>${fmtEur(data.totals?.expenses || 0)}</strong></div>
-          <div style="height:8px"></div>
-          <div class="finance-health-pill"><span>Al corriente:</span><strong>${Number(pc.currentCount || 0)}/${Number(pc.totalOwners || 0)}</strong></div>
-        </div>
+    const latestMonth = monthsAsc[monthsAsc.length - 1].month;
+    if (!ledgerSelectedMonth || !cumByMonth.has(ledgerSelectedMonth)) ledgerSelectedMonth = latestMonth;
+    const row = monthsAsc.find((m) => m.month === ledgerSelectedMonth);
+    const folioNum = monthsAsc.findIndex((m) => m.month === ledgerSelectedMonth) + 1;
+    const closing = saldoAt(ledgerSelectedMonth);
+    const carry = Number((closing - Number(row.balance || 0)).toFixed(2));
+    const movements = (Array.isArray(data.expenseMovements) ? data.expenseMovements : [])
+      .filter((r) => String(r.month) === ledgerSelectedMonth)
+      .sort((a, b) => String(a.dateValue).localeCompare(String(b.dateValue)));
+
+    const lines = [];
+    lines.push(ledgerLine({ date: '', concept: 'Suma anterior', sub: '', amount: carry, side: 'carry' }));
+    if (Number(row.incomeFees || 0) > 0) {
+      lines.push(ledgerLine({ date: ledgerDateLabel('', row.month), concept: 'Cuotas de la comunidad', sub: 'Ingresos del mes', amount: row.incomeFees, side: 'haber' }));
+    }
+    if (movements.length) {
+      movements.forEach((r) => {
+        const typeLabel = r.movementType === 'expense_electricity'
+          ? 'Luz'
+          : (r.movementType === 'expense_insurance' ? 'Seguro' : 'Otro gasto');
+        lines.push(ledgerLine({ date: ledgerDateLabel(r.dateValue, r.month), concept: r.description || typeLabel, sub: typeLabel, amount: r.amount, side: 'debe' }));
+      });
+    } else {
+      if (Number(row.expenseElectricity || 0) > 0) {
+        lines.push(ledgerLine({ date: ledgerDateLabel('', row.month), concept: 'Luz de la escalera', sub: 'Recibo eléctrica', amount: row.expenseElectricity, side: 'debe' }));
+      }
+      if (Number(row.expenseInsurance || 0) > 0) {
+        lines.push(ledgerLine({ date: ledgerDateLabel('', row.month), concept: 'Seguro del edificio', sub: 'Prima del seguro', amount: row.expenseInsurance, side: 'debe' }));
+      }
+    }
+
+    const isLatest = ledgerSelectedMonth === latestMonth;
+    monthPageEl.innerHTML = `
+      <div class="ledger-folio-head">
+        <h3>${ledgerMonthName(ledgerSelectedMonth)}</h3>
+        <span class="ledger-folio-num">Folio ${folioNum}</span>
+      </div>
+      <div class="ledger-cols">
+        <span></span><span>Concepto</span><span class="lc-num">Debe</span><span class="lc-num lc-haber">Haber</span>
+      </div>
+      ${lines.join('')}
+      <div class="ledger-total">
+        <span class="lt-label">${isLatest ? 'En caja, hoy' : 'Al cierre del mes'}<small>Saldo de la comunidad</small></span>
+        <span class="lt-amt${closing < 0 ? ' is-rojo' : ''}">${fmtEur(closing)}</span>
       </div>
     `;
   }
 
-  const totalOwners = Number(pc.totalOwners || 0);
-  const currentCount = Number(pc.currentCount || 0);
+  // --- Página derecha: la lista de cuotas ---
+  const pc = data.paymentCheck || {};
+  const owners = Array.isArray(pc.owners) ? pc.owners : [];
   const pendingCount = Number(pc.pendingCount || 0);
-  const currentPct = totalOwners > 0 ? (currentCount / totalOwners) * 100 : 0;
-  const circle = 2 * Math.PI * 30;
-  const currentLen = (currentPct / 100) * circle;
-  paymentEl.innerHTML = `
-    <div class="history-item">
-      <div class="history-meta" style="width:100%;">
-        <span class="history-floor">Propietarios al corriente (${currentCount}/${totalOwners}) · Periodos: ${Number(pc.monthsCount || 0)} meses</span>
-        <div style="display:flex;align-items:center;gap:14px;margin-top:8px;flex-wrap:wrap;">
-          <svg width="86" height="86" viewBox="0 0 86 86" aria-label="Control de pagos">
-            <g transform="translate(43,43) rotate(-90)">
-              <circle r="30" cx="0" cy="0" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="10"></circle>
-              <circle r="30" cx="0" cy="0" fill="none" stroke="rgba(16,185,129,0.9)" stroke-width="10" stroke-linecap="round" stroke-dasharray="${currentLen} ${circle - currentLen}" stroke-dashoffset="0"></circle>
-              <circle r="30" cx="0" cy="0" fill="none" stroke="rgba(239,68,68,0.9)" stroke-width="10" stroke-linecap="round" stroke-dasharray="${circle - currentLen} ${currentLen}" stroke-dashoffset="-${currentLen}"></circle>
-            </g>
-            <text x="43" y="40" text-anchor="middle" fill="#e5e7eb" font-size="10">${currentPct.toFixed(0)}%</text>
-            <text x="43" y="53" text-anchor="middle" fill="#9ca3af" font-size="8">al corriente</text>
-          </svg>
-          <div>
-            <div class="history-by">Al corriente: ${currentCount}</div>
-            <div class="history-by">Pendientes: ${pendingCount}</div>
-          </div>
-        </div>
-      </div>
-    </div>
-    ${(pc.owners || []).map((o) => `<div class="history-item"><div class="history-meta"><span class="history-floor">${o.unitName}</span><span class="history-by">Pagado: ${fmtEur(o.paid || 0)} · Esperado: ${fmtEur(o.expected || 0)} · Deuda: ${fmtEur(o.debt || 0)}</span></div></div>`).join('')}
+  const ownersRows = owners.map((o) => {
+    let mark;
+    if (Number(o.monthlyFee || 0) <= 0) {
+      mark = '<span class="lq-mark is-exempt">exento</span>';
+    } else if (o.current) {
+      mark = '<span class="lq-mark is-ok">al corriente</span>';
+    } else {
+      mark = `<span class="lq-mark is-pend">debe ${fmtEur(o.debt || 0)}</span>`;
+    }
+    return `<div class="ledger-quota-row">
+      <span class="lq-who">${escapeHtml(o.unitName || '')}</span>
+      <span class="lq-dots"></span>
+      ${mark}
+    </div>`;
+  }).join('');
+  const stamp = pendingCount === 0
+    ? `<div class="ledger-stamp">Al corriente<small>${Number(pc.currentCount || 0)} de ${Number(pc.totalOwners || 0)} · ${Number(pc.monthsCount || 0)} meses</small></div>`
+    : `<div class="ledger-stamp is-pend">Pendiente<small>faltan ${pendingCount} de ${Number(pc.totalOwners || 0)}</small></div>`;
+  quotaPageEl.innerHTML = `
+    <h3 class="ledger-quota-title">La lista de cuotas</h3>
+    <p class="ledger-quota-sub">Acumulado sobre ${Number(pc.monthsCount || 0)} meses de comunidad</p>
+    ${ownersRows || '<div class="ledger-empty">Sin vecinos con cuota.</div>'}
+    <div class="ledger-stamp-zone">${stamp}</div>
   `;
-  renderExpenseEvolutionByType();
+
+  // --- Folios anteriores: una hoja por mes, la abierta resaltada ---
+  const monthsDesc = monthsAsc.slice().reverse().slice(0, 12);
+  foliosEl.innerHTML = monthsDesc.map((m) => {
+    const saldo = saldoAt(m.month);
+    const gastos = Number(m.expenseInsurance || 0) + Number(m.expenseElectricity || 0);
+    const idx = monthsAsc.findIndex((x) => x.month === m.month) + 1;
+    return `<button type="button" class="ledger-folio-card${m.month === ledgerSelectedMonth ? ' is-open' : ''}" onclick="selectLedgerMonth('${m.month}')">
+      <span class="lf-m">${ledgerMonthName(m.month)} · F.${idx}</span>
+      <span class="lf-s${saldo < 0 ? ' is-rojo' : ''}">${fmtEur(saldo)}</span>
+      <span class="lf-d">+${fmtEur(m.incomeFees || 0)} · −${fmtEur(gastos)}</span>
+    </button>`;
+  }).join('') || '<div class="ledger-folios-empty">Sin meses registrados.</div>';
+
   renderFinanceContributionsTable();
 }
 
-function renderDonutCard(title, income, expenses) {
-  const safeIncome = Math.max(0, Number(income || 0));
-  const safeExpenses = Math.max(0, Number(expenses || 0));
-  const total = Math.max(1, safeIncome + safeExpenses);
-  const incomePct = (safeIncome / total) * 100;
-  const expensePct = (safeExpenses / total) * 100;
-  const circle = 2 * Math.PI * 30;
-  const incomeLen = (incomePct / 100) * circle;
-  const expenseLen = (expensePct / 100) * circle;
-  return `<div class="history-item" style="padding: 10px 12px;"><div class="history-meta" style="width:100%;"><span class="history-floor" style="font-size: 0.82rem; font-weight: 700; color: var(--text-main); opacity: 0.95;">${title}</span><div style="display:flex;align-items:center;gap:12px;margin-top:6px;flex-wrap:wrap;"><svg width="74" height="74" viewBox="0 0 86 86" aria-label="${title}" style="flex-shrink:0;"><g transform="translate(43,43) rotate(-90)"><circle r="30" cx="0" cy="0" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="8"></circle><circle r="30" cx="0" cy="0" fill="none" stroke="rgba(16,185,129,0.9)" stroke-width="8" stroke-linecap="round" stroke-dasharray="${incomeLen} ${circle - incomeLen}" stroke-dashoffset="0"></circle><circle r="30" cx="0" cy="0" fill="none" stroke="rgba(239,68,68,0.9)" stroke-width="8" stroke-linecap="round" stroke-dasharray="${expenseLen} ${circle - expenseLen}" stroke-dashoffset="-${incomeLen}"></circle></g><text x="43" y="42" text-anchor="middle" fill="#e5e7eb" font-size="11" font-weight="700">${incomePct.toFixed(0)}%</text><text x="43" y="55" text-anchor="middle" fill="#9ca3af" font-size="7.5" font-weight="500" letter-spacing="0.2px">ingresos</text></svg><div style="font-size: 0.72rem; display:flex; flex-direction:column; gap:2px;"><div class="history-by" style="font-size: 0.7rem; color: #34d399; font-weight:600;">Ingresos: ${fmtEur(safeIncome)}</div><div class="history-by" style="font-size: 0.7rem; color: #f87171; font-weight:600;">Gastos: ${fmtEur(safeExpenses)}</div><div class="history-by" style="font-size: 0.7rem; color: var(--text-muted);">Balance: ${fmtEur(safeIncome - safeExpenses)}</div></div></div></div></div>`;
+function selectLedgerMonth(month) {
+  ledgerSelectedMonth = String(month || '');
+  renderFinanceOverview();
+  const page = document.getElementById('ledger-month-page');
+  if (page && typeof page.scrollIntoView === 'function') {
+    page.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
 }
 
 function renderFinanceContributionsTable() {
@@ -1182,200 +1245,24 @@ function renderFinanceContributionsTable() {
     const typeLabel = r.movementType === 'expense_electricity'
       ? 'Luz'
       : (r.movementType === 'expense_insurance' ? 'Seguro' : 'Otro gasto');
-    return `<div class="history-item"><div class="history-meta"><span class="history-floor">${r.month} · ${r.dateValue} · ${fmtEur(r.amount || 0)}</span><span class="history-by">${typeLabel}</span><span class="history-by">${r.description || ''}</span></div></div>`;
-  }).join('') || '<div class="history-item">Sin gastos.</div>';
+    return ledgerLine({
+      date: ledgerDateLabel(r.dateValue, r.month),
+      concept: r.description || typeLabel,
+      sub: `${typeLabel} · ${ledgerMonthName(r.month)}`,
+      amount: r.amount,
+      side: 'debe'
+    });
+  }).join('') || '<div class="ledger-empty">Sin gastos apuntados.</div>';
 }
 
 function setExpenseTypeFilter(type) {
   expenseTypeFilter = type || 'all';
   document.querySelectorAll('[data-expense-tab-btn]').forEach((btn) => {
-    btn.classList.toggle('admin-menu-btn-active', btn.getAttribute('data-expense-tab-btn') === expenseTypeFilter);
+    const active = btn.getAttribute('data-expense-tab-btn') === expenseTypeFilter;
+    btn.classList.toggle('is-active', active);
+    btn.setAttribute('aria-selected', active ? 'true' : 'false');
   });
-  renderExpenseEvolutionByType();
   renderFinanceContributionsTable();
-}
-
-function renderExpenseEvolutionByType() {
-  const el = document.getElementById('finance-expense-evolution');
-  if (!el || !financeOverviewData) return;
-  const rows = Array.isArray(financeOverviewData.expenseMovements) ? financeOverviewData.expenseMovements : [];
-  
-  // 1. Obtener la lista de todos los meses de forma ordenada y quedarnos con los últimos 12 meses
-  const monthsSet = new Set();
-  rows.forEach((r) => {
-    const m = String(r.month || '').trim();
-    if (/^\d{4}-\d{2}$/.test(m)) {
-      monthsSet.add(m);
-    }
-  });
-  const sortedMonths = Array.from(monthsSet).sort().slice(-12);
-  const label = expenseTypeFilter === 'expense_electricity'
-    ? 'Luz'
-    : expenseTypeFilter === 'expense_insurance'
-      ? 'Seguro'
-      : expenseTypeFilter === 'other'
-        ? 'Otros'
-        : 'Todos';
-
-  if (!sortedMonths.length) {
-    el.innerHTML = `<div class="history-item">Sin datos de evolución para: <strong>${label}</strong>.</div>`;
-    return;
-  }
-
-  // 2. Mapear los gastos de cada tipo por mes
-  const electricityByMonth = {};
-  const insuranceByMonth = {};
-  const otherByMonth = {};
-
-  sortedMonths.forEach((m) => {
-    electricityByMonth[m] = 0;
-    insuranceByMonth[m] = 0;
-    otherByMonth[m] = 0;
-  });
-
-  rows.forEach((r) => {
-    const m = String(r.month || '').trim();
-    if (!sortedMonths.includes(m)) return;
-    const amt = Math.abs(Number(r.amount || 0));
-    const mt = String(r.movementType || '');
-    if (mt === 'expense_electricity') {
-      electricityByMonth[m] += amt;
-    } else if (mt === 'expense_insurance') {
-      insuranceByMonth[m] += amt;
-    } else if (mt === 'other') {
-      otherByMonth[m] += amt;
-    }
-  });
-
-  // calcular totales individuales y globales en este periodo de 12 meses
-  let totalElec = 0;
-  let totalIns = 0;
-  let totalOth = 0;
-  sortedMonths.forEach((m) => {
-    totalElec += electricityByMonth[m];
-    totalIns += insuranceByMonth[m];
-    totalOth += otherByMonth[m];
-  });
-  const totalGlobal = totalElec + totalIns + totalOth;
-
-  // 3. Calcular el valor máximo absoluto para escalar el eje Y
-  let maxVal = 1;
-  sortedMonths.forEach((m) => {
-    if (expenseTypeFilter === 'all') {
-      maxVal = Math.max(maxVal, electricityByMonth[m], insuranceByMonth[m], otherByMonth[m]);
-    } else if (expenseTypeFilter === 'expense_electricity') {
-      maxVal = Math.max(maxVal, electricityByMonth[m]);
-    } else if (expenseTypeFilter === 'expense_insurance') {
-      maxVal = Math.max(maxVal, insuranceByMonth[m]);
-    } else if (expenseTypeFilter === 'other') {
-      maxVal = Math.max(maxVal, otherByMonth[m]);
-    }
-  });
-  maxVal = maxVal * 1.15; // 15% de margen superior para evitar colisiones estéticas
-
-  // 4. Parámetros de dibujo SVG
-  const width = 1000;
-  const height = 220;
-  const padX = 42;
-  const padY = 24;
-  const drawW = width - (padX * 2);
-  const drawH = height - (padY * 2);
-  const stepX = sortedMonths.length > 1 ? (drawW / (sortedMonths.length - 1)) : 0;
-
-  // Función para obtener coordenadas
-  const getCoords = (seriesData) => {
-    return sortedMonths.map((month, idx) => {
-      const val = Number(seriesData[month] || 0);
-      const x = padX + (idx * stepX);
-      const y = padY + (drawH - ((val / maxVal) * drawH));
-      return { month, val, x, y };
-    });
-  };
-
-  // Función para renderizar una línea en el SVG
-  const getPaths = (coords, strokeColor, gradId) => {
-    const linePath = coords.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(' ');
-    const areaPath = `${linePath} L ${(padX + drawW).toFixed(2)} ${(padY + drawH).toFixed(2)} L ${padX.toFixed(2)} ${(padY + drawH).toFixed(2)} Z`;
-    
-    const stroke = `<path d="${linePath}" class="finance-line-stroke" style="stroke: ${strokeColor}; filter: drop-shadow(0px 4px 8px ${strokeColor}66); stroke-width: 3.5; fill: none;"></path>`;
-    const area = `<path d="${areaPath}" class="finance-line-area" style="fill: url(#${gradId}); opacity: 0.15;"></path>`;
-    const dots = coords.map((p) => (
-      `<circle cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" r="4.5" class="finance-line-dot" style="stroke: ${strokeColor}; fill: #ffffff; stroke-width: 2.5; filter: drop-shadow(0 0 4px ${strokeColor});">
-        <title>${monthLabel(p.month)} · ${fmtEur(p.val)}</title>
-      </circle>`
-    )).join('');
-    
-    return { stroke, area, dots };
-  };
-
-  // Generar las series de dibujo
-  let chartContentHtml = '';
-  if (expenseTypeFilter === 'all' || expenseTypeFilter === 'expense_electricity') {
-    const coords = getCoords(electricityByMonth);
-    const { stroke, area, dots } = getPaths(coords, '#3b82f6', 'financeLineGradElec');
-    chartContentHtml += area + stroke + dots;
-  }
-  if (expenseTypeFilter === 'all' || expenseTypeFilter === 'expense_insurance') {
-    const coords = getCoords(insuranceByMonth);
-    const { stroke, area, dots } = getPaths(coords, '#10b981', 'financeLineGradIns');
-    chartContentHtml += area + stroke + dots;
-  }
-  if (expenseTypeFilter === 'all' || expenseTypeFilter === 'other') {
-    const coords = getCoords(otherByMonth);
-    const { stroke, area, dots } = getPaths(coords, '#a78bfa', 'financeLineGradOth');
-    chartContentHtml += area + stroke + dots;
-  }
-
-  // Eje X ticks
-  const ticks = sortedMonths.map((month, idx) => {
-    const x = padX + (idx * stepX);
-    return `<text x="${x.toFixed(2)}" y="${height - 4}" text-anchor="middle" class="finance-line-x-label">${monthLabel(month)}</text>`;
-  }).join('');
-
-  // Título y Leyenda
-  let legendHtml = '';
-  let subText = `12 últimos meses · Total ${fmtEur(totalGlobal)}`;
-  if (expenseTypeFilter === 'all') {
-    legendHtml = `
-      <div style="display:flex; gap:16px; font-size:0.75rem; color:var(--text-muted); justify-content:flex-end; margin-top:6px; flex-wrap:wrap;">
-        <span style="display:inline-flex; align-items:center; gap:6px;"><span style="width:8px; height:8px; border-radius:50%; background:#3b82f6; box-shadow: 0 0 6px #3b82f6; display:inline-block;"></span>Luz (${fmtEur(totalElec)})</span>
-        <span style="display:inline-flex; align-items:center; gap:6px;"><span style="width:8px; height:8px; border-radius:50%; background:#10b981; box-shadow: 0 0 6px #10b981; display:inline-block;"></span>Seguros (${fmtEur(totalIns)})</span>
-        <span style="display:inline-flex; align-items:center; gap:6px;"><span style="width:8px; height:8px; border-radius:50%; background:#a78bfa; box-shadow: 0 0 6px #a78bfa; display:inline-block;"></span>Otros (${fmtEur(totalOth)})</span>
-      </div>
-    `;
-  } else {
-    const activeTotal = expenseTypeFilter === 'expense_electricity' ? totalElec : (expenseTypeFilter === 'expense_insurance' ? totalIns : totalOth);
-    subText = `12 últimos meses · Total ${label}: ${fmtEur(activeTotal)}`;
-  }
-
-  el.innerHTML = `
-    <div class="finance-evo-head">
-      <span class="history-floor">Evolución de gastos: ${label}</span>
-      <span class="history-by">${subText}</span>
-    </div>
-    ${legendHtml}
-    <div class="finance-line-wrap">
-      <svg viewBox="0 0 ${width} ${height}" class="finance-line-svg" role="img" aria-label="Evolución de gastos ${label}">
-        <defs>
-          <linearGradient id="financeLineGradElec" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#3b82f6"></stop>
-            <stop offset="100%" stop-color="rgba(59,130,246,0)"></stop>
-          </linearGradient>
-          <linearGradient id="financeLineGradIns" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#10b981"></stop>
-            <stop offset="100%" stop-color="rgba(16,185,129,0)"></stop>
-          </linearGradient>
-          <linearGradient id="financeLineGradOth" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#a78bfa"></stop>
-            <stop offset="100%" stop-color="rgba(167,139,250,0)"></stop>
-          </linearGradient>
-        </defs>
-        <line x1="${padX}" y1="${padY + drawH}" x2="${padX + drawW}" y2="${padY + drawH}" class="finance-line-axis"></line>
-        ${chartContentHtml}
-        ${ticks}
-      </svg>
-    </div>
-  `;
 }
 
 // Cerrar sesión

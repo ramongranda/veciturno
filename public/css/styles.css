@@ -3847,3 +3847,322 @@ body {
   width: 100%;
   align-self: stretch;
 }
+
+/* ==========================================================
+   EL LIBRO DE CUENTAS DEL PORTAL (vista Finanzas)
+   Papel cálido leído bajo la lámpara, dentro de la noche.
+   ========================================================== */
+:root {
+  --lb-paper: #F2E9D2;
+  --lb-paper-2: #EADFC2;
+  --lb-paper-edge: #D8C9A4;
+  --lb-ink: #2B2416;
+  --lb-ink-soft: #6B5F49;
+  --lb-ink-red: #A63A2B;
+  --lb-ink-green: #1F6B3A;
+}
+
+.ledger-scene { max-width: 1060px; margin: 0 auto; }
+
+.ledger-head { text-align: center; }
+.ledger-kicker {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.72rem;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--pn-amber);
+}
+
+/* La lámpara sobre el libro */
+.ledger-lamp { display: flex; flex-direction: column; align-items: center; margin: 10px 0 -30px; position: relative; z-index: 2; }
+.ledger-lamp .lamp-cord { width: 2px; height: 46px; background: linear-gradient(180deg, transparent, rgba(148, 167, 199, 0.5)); }
+.ledger-lamp .lamp-bulb {
+  width: 13px; height: 13px; border-radius: 50%;
+  background: var(--pn-amber);
+  box-shadow: 0 0 18px 6px rgba(255, 184, 77, 0.55), 0 0 90px 40px rgba(255, 184, 77, 0.12);
+  animation: pn-flicker 7s infinite;
+}
+@media (prefers-reduced-motion: reduce) { .ledger-lamp .lamp-bulb { animation: none; } }
+
+/* El libro abierto */
+.ledger-book {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin-top: 44px;
+  border-radius: 6px 6px 10px 10px;
+  box-shadow:
+    0 1px 0 var(--lb-paper-edge), 0 3px 0 #CBBB93, 0 5px 0 #BBA97F,
+    0 30px 60px -18px rgba(0, 0, 0, 0.85);
+}
+.ledger-page {
+  background: linear-gradient(180deg, rgba(255, 251, 240, 0.5), transparent 90px), var(--lb-paper);
+  color: var(--lb-ink);
+  padding: 30px 30px 26px;
+  min-height: 380px;
+}
+.ledger-page.is-left {
+  border-radius: 6px 0 0 10px;
+  box-shadow: inset -22px 0 30px -24px rgba(43, 36, 22, 0.35);
+}
+.ledger-page.is-right {
+  border-radius: 0 6px 10px 0;
+  background-color: var(--lb-paper-2);
+  box-shadow: inset 22px 0 30px -24px rgba(43, 36, 22, 0.55);
+}
+
+.ledger-folio-head {
+  display: flex; justify-content: space-between; align-items: baseline;
+  border-bottom: 2px solid var(--lb-ink);
+  padding-bottom: 8px;
+}
+.ledger-folio-head h3 {
+  font-family: var(--font-display, serif);
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: var(--lb-ink);
+  margin: 0;
+  border: none;
+  padding: 0;
+}
+.ledger-folio-num {
+  font-family: ui-monospace, monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--lb-ink-soft);
+}
+
+/* Renglones Debe/Haber */
+.ledger-cols {
+  display: grid; grid-template-columns: 52px 1fr 80px 80px;
+  gap: 10px; align-items: baseline;
+  font-family: ui-monospace, monospace;
+  font-size: 0.6rem; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--lb-ink-soft);
+  padding: 10px 0 4px;
+  border-bottom: 1px solid rgba(43, 36, 22, 0.35);
+}
+.ledger-cols .lc-num { text-align: right; }
+.ledger-row {
+  display: grid; grid-template-columns: 52px 1fr 80px 80px;
+  gap: 10px; align-items: baseline;
+  padding: 9px 0 7px;
+  border-bottom: 1px dotted rgba(43, 36, 22, 0.28);
+}
+.ledger-row .lr-date { font-family: ui-monospace, monospace; font-size: 0.7rem; color: var(--lb-ink-soft); }
+.ledger-row .lr-concept { font-size: 0.9rem; color: var(--lb-ink); }
+.ledger-row .lr-concept small { display: block; color: var(--lb-ink-soft); font-size: 0.7rem; }
+.ledger-row .lr-amt {
+  font-family: ui-monospace, monospace;
+  font-size: 0.84rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--lb-ink);
+}
+.ledger-row .lr-amt.is-debe { color: var(--lb-ink-red); }
+.ledger-row.is-carry { background: rgba(43, 36, 22, 0.045); }
+.ledger-row.is-carry .lr-concept { font-style: italic; color: var(--lb-ink-soft); }
+
+/* Total con doble subrayado contable */
+.ledger-total {
+  display: grid; grid-template-columns: 1fr 170px; gap: 10px; align-items: baseline;
+  margin-top: 16px; padding-top: 10px;
+}
+.ledger-total .lt-label {
+  font-family: var(--font-display, serif);
+  font-weight: 700; font-size: 1.02rem;
+  color: var(--lb-ink);
+}
+.ledger-total .lt-label small {
+  display: block; font-family: var(--font-body, sans-serif);
+  font-weight: 400; font-size: 0.7rem; color: var(--lb-ink-soft);
+}
+.ledger-total .lt-amt {
+  font-family: ui-monospace, monospace;
+  font-size: 1.4rem; font-weight: 700;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--lb-ink);
+  border-bottom: 4px double var(--lb-ink);
+  padding-bottom: 4px;
+}
+.ledger-total .lt-amt.is-rojo { color: var(--lb-ink-red); border-color: var(--lb-ink-red); }
+
+/* Página derecha: la lista de cuotas */
+.ledger-quota-title {
+  font-family: var(--font-display, serif);
+  font-size: 1.15rem; font-weight: 700;
+  color: var(--lb-ink);
+  margin: 0 0 2px; border: none; padding: 0;
+}
+.ledger-quota-sub { font-size: 0.76rem; color: var(--lb-ink-soft); margin: 0 0 12px; }
+.ledger-quota-row {
+  display: flex; align-items: baseline; gap: 10px;
+  padding: 11px 0 9px;
+  border-bottom: 1px dotted rgba(43, 36, 22, 0.28);
+  font-size: 0.9rem;
+}
+.ledger-quota-row .lq-who { font-weight: 600; color: var(--lb-ink); }
+.ledger-quota-row .lq-dots { flex: 1; border-bottom: 1px dotted rgba(43, 36, 22, 0.45); transform: translateY(-4px); }
+.lq-mark { font-family: ui-monospace, monospace; font-size: 0.76rem; white-space: nowrap; }
+.lq-mark.is-ok { color: var(--lb-ink-green); }
+.lq-mark.is-ok::before { content: "✓ "; font-weight: 700; }
+.lq-mark.is-pend { color: var(--lb-ink-red); font-weight: 700; }
+.lq-mark.is-exempt { color: var(--lb-ink-soft); font-style: italic; }
+
+/* El sello estampado */
+.ledger-stamp-zone { display: flex; justify-content: flex-end; margin-top: 26px; }
+.ledger-stamp {
+  font-family: ui-monospace, monospace;
+  font-size: 0.8rem; font-weight: 700; letter-spacing: 0.22em;
+  text-transform: uppercase; text-align: center;
+  color: rgba(31, 107, 58, 0.85);
+  border: 3px solid rgba(31, 107, 58, 0.75);
+  border-radius: 6px;
+  padding: 8px 16px;
+  transform: rotate(-7deg);
+  -webkit-mask-image: radial-gradient(circle at 30% 40%, #000 55%, rgba(0, 0, 0, 0.55) 78%, #000);
+          mask-image: radial-gradient(circle at 30% 40%, #000 55%, rgba(0, 0, 0, 0.55) 78%, #000);
+}
+.ledger-stamp.is-pend { color: rgba(166, 58, 43, 0.85); border-color: rgba(166, 58, 43, 0.75); }
+.ledger-stamp small { display: block; font-size: 0.56rem; letter-spacing: 0.14em; margin-top: 2px; }
+
+/* Etiquetas de sección nocturnas */
+.ledger-label {
+  font-family: ui-monospace, monospace;
+  font-size: 0.7rem; letter-spacing: 0.3em; text-transform: uppercase;
+  color: var(--pn-moon);
+  display: flex; align-items: center; gap: 14px;
+  margin: 56px 0 20px;
+}
+.ledger-label::after { content: ""; flex: 1; height: 1px; background: var(--pn-line); }
+
+/* Folios anteriores */
+.ledger-folios { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; }
+.ledger-folios-empty { color: var(--pn-moon); font-size: 0.85rem; }
+.ledger-folio-card {
+  background: var(--lb-paper);
+  color: var(--lb-ink);
+  border: none;
+  border-radius: 4px;
+  padding: 13px 15px 11px;
+  text-align: left;
+  font-family: inherit;
+  box-shadow: 0 2px 0 var(--lb-paper-edge), 0 12px 24px -12px rgba(0, 0, 0, 0.8);
+  transform: rotate(-0.6deg);
+  transition: transform 0.18s ease, outline-color 0.18s ease;
+  cursor: pointer;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.ledger-folio-card:nth-child(2n) { transform: rotate(0.7deg); }
+.ledger-folio-card:hover { transform: rotate(0deg) translateY(-4px); }
+.ledger-folio-card:focus-visible { outline: 3px solid var(--pn-amber); outline-offset: 2px; }
+.ledger-folio-card.is-open {
+  outline: 3px solid var(--pn-amber);
+  outline-offset: 2px;
+  transform: rotate(0deg);
+}
+.ledger-folio-card .lf-m {
+  font-family: ui-monospace, monospace;
+  font-size: 0.6rem; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--lb-ink-soft);
+}
+.ledger-folio-card .lf-s {
+  font-family: var(--font-display, serif);
+  font-weight: 700; font-size: 1.14rem;
+  font-variant-numeric: tabular-nums;
+}
+.ledger-folio-card .lf-s.is-rojo { color: var(--lb-ink-red); }
+.ledger-folio-card .lf-d { font-size: 0.68rem; color: var(--lb-ink-soft); }
+
+/* El registro de gastos: libro con pestañas laterales */
+.expenses-book {
+  position: relative;
+  background: var(--lb-paper);
+  color: var(--lb-ink);
+  border-radius: 6px;
+  padding: 28px 30px 24px;
+  box-shadow: 0 2px 0 var(--lb-paper-edge), 0 4px 0 #CBBB93, 0 26px 50px -18px rgba(0, 0, 0, 0.85);
+}
+/* Pestañas que asoman por el borde izquierdo del libro, como en un registro real */
+.ledger-tabs {
+  position: absolute;
+  left: 0;
+  top: 34px;
+  transform: translateX(-100%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+}
+.ledger-tab {
+  font-family: ui-monospace, monospace;
+  font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase;
+  background: var(--lb-paper-2); color: var(--lb-ink-soft);
+  border: none; border-radius: 4px 0 0 4px;
+  padding: 8px 10px 8px 12px;
+  box-shadow: -3px 3px 8px -3px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+}
+/* Sin sitio a la izquierda: las pestañas vuelven arriba en fila */
+@media (max-width: 1200px) {
+  .ledger-tabs {
+    position: static;
+    transform: none;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: stretch;
+    margin-bottom: 14px;
+  }
+  .ledger-tab { border-radius: 4px; padding: 7px 10px; }
+}
+.ledger-tab.is-active { background: var(--lb-ink); color: var(--lb-paper); }
+.ledger-tab:focus-visible { outline: 3px solid var(--pn-amber); outline-offset: 1px; }
+.ledger-title {
+  font-family: var(--font-display, serif);
+  font-size: 1.3rem; font-weight: 700;
+  color: var(--lb-ink);
+  margin: 0 0 2px; border: none; padding: 0;
+}
+.ledger-sub { font-size: 0.78rem; color: var(--lb-ink-soft); margin: 0 0 14px; }
+
+/* Buscador y orden sobre papel: tinta, no noche */
+.ledger-filters { display: grid; grid-template-columns: 1fr 220px; gap: 12px; margin-bottom: 6px; }
+.ledger-filters .form-group label { color: var(--lb-ink-soft); }
+.ledger-filters .input-wrapper input,
+.ledger-filters .input-wrapper select {
+  background: rgba(255, 251, 240, 0.6);
+  border: 1px solid rgba(43, 36, 22, 0.35);
+  color: var(--lb-ink);
+  padding-left: 42px;
+}
+.ledger-filters .input-wrapper input::placeholder { color: var(--lb-ink-soft); }
+.ledger-filters .input-wrapper i,
+.ledger-filters .input-wrapper svg { color: var(--lb-ink-soft); }
+.ledger-filters .input-wrapper input:focus,
+.ledger-filters .input-wrapper select:focus {
+  border-color: var(--lb-ink);
+  background: #FFFBF0;
+  box-shadow: none;
+}
+.ledger-lines { min-height: 40px; }
+.ledger-empty { color: var(--lb-ink-soft); font-size: 0.88rem; font-style: italic; padding: 10px 0; }
+
+/* Móvil: el libro pasa a una sola página */
+@media (max-width: 720px) {
+  .ledger-book { grid-template-columns: 1fr; }
+  .ledger-page { padding: 22px 18px 20px; min-height: auto; }
+  .ledger-page.is-left { border-radius: 6px 6px 0 0; box-shadow: none; }
+  .ledger-page.is-right { border-radius: 0 0 10px 10px; box-shadow: inset 0 22px 30px -24px rgba(43, 36, 22, 0.45); }
+  .ledger-cols, .ledger-row { grid-template-columns: 44px 1fr 78px; gap: 8px; }
+  /* En una sola columna de importes ya no hay Debe/Haber que etiquetar */
+  .ledger-cols .lc-num { display: none; }
+  .ledger-row .lr-amt.is-blank { display: none; }
+  .ledger-total { grid-template-columns: 1fr 130px; }
+  .ledger-total .lt-amt { font-size: 1.15rem; }
+  .expenses-book { padding: 24px 16px 20px; }
+  .ledger-tabs { position: static; flex-direction: row; flex-wrap: wrap; margin-bottom: 14px; }
+  .ledger-tab { border-radius: 4px; padding: 7px 10px; }
+  .ledger-filters { grid-template-columns: 1fr; }
+  .ledger-folios { grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 12px; }
+}
