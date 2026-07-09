@@ -4628,3 +4628,77 @@ body {
   .cert-oficio .ledger-filters { grid-template-columns: 1fr; }
   .cert-nota { flex-direction: column; align-items: flex-start; }
 }
+
+/* --- Conserjería: revisión integral de paneles --- */
+/* Las pestañas de expediente asoman: glass-card traía overflow:hidden */
+.admin-content > .section-card.glass-card,
+#admin-section-users,
+#admin-section-invites { overflow: visible; }
+
+/* Todo campo nativo (sin .input-wrapper) también es ficha: hora, fecha, número, texto suelto */
+.admin-content input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not(#admin-section-whatsapp *),
+.admin-content select:not(#admin-section-whatsapp *) {
+  background: rgba(255, 251, 240, 0.55);
+  border: 1px solid rgba(43, 36, 22, 0.35);
+  border-radius: 10px;
+  color: var(--lb-ink);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  padding: 10px 12px;
+}
+.admin-content input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not(#admin-section-whatsapp *)::placeholder {
+  color: var(--lb-ink-soft);
+}
+.admin-content input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not(#admin-section-whatsapp *):focus,
+.admin-content select:not(#admin-section-whatsapp *):focus {
+  border-color: var(--lb-ink);
+  background: #FFFBF0;
+  outline: none;
+  box-shadow: none;
+}
+/* Los campos con icono conservan su hueco (mismos :not que la regla ancha para ganarle) */
+.admin-content .input-wrapper input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not(#admin-section-whatsapp *),
+.admin-content .input-wrapper select:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not(#admin-section-whatsapp *) {
+  padding: 12px 14px 12px 42px;
+}
+
+/* La maqueta es de noche: los rótulos de los pisos no se escriben con tinta */
+#admin-section-visualization .building-view,
+#admin-section-visualization .building-floor {
+  color: var(--pn-moon);
+}
+#admin-section-visualization .building-floor h4,
+#admin-section-visualization .bf-name { color: #EDF2FB; }
+
+/* Textareas con letra de la app (las plantillas de la portería siguen a máquina) */
+.admin-content textarea:not(#admin-section-whatsapp *) { font-family: var(--font-body); }
+
+/* Checkboxes de tinta, no azules del sistema */
+.admin-content input[type="checkbox"]:not(#admin-section-whatsapp *) {
+  accent-color: #2B2416;
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+/* Cualquier tabla sobre manila, en tinta (enlaces generados, usuarios...) */
+.admin-content table:not(#admin-section-whatsapp *) { color: var(--lb-ink); }
+.admin-content table:not(#admin-section-whatsapp *) th {
+  color: var(--lb-ink-soft);
+  border-color: rgba(43, 36, 22, 0.4);
+}
+.admin-content table:not(#admin-section-whatsapp *) td {
+  color: var(--lb-ink);
+  border-color: rgba(43, 36, 22, 0.22);
+}
+
+/* La maqueta nocturna: el edificio sobre la mesa del conserje */
+#admin-section-visualization .building-view {
+  background:
+    radial-gradient(320px 160px at 50% 0%, rgba(255, 184, 77, 0.14), transparent 70%),
+    linear-gradient(180deg, #101826, #0B1120);
+  border: 1px solid rgba(148, 167, 199, 0.28);
+  border-radius: 12px;
+  padding: 18px;
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.4);
+}

@@ -257,6 +257,13 @@ async function initApp() {
   // Comprobar la ruta actual al cargar la página
   checkUrlRoute();
 
+  // Sin hash en la URL: retomar la última ruta guardada (recuerda dónde quedaste)
+  const initialRoute = window.location.hash.replace(/^#\/?/, '');
+  if (!initialRoute && state.token && state.user) {
+    const saved = localStorage.getItem(VT_ROUTE_KEY);
+    if (saved && saved !== 'inicio') applyRoute(saved);
+  }
+
   const financeSearch = document.getElementById('finance-search');
   const financeSort = document.getElementById('finance-sort');
   if (financeSearch) financeSearch.addEventListener('input', renderFinanceContributionsTable);
@@ -284,18 +291,70 @@ function preloadRememberedUsername() {
   }
 }
 
-// Enrutador de URL (SPA hashes)
+// ==========================================
+// ENRUTADOR SPA CON MEMORIA
+// Rutas: #/inicio, #/finanzas, #/certificados, #/admin/<panel>
+// La última ruta se guarda en localStorage: al volver a abrir
+// la app, retoma donde quedaste.
+// ==========================================
+const VT_ROUTE_KEY = 'vt_last_route';
+let vtExpectedHash = null;
+
 function checkUrlRoute() {
   const hash = window.location.hash;
-  
+
   if (hash.startsWith('#register')) {
     // Detectar si hay un token de registro
     const params = new URLSearchParams(hash.substring(hash.indexOf('?')));
     const token = params.get('token');
-    
+
     if (token) {
       handleRegistrationRoute(token);
     }
+    return;
+  }
+
+  // Cambio de hash provocado por setRoute(): no re-navegar
+  if (vtExpectedHash !== null) {
+    const expected = vtExpectedHash;
+    vtExpectedHash = null;
+    if (hash === expected) return;
+  }
+
+  applyRoute(hash.replace(/^#\/?/, ''));
+}
+
+async function applyRoute(route) {
+  const r = String(route || '').trim();
+  if (!r || r === 'inicio') {
+    if (r === 'inicio') showView('dashboard');
+    return;
+  }
+  // Rutas privadas: solo con sesión iniciada
+  if (!state.token || !state.user) return;
+  if (r === 'finanzas') {
+    await openFinancePage();
+    return;
+  }
+  if (r === 'certificados') {
+    openCertificatesPage();
+    return;
+  }
+  if (r === 'admin' || r.startsWith('admin/')) {
+    if (!state.user.isAdmin) return;
+    await openAdminPanel();
+    const panel = r.split('/')[1];
+    if (panel && panel !== 'config') adminShowPanel(panel);
+    return;
+  }
+}
+
+function setRoute(route) {
+  try { localStorage.setItem(VT_ROUTE_KEY, route); } catch (_) { /* almacenamiento lleno o bloqueado */ }
+  const target = `#/${route}`;
+  if (window.location.hash !== target) {
+    vtExpectedHash = target;
+    window.location.hash = target;
   }
 }
 
@@ -709,6 +768,7 @@ function showView(viewName) {
 
   if (viewName === 'dashboard') {
     // Vista principal
+    setRoute('inicio');
     return;
   }
 
@@ -734,6 +794,7 @@ function showView(viewName) {
       }
       targetView.classList.add('active');
       window.scrollTo({ top: 0, behavior: 'auto' });
+      if (viewName === 'certificates') setRoute('certificados');
     }
   }
 }
@@ -967,6 +1028,7 @@ async function openFinancePage() {
   if (dashboardView) dashboardView.classList.remove('active');
   financeView.classList.add('active');
   window.scrollTo({ top: 0, behavior: 'auto' });
+  setRoute('finanzas');
   await loadFinanceOverview();
 }
 
@@ -2410,6 +2472,7 @@ function adminShowPanel(panelKey) {
   if (panelKey === 'users' && grid && users) {
     grid.style.display = '';
     grid.classList.add('admin-grid-single-panel');
+    users.dataset.exp = 'Comunidad · Vecinos';
     users.style.display = 'flex';
     users.style.flexDirection = 'column';
     loadAdminNeighborsManagement();
@@ -2421,6 +2484,7 @@ function adminShowPanel(panelKey) {
     grid.classList.remove('admin-grid-single-panel');
     invites.dataset.exp = 'Comunidad · Invitaciones';
     if (users) {
+      users.dataset.exp = 'Comunidad · Invitaciones';
       users.style.display = 'flex';
       users.style.flexDirection = 'column';
     }
@@ -2451,6 +2515,8 @@ function adminShowPanel(panelKey) {
     const isActive = btn.getAttribute('data-admin-panel-btn') === panelKey;
     btn.classList.toggle('admin-menu-btn-active', isActive);
   });
+
+  setRoute(`admin/${panelKey}`);
 
   // Master-detail móvil: al abrir un panel, pasar a "vista detalle"
   // (CSS oculta la lista de secciones y muestra el botón "Volver"). Inerte en desktop.
@@ -3200,7 +3266,7 @@ function renderBuildingUnitsList() {
     const generatedLabel = parts.join(' · ');
     const safeName = String(u.name || '').replace(/"/g, '&quot;');
     const safeLegalName = String(u.legalName || '').replace(/"/g, '&quot;');
-    return `<div class="history-item"><div class="history-meta" style="width:100%;"><div class="input-wrapper" style="margin-top:2px;"><i data-lucide="tag"></i><input type="text" value="${safeName}" placeholder="${generatedLabel}" oninput="updateBuildingUnitName(${idx}, this.value)"></div><div class="input-wrapper" style="margin-top:8px;"><i data-lucide="file-text"></i><input type="text" value="${safeLegalName}" placeholder="Nombre legal para documentación (opcional)" oninput="updateBuildingUnitLegalName(${idx}, this.value)"></div><span class="history-by" style="margin-top:8px;">${labelKind}${u.exemptFromCleaning ? ' · Exenta de limpieza' : ''}</span><label style="display:inline-flex;align-items:center;gap:8px;margin-top:8px;font-size:0.75rem;color:var(--text-muted);"><input type="checkbox" ${u.exemptFromCleaning ? 'checked' : ''} onchange="toggleBuildingUnitExempt(${idx}, this.checked)"> Exenta del turno de limpieza</label></div><button type="button" class="btn btn-secondary btn-icon" onclick="removeBuildingUnit(${idx})" title="Eliminar"><i data-lucide="trash-2" style="width:14px;height:14px;"></i></button></div>`;
+    return `<div class="history-item"><div class="history-meta" style="width:100%;"><div class="input-wrapper" style="margin-top:2px;"><i data-lucide="tag"></i><input type="text" value="${safeName}" placeholder="${generatedLabel}" oninput="updateBuildingUnitName(${idx}, this.value)"></div><div class="input-wrapper" style="margin-top:8px;"><i data-lucide="file-text"></i><input type="text" value="${safeLegalName}" placeholder="Nombre legal para documentación (opcional)" oninput="updateBuildingUnitLegalName(${idx}, this.value)"></div><span class="history-by" style="margin-top:8px;">${labelKind}${u.exemptFromCleaning ? ' · Exenta de limpieza' : ''}</span><label style="display:inline-flex;align-items:center;gap:8px;margin-top:8px;font-size:0.75rem;"><input type="checkbox" ${u.exemptFromCleaning ? 'checked' : ''} onchange="toggleBuildingUnitExempt(${idx}, this.checked)"> Exenta del turno de limpieza</label></div><button type="button" class="btn btn-secondary btn-icon" onclick="removeBuildingUnit(${idx})" title="Eliminar"><i data-lucide="trash-2" style="width:14px;height:14px;"></i></button></div>`;
   }).join('');
   lucide.createIcons();
 }
