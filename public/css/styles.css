@@ -4931,3 +4931,41 @@ body {
 h1, h2, h3 { font-family: var(--font-display); }
 h3.admin-subsection-title,
 .admin-subsection-title { font-family: var(--font-display); }
+
+/* ==========================================================
+   DOS MATERIALES, UNA GRAMÁTICA
+   Noche y papel comparten forma: superficies a 16px, controles
+   a 12px. Solo cambia el material (oscuridad ámbar / papel tinta).
+   ========================================================== */
+:root {
+  --r-surface: 16px;
+  --r-control: 12px;
+}
+
+/* Superficies grandes: mismo radio en cristal, manila y papel */
+.glass-card { border-radius: var(--r-surface); }
+.admin-content > .section-card.glass-card,
+#admin-section-users,
+#admin-section-invites { border-radius: var(--r-surface); }
+.ledger-book { border-radius: var(--r-surface); }
+.ledger-page.is-left { border-radius: var(--r-surface) 0 0 var(--r-surface); }
+.ledger-page.is-right { border-radius: 0 var(--r-surface) var(--r-surface) 0; }
+.expenses-book { border-radius: var(--r-surface); }
+.cert-oficio { border-radius: var(--r-surface); }
+#admin-section-whatsapp { border-radius: var(--r-surface); }
+.confirm-dialog { border-radius: var(--r-surface); }
+@media (max-width: 720px) {
+  .ledger-page.is-left { border-radius: var(--r-surface) var(--r-surface) 0 0; }
+  .ledger-page.is-right { border-radius: 0 0 var(--r-surface) var(--r-surface); }
+}
+
+/* Controles: los tampones de tinta adoptan la forma del botón común */
+.cert-oficio .btn-descargar { border-radius: var(--r-control); }
+.ledger-filters .input-wrapper input,
+.ledger-filters .input-wrapper select { border-radius: var(--r-control); }
+.admin-content input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not(#admin-section-whatsapp *),
+.admin-content select:not(#admin-section-whatsapp *) { border-radius: var(--r-control); }
+.confirm-actions button { border-radius: var(--r-control); }
+
+/* La cabecera también habla la gramática: botones a 12px (los chips de estado siguen siendo píldora) */
+#auth-header-btn .btn { border-radius: var(--r-control); }

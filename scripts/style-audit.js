@@ -79,6 +79,26 @@ const VIEWS = [
           if (!seen.has(key)) { seen.add(key); out.push({ q: 'azul', el: sig(el) }); }
         }
       });
+      // Gramática compartida: controles a 12px, superficies a 16px
+      document.querySelectorAll('.btn, .confirm-actions button, .btn-descargar').forEach((el) => {
+        if (!isVisible(el)) return;
+        if (el.closest('.ledger-tabs,.mobile-bottom-nav,.admin-menu-nav,.template-placeholders')) return;
+        const r = getComputedStyle(el).borderTopLeftRadius;
+        if (r !== '12px' && r !== '10px') {
+          const key = sig(el) + '|radio-control';
+          if (!seen.has(key)) { seen.add(key); out.push({ q: 'radio-control', el: sig(el), r }); }
+        }
+      });
+      document.querySelectorAll('.glass-card, .ledger-book, .expenses-book, .cert-oficio').forEach((el) => {
+        if (!isVisible(el)) return;
+        if (el.closest('.admin-content .section-card .section-card, #admin-section-users, #admin-section-invites')) return;
+        const cs = getComputedStyle(el);
+        const radii = [cs.borderTopLeftRadius, cs.borderTopRightRadius, cs.borderBottomLeftRadius, cs.borderBottomRightRadius];
+        if (!radii.some((r) => r === '16px' || r === '0px')) {
+          const key = sig(el) + '|radio-superficie';
+          if (!seen.has(key)) { seen.add(key); out.push({ q: 'radio-superficie', el: sig(el), r: radii.join(' ') }); }
+        }
+      });
       document.querySelectorAll('h1,h2,h3').forEach((el) => {
         if (!isVisible(el)) return;
         const ff = getComputedStyle(el).fontFamily;
