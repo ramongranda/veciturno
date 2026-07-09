@@ -23,6 +23,43 @@ const passkeyActionState = {
 let financeOverviewData = null;
 let expenseTypeFilter = 'all';
 
+// --- Sesión caducada: detectarla y despedirse con elegancia ---
+// El token JWT vive 7 días; sin esto, un token muerto dejaba al usuario
+// "dentro" mientras cada petición llovía errores 403 por pantalla.
+function vtTokenExpired(token) {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return typeof payload.exp === 'number' && payload.exp * 1000 < Date.now() + 30000;
+  } catch (_) {
+    return true; // token ilegible = token inservible
+  }
+}
+
+let vtSessionExpiredHandled = false;
+function vtSessionExpired() {
+  if (vtSessionExpiredHandled) return;
+  vtSessionExpiredHandled = true;
+  handleLogout();
+  showToast('Tu sesión ha caducado. Vuelve a iniciar sesión.', 'info');
+  setTimeout(() => { vtSessionExpiredHandled = false; }, 3000);
+}
+
+// Un solo vigilante para todos los fetch: si el servidor responde que el
+// token murió a mitad de sesión, se cierra la sesión una vez en lugar de
+// mostrar un error por cada petición en vuelo.
+const vtNativeFetch = window.fetch.bind(window);
+window.fetch = async function (input, init) {
+  const res = await vtNativeFetch(input, init);
+  if ((res.status === 401 || res.status === 403) && state.token) {
+    try {
+      const peek = await res.clone().json();
+      const msg = peek && peek.error ? String(peek.error) : '';
+      if (/Sesión expirada o token no válido|Token de sesión faltante/.test(msg)) vtSessionExpired();
+    } catch (_) { /* cuerpo no-JSON: no viene del middleware de sesión */ }
+  }
+  return res;
+};
+
 function fmtEur(value) {
   const n = Number(value || 0);
   if (!Number.isFinite(n)) return '0,00 €';
@@ -242,6 +279,16 @@ document.addEventListener('DOMContentLoaded', () => {
 // Inicialización general
 async function initApp() {
   normalizeAdminLayout();
+
+  // Token caducado al arrancar: limpiar sesión ANTES de restaurar la última
+  // ruta, o el router metería al usuario en un panel lleno de errores 403.
+  if (state.token && vtTokenExpired(state.token)) {
+    localStorage.removeItem('vt_token');
+    localStorage.removeItem('vt_user');
+    state.token = null;
+    state.user = null;
+    showToast('Tu sesión ha caducado. Vuelve a iniciar sesión.', 'info');
+  }
 
   // Inicializar iconos de Lucide
   lucide.createIcons();
