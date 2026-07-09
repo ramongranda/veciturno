@@ -17,6 +17,7 @@ const VIEWS = [
   { name: 'admin-fees', kind: 'panel', id: 'fees' },
   { name: 'admin-finance', kind: 'panel', id: 'finance' },
   { name: 'admin-whatsapp', kind: 'panel', id: 'whatsapp' },
+  { name: 'admin-templates', kind: 'panel', id: 'templates' },
   { name: 'admin-announcements', kind: 'panel', id: 'announcements' },
   { name: 'admin-incidents', kind: 'panel', id: 'incidents' },
   { name: 'admin-documents', kind: 'panel', id: 'documents' },

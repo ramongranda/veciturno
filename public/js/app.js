@@ -276,7 +276,7 @@ function normalizeAdminLayout() {
   const adminContent = document.querySelector('#view-admin .admin-content');
   if (!adminContent) return;
 
-  ['admin-section-visualization', 'admin-section-whatsapp-templates'].forEach((id) => {
+  ['admin-section-visualization', 'admin-panel-porteria', 'admin-section-whatsapp-templates'].forEach((id) => {
     const section = document.getElementById(id);
     if (section && section.parentElement !== adminContent) {
       adminContent.appendChild(section);
@@ -2407,14 +2407,12 @@ function adminShowPanel(panelKey) {
   const usersManagement = document.getElementById('admin-section-users-management');
   const invites = document.getElementById('admin-section-invites');
   const visualization = document.getElementById('admin-section-visualization');
-  const whatsapp = document.getElementById('admin-section-whatsapp');
+  const porteria = document.getElementById('admin-panel-porteria');
   const whatsappTemplates = document.getElementById('admin-section-whatsapp-templates');
   const announcements = document.getElementById('admin-section-announcements');
   const documents = document.getElementById('admin-section-documents');
   const areas = document.getElementById('admin-section-areas');
   const incidents = document.getElementById('admin-section-incidents');
-  const invitesTable = invites ? invites.querySelector('.invite-table-container') : null;
-  const invitesTitle = invites ? invites.querySelector('h3') : null;
 
   if (config) config.style.display = 'none';
   if (fees) fees.style.display = 'none';
@@ -2425,14 +2423,12 @@ function adminShowPanel(panelKey) {
   if (users) users.style.display = 'none';
   if (invites) invites.style.display = 'none';
   if (visualization) visualization.style.display = 'none';
-  if (whatsapp) whatsapp.style.display = 'none';
+  if (porteria) porteria.style.display = 'none';
   if (whatsappTemplates) whatsappTemplates.style.display = 'none';
   if (announcements) announcements.style.display = 'none';
   if (documents) documents.style.display = 'none';
   if (areas) areas.style.display = 'none';
   if (incidents) incidents.style.display = 'none';
-  if (invitesTable) invitesTable.style.display = '';
-  if (invitesTitle) invitesTitle.style.display = '';
   [inviteGenerator, securitySummary, usersSeparator, directRegister, usersManagement].forEach((el) => {
     if (el) el.style.display = '';
   });
@@ -2496,21 +2492,15 @@ function adminShowPanel(panelKey) {
     if (inviteGenerator) inviteGenerator.style.display = '';
     invites.style.display = 'flex';
     invites.style.flexDirection = 'column';
-    if (whatsapp) whatsapp.style.display = 'none';
-    if (invitesTitle) invitesTitle.style.display = '';
-    if (invitesTable) invitesTable.style.display = '';
   }
 
-  if (panelKey === 'whatsapp' && grid && invites) {
-    grid.style.display = '';
-    grid.classList.add('admin-grid-single-panel');
-    invites.dataset.exp = 'Comunicación · Portería';
-    invites.style.display = 'flex';
-    invites.style.flexDirection = 'column';
-    if (invitesTable) invitesTable.style.display = 'none';
-    if (invitesTitle) invitesTitle.style.display = 'none';
-    if (whatsapp) whatsapp.style.display = '';
-    if (whatsappTemplates) whatsappTemplates.style.display = '';
+  if (panelKey === 'whatsapp' && porteria) {
+    porteria.style.display = '';
+  }
+
+  if (panelKey === 'templates' && whatsappTemplates) {
+    whatsappTemplates.style.display = '';
+    loadWhatsAppTemplates();
   }
 
   document.querySelectorAll('[data-admin-panel-btn]').forEach((btn) => {
@@ -4283,9 +4273,8 @@ async function pollWhatsAppStatus() {
   const qrBox = document.getElementById('admin-wa-qr-box');
   const qrImg = document.getElementById('admin-wa-qr-img');
   const connectedBox = document.getElementById('admin-wa-connected-box');
-  const phoneSpan = document.getElementById('admin-wa-phone-span');
 
-  if (!descEl || !spinnerEl || !qrBox || !qrImg || !connectedBox || !phoneSpan) {
+  if (!descEl || !spinnerEl || !qrBox || !qrImg || !connectedBox) {
     if (adminWaPollInterval) {
       clearInterval(adminWaPollInterval);
       adminWaPollInterval = null;
@@ -4335,8 +4324,7 @@ async function pollWhatsAppStatus() {
       spinnerEl.classList.add('hidden');
       qrBox.classList.add('hidden');
 
-      // Mostrar área de conexión exitosa y teléfono
-      phoneSpan.innerHTML = `Conectado como: <strong>${data.phoneConnected}</strong>`;
+      // El teléfono vinculado ya lo anuncia el semáforo; aquí solo se abre el área de acciones
       connectedBox.classList.remove('hidden');
 
       // Recargar iconos insertados dinámicamente

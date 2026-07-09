@@ -2530,18 +2530,7 @@ input[type='number'] {
   margin-bottom: 8px;
 }
 
-/* WhatsApp connected box */
-.wa-connected-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.8rem;
-  padding: 6px 12px;
-  margin-bottom: 10px;
-  width: 100%;
-  justify-content: center;
-  border-radius: 8px;
-}
+/* (La caja "Conectado: +34…" murió en 0.16: el semáforo ya anuncia el teléfono.) */
 
 /* Admin force turn form label */
 .admin-force-turn-form .form-group label {
@@ -4795,16 +4784,6 @@ body {
 }
 
 /* La ventanilla, sin reliquias verdes: el verde es solo la luz del semáforo */
-#admin-section-whatsapp .wa-connected-status {
-  background: transparent;
-  border: 1px dashed rgba(148, 167, 199, 0.3);
-  color: var(--pn-moon);
-  font-family: ui-monospace, monospace;
-  font-size: 0.72rem;
-  letter-spacing: 0.06em;
-  justify-content: center;
-}
-#admin-section-whatsapp .wa-connected-status strong { color: #EDF2FB; }
 #admin-section-whatsapp .btn-whatsapp {
   background: transparent;
   border: 1px solid rgba(255, 184, 77, 0.45);
@@ -4978,4 +4957,26 @@ h3.admin-subsection-title,
   width: 40px;
   height: 40px;
   filter: drop-shadow(0 4px 14px rgba(255, 184, 77, 0.25));
+}
+
+/* --- LA PORTERÍA COMO PANEL PROPIO (0.16) ---
+   El panel de WhatsApp deja de vivir incrustado en la caja de Invitaciones:
+   #admin-panel-porteria es su carpeta manila y #admin-section-whatsapp la
+   ventanilla nocturna de dentro (todas las guardas :not() siguen valiendo). */
+
+/* El grupo se guarda donde se elige: select y botón comparten fila. */
+.wa-group-row { display: flex; gap: 10px; align-items: stretch; }
+.wa-group-row .input-wrapper { flex: 1; min-width: 0; }
+.wa-group-row .btn { flex-shrink: 0; }
+
+/* Dos grupos de acciones: avisos del turno y difusión. */
+.wa-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin: 14px 0 16px;
+}
+
+@media (max-width: 600px) {
+  .wa-group-row { flex-direction: column; }
 }
