@@ -4793,3 +4793,26 @@ body {
   box-shadow: 0 0 10px rgba(255, 184, 77, 0.15);
   outline: none;
 }
+
+/* La ventanilla, sin reliquias verdes: el verde es solo la luz del semáforo */
+#admin-section-whatsapp .wa-connected-status {
+  background: transparent;
+  border: 1px dashed rgba(148, 167, 199, 0.3);
+  color: var(--pn-moon);
+  font-family: ui-monospace, monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  justify-content: center;
+}
+#admin-section-whatsapp .wa-connected-status strong { color: #EDF2FB; }
+#admin-section-whatsapp .btn-whatsapp {
+  background: transparent;
+  border: 1px solid rgba(255, 184, 77, 0.45);
+  color: var(--pn-amber);
+  box-shadow: none;
+  font-weight: 700;
+}
+#admin-section-whatsapp .btn-whatsapp:hover {
+  background: rgba(255, 184, 77, 0.12);
+  transform: none;
+}
