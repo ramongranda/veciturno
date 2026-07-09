@@ -11,19 +11,19 @@
   <meta property="og:title" content="VeciTurno - Portal de tu Comunidad de Vecinos">
   <meta property="og:description" content="Gestiona turnos de limpieza, cuotas, finanzas e incidencias de forma transparente y automatizada.">
   <meta property="og:type" content="website">
-  <meta property="og:image" content="/favicon.svg?v=visualization-fix">
+  <meta property="og:image" content="/favicon.svg?v=ventana-encendida">
 
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=visualization-fix">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=ventana-encendida">
 
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <!-- Hojas de Estilo -->
-  <link rel="stylesheet" href="css/styles.css?v=incidencias-1">
-  <link rel="stylesheet" href="css/mobile.css?v=incidencias-1">
+  <link rel="stylesheet" href="css/styles.css?v=portal-noche-0.16.1">
+  <link rel="stylesheet" href="css/mobile.css?v=portal-noche-0.16.1">
 </head>
 <body>
 
@@ -37,8 +37,22 @@
     <!-- HEADER -->
     <header class="app-header">
       <div class="logo-area">
-        <div class="logo-icon">
-          <i data-lucide="rotate-cw"></i>
+        <div class="logo-icon" aria-hidden="true">
+          <svg width="40" height="40" viewBox="0 0 64 64" role="img" aria-label="VeciTurno">
+            <defs>
+              <radialGradient id="vtGlow" cx="50%" cy="40%" r="62%">
+                <stop offset="0%" stop-color="#FFDFAC"/>
+                <stop offset="48%" stop-color="#FFB84D"/>
+                <stop offset="100%" stop-color="#F59E0B"/>
+              </radialGradient>
+            </defs>
+            <rect x="2" y="2" width="60" height="60" rx="14" fill="#0B1120" stroke="rgba(148,167,199,0.35)" stroke-width="1.5"/>
+            <circle cx="32" cy="30" r="18" fill="rgba(255,184,77,0.16)"/>
+            <rect x="21" y="17" width="22" height="27" rx="3" fill="url(#vtGlow)"/>
+            <line x1="32" y1="17" x2="32" y2="44" stroke="#0B1120" stroke-width="2.6"/>
+            <line x1="21" y1="30.5" x2="43" y2="30.5" stroke="#0B1120" stroke-width="2.6"/>
+            <rect x="17.5" y="46.5" width="29" height="3" rx="1.5" fill="rgba(148,167,199,0.55)"/>
+          </svg>
         </div>
         <div class="logo-text">
           <h1>VeciTurno</h1>
@@ -93,48 +107,39 @@
       <!-- GRID PRINCIPAL -->
       <div class="dashboard-grid">
         
-        <!-- COLUMNA IZQUIERDA: TURNO ACTIVO -->
-        <div class="dashboard-main-card glass-card">
-          <div class="card-badge">Es turno de Limpieza</div>
-          
-          <div class="active-turn-content">
-            <div id="active-floor-avatar" class="floor-avatar animate-pulse">
-              <span id="active-floor-badge">-</span>
-            </div>
-            <h2 id="active-floor-title">Cargando...</h2>
-            <div class="active-status-tag">
-              <span class="active-dot"></span>
-              <span>Activo</span>
-            </div>
-            <div id="active-turn-month" class="active-month-badge">Cargando mes...</div>
-            <p id="active-floor-desc">Le toca la limpieza mensual de la escalera</p>
-            
-            <!-- Separador gradiente visual -->
-            <div class="turn-divider">
-              <span class="turn-divider-line"></span>
-              <span class="turn-divider-icon"><i data-lucide="repeat" style="width:12px;height:12px;"></i></span>
-              <span class="turn-divider-line"></span>
-            </div>
-
-            <!-- Indicador Premium del Siguiente Turno -->
-            <div class="next-turn-card">
-              <div class="next-turn-card-inner">
-                <div class="next-avatar-glow" id="next-floor-avatar-badge">-</div>
-                <div class="next-card-details">
-                  <span class="next-card-label">Siguiente turno</span>
-                  <span id="next-floor-name" class="next-card-name">Piso -</span>
-                </div>
-                <div class="next-card-schedule">
-                  <i data-lucide="calendar-clock" style="width:13px;height:13px;"></i>
-                  <span id="next-turn-month-label">Próximo mes</span>
-                </div>
+        <!-- COLUMNA IZQUIERDA: EL PORTAL DE NOCHE
+             La fachada del edificio con la ventana del turno encendida.
+             Una sola fuente de luz: el ámbar del piso al que le toca. -->
+        <div class="dashboard-main-card glass-card night-hero">
+          <div class="nh-grid">
+            <div class="nh-copy">
+              <div class="nh-month" id="active-turn-month">Cargando mes…</div>
+              <h2 class="nh-title">Esta luz es del <em id="active-floor-title">…</em></h2>
+              <p class="nh-sub" id="active-floor-desc">
+                Le toca la limpieza mensual de la escalera. Cuando termine,
+                la luz bajará al siguiente piso del portal.
+              </p>
+              <div class="nh-actions">
+                <button type="button" class="btn-lantern" onclick="document.getElementById('history-container')?.scrollIntoView({ behavior: 'smooth', block: 'center' })">
+                  Ver historial de turnos
+                </button>
               </div>
             </div>
 
+            <div class="facade-scene">
+              <div class="light-pool" aria-hidden="true"></div>
+              <div class="facade" id="facade-home" aria-label="Fachada del edificio: la ventana encendida marca el piso al que le toca el turno"></div>
+              <div class="sidewalk" aria-hidden="true"></div>
+              <div class="facade-cap">El portal, ahora mismo</div>
+            </div>
           </div>
+
+          <div class="nh-rota-label">La rotación del año</div>
+          <div class="rota-strip" id="rota-strip"></div>
         </div>
 
-        <!-- COLUMNA DERECHA: LOS 3 VECINOS / PISOS -->
+        <!-- EL MOSTRADOR: los servicios de la comunidad, a lo ancho -->
+        <div class="pn-section-label">El mostrador de la comunidad</div>
         <div class="dashboard-side-column">
           <!-- Tablón de anuncios de la comunidad -->
           <div class="section-card glass-card" id="announcements-card">
@@ -290,7 +295,12 @@
         
         <div class="modal-header">
           <div class="modal-icon">
-            <i data-lucide="lock"></i>
+            <svg width="30" height="30" viewBox="0 0 64 64" aria-hidden="true">
+              <rect x="18" y="12" width="28" height="34" rx="4" fill="none" stroke="currentColor" stroke-width="4"/>
+              <line x1="32" y1="12" x2="32" y2="46" stroke="currentColor" stroke-width="4"/>
+              <line x1="18" y1="29" x2="46" y2="29" stroke="currentColor" stroke-width="4"/>
+              <line x1="13" y1="52" x2="51" y2="52" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+            </svg>
           </div>
           <h2>Acceso a VeciTurno</h2>
           <p>Introduce tus credenciales de vecino</p>
@@ -454,7 +464,7 @@
                   <span>Google Authenticator</span>
                 </div>
                 <div class="auth-app-badge" style="display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 8px 12px; border-radius: 10px; font-size: 0.72rem; font-weight: 600;">
-                  <i data-lucide="shield-check" class="text-primary" style="width: 14px; height: 14px; color: var(--color-primary);"></i>
+                  <i data-lucide="shield-check" style="width: 14px; height: 14px;"></i>
                   <span>MS Authenticator</span>
                 </div>
               </div>
@@ -695,7 +705,7 @@
                 <span>Google Authenticator</span>
               </div>
               <div class="auth-app-badge" style="display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 8px 12px; border-radius: 10px; font-size: 0.72rem; font-weight: 600;">
-                <i data-lucide="shield-check" class="text-primary" style="width: 14px; height: 14px; color: var(--color-primary);"></i>
+                <i data-lucide="shield-check" style="width: 14px; height: 14px;"></i>
                 <span>MS Authenticator</span>
               </div>
             </div>
@@ -752,68 +762,86 @@
           <div class="modal-icon text-warning">
             <i data-lucide="shield-alert"></i>
           </div>
-          <h2>Consola de Administración</h2>
-          <p>Gestiona enlaces de registro e invitaciones</p>
+          <h2>La Conserjería</h2>
+          <p>Coge una llave para abrir su expediente</p>
         </div>
 
         <div class="admin-workspace">
           <aside class="admin-sidebar glass-card" id="admin-sidebar">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-              <h3 style="margin: 0;">Menú Admin</h3>
+              <h3 style="margin: 0;">Conserjería</h3>
               <button class="btn btn-secondary btn-icon admin-mobile-menu-btn" onclick="toggleAdminSidebar(false)" style="padding: 4px 8px; width: auto; min-width: auto; height: auto;">
                 <i data-lucide="x"></i>
               </button>
             </div>
-            <nav class="admin-menu-nav">
-              <button class="btn btn-secondary" type="button" data-admin-panel-btn="config" onclick="adminShowPanel('config')">
-                <i data-lucide="sliders-horizontal"></i>
-                <span>Configuración</span>
-              </button>
-              <button class="btn btn-secondary" type="button" data-admin-panel-btn="fees" onclick="adminShowPanel('fees')">
-                <i data-lucide="wallet"></i>
-                <span>Cuotas</span>
-              </button>
-              <button class="btn btn-secondary" type="button" data-admin-panel-btn="finance" onclick="adminShowPanel('finance')">
-                <i data-lucide="file-spreadsheet"></i>
-                <span>Finanzas</span>
-              </button>
-              <button class="btn btn-secondary" type="button" data-admin-panel-btn="users" onclick="adminShowPanel('users')">
-                <i data-lucide="users"></i>
-                <span>Usuarios y Seguridad</span>
-              </button>
-              <button class="btn btn-secondary" type="button" data-admin-panel-btn="visualization" onclick="adminShowPanel('visualization')">
-                <i data-lucide="building"></i>
-                <span>Visualización</span>
-              </button>
-              <button class="btn btn-secondary" type="button" data-admin-panel-btn="invites" onclick="adminShowPanel('invites')">
-                <i data-lucide="link"></i>
-                <span>Invitaciones</span>
-              </button>
-              <button class="btn btn-secondary" type="button" data-admin-panel-btn="announcements" onclick="adminShowPanel('announcements')">
-                <i data-lucide="megaphone"></i>
-                <span>Tablón de anuncios</span>
-              </button>
-              <button class="btn btn-secondary" type="button" data-admin-panel-btn="documents" onclick="adminShowPanel('documents')">
-                <i data-lucide="folder"></i>
-                <span>Documentos</span>
-              </button>
-              <button class="btn btn-secondary" type="button" data-admin-panel-btn="areas" onclick="adminShowPanel('areas')">
-                <i data-lucide="calendar-check"></i>
-                <span>Zonas comunes</span>
-              </button>
-              <button class="btn btn-secondary" type="button" data-admin-panel-btn="incidents" onclick="adminShowPanel('incidents')">
-                <i data-lucide="alert-triangle"></i>
-                <span>Incidencias</span>
-              </button>
-              <button class="btn btn-secondary" type="button" data-admin-panel-btn="whatsapp" onclick="adminShowPanel('whatsapp')">
-                <i data-lucide="message-square"></i>
-                <span>WhatsApp Servidor</span>
-              </button>
+            <!-- Menú reagrupado en 4 bloques semánticos: el escaneo pasa de 11
+                 ítems planos a una decisión de primer nivel. -->
+            <nav class="admin-menu-nav" aria-label="Menú de administración">
+              <div class="admin-menu-group">
+                <span class="admin-menu-group-label">Comunidad</span>
+                <button class="btn btn-secondary" type="button" data-admin-panel-btn="users" onclick="adminShowPanel('users')">
+                  <span class="llave-anilla" aria-hidden="true"></span>
+                  <span>Vecinos y seguridad</span>
+                </button>
+                <button class="btn btn-secondary" type="button" data-admin-panel-btn="invites" onclick="adminShowPanel('invites')">
+                  <span class="llave-anilla" aria-hidden="true"></span>
+                  <span>Invitaciones</span>
+                </button>
+                <button class="btn btn-secondary" type="button" data-admin-panel-btn="visualization" onclick="adminShowPanel('visualization')">
+                  <span class="llave-anilla" aria-hidden="true"></span>
+                  <span>Visualización</span>
+                </button>
+                <button class="btn btn-secondary" type="button" data-admin-panel-btn="areas" onclick="adminShowPanel('areas')">
+                  <span class="llave-anilla" aria-hidden="true"></span>
+                  <span>Zonas comunes</span>
+                </button>
+              </div>
+              <div class="admin-menu-group">
+                <span class="admin-menu-group-label">Dinero</span>
+                <button class="btn btn-secondary" type="button" data-admin-panel-btn="fees" onclick="adminShowPanel('fees')">
+                  <span class="llave-anilla" aria-hidden="true"></span>
+                  <span>Cuotas</span>
+                </button>
+                <button class="btn btn-secondary" type="button" data-admin-panel-btn="finance" onclick="adminShowPanel('finance')">
+                  <span class="llave-anilla" aria-hidden="true"></span>
+                  <span>Finanzas</span>
+                </button>
+              </div>
+              <div class="admin-menu-group">
+                <span class="admin-menu-group-label">Comunicación</span>
+                <button class="btn btn-secondary" type="button" data-admin-panel-btn="whatsapp" onclick="adminShowPanel('whatsapp')">
+                  <span class="llave-anilla" aria-hidden="true"></span>
+                  <span>Portería (WhatsApp)</span>
+                </button>
+                <button class="btn btn-secondary" type="button" data-admin-panel-btn="templates" onclick="adminShowPanel('templates')">
+                  <span class="llave-anilla" aria-hidden="true"></span>
+                  <span>Plantillas de mensajes</span>
+                </button>
+                <button class="btn btn-secondary" type="button" data-admin-panel-btn="announcements" onclick="adminShowPanel('announcements')">
+                  <span class="llave-anilla" aria-hidden="true"></span>
+                  <span>Tablón de anuncios</span>
+                </button>
+                <button class="btn btn-secondary" type="button" data-admin-panel-btn="incidents" onclick="adminShowPanel('incidents')">
+                  <span class="llave-anilla" aria-hidden="true"></span>
+                  <span>Incidencias</span>
+                </button>
+                <button class="btn btn-secondary" type="button" data-admin-panel-btn="documents" onclick="adminShowPanel('documents')">
+                  <span class="llave-anilla" aria-hidden="true"></span>
+                  <span>Documentos</span>
+                </button>
+              </div>
+              <div class="admin-menu-group">
+                <span class="admin-menu-group-label">Sistema</span>
+                <button class="btn btn-secondary" type="button" data-admin-panel-btn="config" onclick="adminShowPanel('config')">
+                  <span class="llave-anilla" aria-hidden="true"></span>
+                  <span>Configuración</span>
+                </button>
+              </div>
             </nav>
           </aside>
 
           <div class="admin-content">
-        <section id="admin-section-announcements" class="section-card glass-card" style="display:none;">
+        <section id="admin-section-announcements" data-exp="Comunicación · Tablón" class="section-card glass-card" style="display:none;">
           <h3><i data-lucide="megaphone"></i> Tablón de anuncios</h3>
           <p class="box-desc">Publica avisos para toda la comunidad. Aparecen en el panel de inicio de cada vecino.</p>
           <form id="announcement-form" class="auth-form" onsubmit="handleCreateAnnouncement(event)">
@@ -846,7 +874,7 @@
             </div>
           </div>
         </section>
-        <section id="admin-section-documents" class="section-card glass-card" style="display:none;">
+        <section id="admin-section-documents" data-exp="Comunicación · Documentos" class="section-card glass-card" style="display:none;">
           <h3><i data-lucide="folder"></i> Documentos de la comunidad</h3>
           <p class="box-desc">Sube actas, contratos, presupuestos o normativa. Cada vecino con sesión iniciada podrá consultarlos y descargarlos.</p>
           <form id="document-form" class="auth-form" onsubmit="handleUploadDocument(event)">
@@ -889,7 +917,7 @@
             </div>
           </div>
         </section>
-        <section id="admin-section-areas" class="section-card glass-card" style="display:none;">
+        <section id="admin-section-areas" data-exp="Comunidad · Zonas comunes" class="section-card glass-card" style="display:none;">
           <h3><i data-lucide="calendar-check"></i> Zonas comunes</h3>
           <p class="box-desc">Define las zonas reservables (salón social, pádel, piscina…). Cada vecino podrá reservar franjas dentro del horario indicado.</p>
           <form id="area-form" class="auth-form" onsubmit="handleCreateArea(event)">
@@ -934,7 +962,7 @@
             </div>
           </div>
         </section>
-        <section id="admin-section-incidents" class="section-card glass-card" style="display:none;">
+        <section id="admin-section-incidents" data-exp="Comunicación · Incidencias" class="section-card glass-card" style="display:none;">
           <h3><i data-lucide="alert-triangle"></i> Incidencias</h3>
           <p class="box-desc">Incidencias reportadas por vecinos (app) y desde WhatsApp. Cambia el estado o elimínalas.</p>
           <div class="incident-filter-row">
@@ -947,7 +975,7 @@
             <p class="box-desc">Cargando…</p>
           </div>
         </section>
-        <section id="admin-section-config" class="section-card glass-card">
+        <section id="admin-section-config" data-exp="Sistema · Configuración" class="section-card glass-card">
           <h3>Configuración General</h3>
           <p class="box-desc">Desde esta consola puedes gestionar el acceso de vecinos, invitaciones y el canal oficial de WhatsApp de la comunidad.</p>
           <div class="section-card" style="margin-bottom: 12px;">
@@ -1082,7 +1110,7 @@
           </form>
         </section>
 
-        <section id="admin-section-fees" class="section-card glass-card">
+        <section id="admin-section-fees" data-exp="Dinero · Cuotas" class="section-card glass-card">
           <h3>Cuotas</h3>
           <p class="box-desc">Gestiona cuotas base y overrides por unidad por separado de la estructura del edificio.</p>
           <div class="section-card admin-subsection">
@@ -1119,7 +1147,7 @@
           </div>
         </section>
 
-        <section id="admin-section-finance" class="section-card glass-card">
+        <section id="admin-section-finance" data-exp="Dinero · Finanzas" class="section-card glass-card">
           <h3>Finanzas</h3>
           <p class="box-desc">Carga y actualiza datos financieros sin mezclarlo con la gestión de estructura o cuotas.</p>
           <div class="section-card admin-subsection">
@@ -1219,7 +1247,7 @@
 
         <div class="admin-grid">
           <!-- Formulario Generador -->
-          <div id="admin-section-users" class="admin-action-box" style="display: flex; flex-direction: column; gap: 20px;">
+          <div id="admin-section-users" data-exp="Comunidad · Vecinos" class="admin-action-box" style="display: flex; flex-direction: column; gap: 20px;">
             <!-- Resumen de Seguridad Consolidado -->
             <div id="admin-section-security-summary-card" class="section-card glass-card" style="padding: 14px 18px; margin-bottom: 5px; width: 100%;">
               <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
@@ -1357,7 +1385,7 @@
           </div>
 
           <!-- Tabla/Lista de Enlaces -->
-          <div id="admin-section-invites" class="admin-list-box">
+          <div id="admin-section-invites" data-exp="Comunidad · Invitaciones" class="admin-list-box">
             <h3>Enlaces Generados</h3>
             <div class="invite-table-container">
               <table class="admin-table">
@@ -1377,152 +1405,175 @@
               </table>
             </div>
 
-            <!-- Configuración / Panel de Control de WhatsApp Propio -->
-            <div id="admin-section-whatsapp" class="admin-subsection" style="margin-top: 20px; border-top: 1px dashed var(--glass-border); padding-top: 16px;">
-              <h3 class="admin-subsection-title">
-                <i data-lucide="message-square" class="text-success"></i>
-                <span>Panel de WhatsApp Servidor de la Comunidad</span>
-              </h3>
-              <p class="box-desc" id="admin-wa-desc">Estado: Cargando pasarela de WhatsApp propia...</p>
-              
-              <div class="form-group" style="margin-bottom: 10px;">
-                <label for="admin-wa-group-select">Grupo para Notificaciones de Turnos</label>
+          </div>
+        </div>
+
+        <!-- La Portería: panel propio de WhatsApp (antes vivía incrustado
+             en la caja de Invitaciones; ahora es su propia carpeta). -->
+        <section id="admin-panel-porteria" data-exp="Comunicación · Portería" class="section-card glass-card" style="margin-top: 18px;">
+          <div id="admin-section-whatsapp" class="admin-subsection">
+            <h3 class="admin-subsection-title">
+              <i data-lucide="message-square"></i>
+              <span>WhatsApp de la comunidad</span>
+            </h3>
+            <!-- La escena de la ventanilla: la ventana del conserje con su
+                 luz de estado + el semáforo de siempre al lado. -->
+            <div class="porteria-scene" id="porteria-scene" data-state="loading">
+              <div class="ventanilla" aria-hidden="true">
+                <span class="ventanilla-luz"></span>
+              </div>
+              <div id="admin-wa-status" class="wa-status" data-state="loading">
+                <span class="wa-status-dot" aria-hidden="true"></span>
+                <div class="wa-status-text">
+                  <span class="wa-status-title" id="admin-wa-desc">Cargando pasarela de WhatsApp…</span>
+                  <span class="wa-status-sub" id="admin-wa-sub"></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Estado / Vinculación por QR: vive junto al semáforo — si hay
+                 que escanear, es lo primero que debe verse, no lo último. -->
+            <div id="admin-wa-wrapper" class="qr-container" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 14px; min-height: 90px; margin-bottom: 16px; background: rgba(255,255,255,0.01);">
+              <div class="loading-spinner" id="admin-wa-spinner">Cargando estado...</div>
+
+              <!-- Área de Vinculación QR (Oculta por defecto) -->
+              <div id="admin-wa-qr-box" class="hidden" style="text-align: center; width: 100%;">
+                <p style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 8px; line-height: 1.3;">
+                  Escanea este código QR desde tu WhatsApp móvil (Dispositivos Vinculados) para emparejar la pasarela propia de VeciTurno:
+                </p>
+                <img id="admin-wa-qr-img" src="" alt="Vincular WhatsApp QR" style="width: 150px; height: 150px; border-radius: 8px; border: 4px solid #fff; margin: 4px auto 8px;">
+              </div>
+
+              <!-- Área Conectada (Oculta por defecto). El teléfono vinculado ya
+                   lo dice el semáforo: aquí solo viven los avisos y la prueba. -->
+              <div id="admin-wa-connected-box" class="hidden" style="text-align: center; width: 100%;">
+                <div id="admin-wa-success" class="success-msg hidden" style="margin-bottom: 10px; font-size: 0.75rem; padding: 8px 12px;"></div>
+                <div id="admin-wa-error" class="error-msg hidden" style="margin-bottom: 10px; font-size: 0.75rem; padding: 8px 12px;"></div>
+                <button type="button" class="btn btn-whatsapp btn-full" onclick="testSystemWhatsApp()" style="padding: 10px; font-size: 0.8rem; width: 100%;">
+                  <i data-lucide="send"></i>
+                  <span>Enviar Notificación de Prueba</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- El grupo se guarda donde se elige: select y botón en la misma fila. -->
+            <div class="form-group" style="margin-bottom: 10px;">
+              <label for="admin-wa-group-select">Grupo para Notificaciones de Turnos</label>
+              <div class="wa-group-row">
                 <div class="input-wrapper">
                   <i data-lucide="users"></i>
                   <select id="admin-wa-group-select">
                     <option value="">Sin grupo (usar chat vinculado)</option>
                   </select>
                 </div>
-                <span class="input-hint">Selecciona el grupo de WhatsApp donde se enviarán los avisos automáticos de rotación.</span>
+                <button type="button" class="btn btn-primary" onclick="saveWhatsAppGroupConfig()">
+                  <i data-lucide="save"></i>
+                  <span>Guardar</span>
+                </button>
+              </div>
+              <span class="input-hint">Selecciona el grupo de WhatsApp donde se enviarán los avisos automáticos de rotación.</span>
+            </div>
+
+            <div class="wa-actions-grid">
+              <!-- Avisos: todo lo que el portero puede mandar ahora mismo -->
+              <div class="action-group">
+                <div class="action-group-title">
+                  <i data-lucide="bell" class="section-icon"></i>
+                  <span>Avisos del turno</span>
+                </div>
+                <button type="button" class="btn btn-warning-solid wa-action-btn" onclick="forceTurnStartNotification()">
+                  <i data-lucide="megaphone"></i>
+                  <span>Forzar Aviso Turno</span>
+                </button>
+                <button type="button" class="btn btn-secondary wa-action-btn" onclick="runWhatsAppRemindersNow()">
+                  <i data-lucide="bell-ring"></i>
+                  <span>Recordatorios Ahora</span>
+                </button>
+                <button type="button" class="btn btn-secondary wa-action-btn" onclick="sendMonthlySummaryNow()">
+                  <i data-lucide="bar-chart-3"></i>
+                  <span>Resumen Mensual</span>
+                </button>
+                <button type="button" class="btn btn-secondary wa-action-btn" onclick="sendFinanceSummaryNow()">
+                  <i data-lucide="wallet"></i>
+                  <span>Estado de Cuotas</span>
+                </button>
               </div>
 
-              <div class="admin-grid" style="gap: 16px; margin-top: 10px; margin-bottom: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
-                <!-- Categoría 1: Configuración de Envíos -->
-                <div class="action-group">
-                  <div class="action-group-title">
-                    <i data-lucide="sliders-horizontal" class="section-icon"></i>
-                    <span>Configuración de Envíos</span>
-                  </div>
-                  <button type="button" class="btn btn-primary wa-action-btn" onclick="saveWhatsAppGroupConfig()">
-                    <i data-lucide="save"></i>
-                    <span>Guardar Grupo</span>
-                  </button>
-                  <button type="button" class="btn btn-warning-solid wa-action-btn" onclick="forceTurnStartNotification()">
-                    <i data-lucide="megaphone"></i>
-                    <span>Forzar Aviso Turno</span>
-                  </button>
+              <!-- Difusión e interacción con los vecinos -->
+              <div class="action-group">
+                <div class="action-group-title">
+                  <i data-lucide="message-circle" class="section-icon"></i>
+                  <span>Difusión y Encuestas</span>
                 </div>
+                <button type="button" class="btn btn-secondary wa-action-btn" onclick="createQuickPoll()">
+                  <i data-lucide="list-checks"></i>
+                  <span>Encuesta Rápida</span>
+                </button>
+                <button type="button" class="btn btn-secondary wa-action-btn" onclick="sendSegmentedMessageNow()">
+                  <i data-lucide="send"></i>
+                  <span>Difusión Segmentada</span>
+                </button>
+              </div>
+            </div>
 
-                <!-- Categoría 2: Tareas y Recordatorios -->
-                <div class="action-group">
-                  <div class="action-group-title">
-                    <i data-lucide="bell" class="section-icon"></i>
-                    <span>Tareas y Avisos</span>
-                  </div>
-                  <button type="button" class="btn btn-secondary wa-action-btn" onclick="runWhatsAppRemindersNow()">
-                    <i data-lucide="bell-ring"></i>
-                    <span>Recordatorios Ahora</span>
-                  </button>
-                  <button type="button" class="btn btn-secondary wa-action-btn" onclick="sendMonthlySummaryNow()">
-                    <i data-lucide="bar-chart-3"></i>
-                    <span>Resumen Mensual</span>
-                  </button>
-                  <button type="button" class="btn btn-secondary wa-action-btn" onclick="sendFinanceSummaryNow()">
-                    <i data-lucide="wallet"></i>
-                    <span>Estado de Cuotas</span>
-                  </button>
-                </div>
+            <!-- Registro de Notificaciones -->
+            <div style="margin-top: 16px; border-top: 1px dashed var(--glass-border); padding-top: 10px;">
+              <h4 style="font-size: 0.85rem; margin-bottom: 8px;">Registro de Notificaciones</h4>
+              <div id="admin-notification-logs" class="history-list">
+                <div class="history-item">Cargando registro...</div>
+              </div>
+            </div>
 
-                <!-- Categoría 3: Difusión e Interacción -->
-                <div class="action-group">
-                  <div class="action-group-title">
-                    <i data-lucide="message-circle" class="section-icon"></i>
-                    <span>Difusión y Encuestas</span>
-                  </div>
-                  <button type="button" class="btn btn-secondary wa-action-btn" onclick="createQuickPoll()">
-                    <i data-lucide="list-checks"></i>
-                    <span>Encuesta Rápida</span>
-                  </button>
-                  <button type="button" class="btn btn-secondary wa-action-btn" onclick="sendSegmentedMessageNow()">
-                    <i data-lucide="send"></i>
-                    <span>Difusión Segmentada</span>
-                  </button>
-                </div>
+            <!-- Incidencias desde WhatsApp -->
+            <div style="margin-top: 16px; border-top: 1px dashed var(--glass-border); padding-top: 10px;">
+              <h4 style="font-size: 0.85rem; margin-bottom: 8px;">Incidencias desde WhatsApp</h4>
+              <div id="admin-incidents-list" class="history-list">
+                <div class="history-item">Cargando incidencias...</div>
+              </div>
+            </div>
 
-                <!-- Categoría 4: Soporte del Sistema -->
-                <div class="action-group">
-                  <div class="action-group-title">
-                    <i data-lucide="cpu" class="section-icon"></i>
-                    <span>Soporte del Sistema</span>
+            <!-- Zona de mantenimiento: acciones de sistema separadas de las
+                 cotidianas. Reiniciar reconecta sin perder la vinculación;
+                 Desvincular la destruye — por eso viven aquí, al final y
+                 con su gravedad a la vista. -->
+            <div class="wa-danger-zone" style="margin-top: 16px;">
+              <h4 class="wa-danger-title">
+                <i data-lucide="wrench"></i>
+                <span>Mantenimiento del sistema</span>
+              </h4>
+              <div class="wa-danger-actions">
+                <div class="wa-danger-row">
+                  <div class="wa-danger-info">
+                    <strong>Reiniciar cliente</strong>
+                    <span>Reconecta el navegador del bot. La vinculación se conserva.</span>
                   </div>
-                  <button type="button" class="btn btn-secondary wa-action-btn" onclick="restartSystemWhatsApp()">
+                  <button type="button" class="btn btn-secondary" onclick="restartSystemWhatsApp()">
                     <i data-lucide="refresh-cw"></i>
-                    <span>Reiniciar Cliente</span>
+                    <span>Reiniciar</span>
                   </button>
                 </div>
-              </div>
-
-              <!-- Registro de Notificaciones -->
-              <div style="margin-top: 16px; border-top: 1px dashed var(--glass-border); padding-top: 10px;">
-                <h4 style="font-size: 0.85rem; margin-bottom: 8px;">Registro de Notificaciones</h4>
-                <div id="admin-notification-logs" class="history-list">
-                  <div class="history-item">Cargando registro...</div>
-                </div>
-              </div>
-
-              <!-- Incidencias desde WhatsApp -->
-              <div style="margin-top: 16px; border-top: 1px dashed var(--glass-border); padding-top: 10px;">
-                <h4 style="font-size: 0.85rem; margin-bottom: 8px;">Incidencias desde WhatsApp</h4>
-                <div id="admin-incidents-list" class="history-list">
-                  <div class="history-item">Cargando incidencias...</div>
-                </div>
-              </div>
-              
-              <!-- Contenedor del Estado / Vinculación por QR -->
-              <div id="admin-wa-wrapper" class="qr-container" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 14px; min-height: 180px; margin-top: 16px; margin-bottom: 12px; background: rgba(255,255,255,0.01);">
-                <div class="loading-spinner" id="admin-wa-spinner">Cargando estado...</div>
-                
-                <!-- Área de Vinculación QR (Oculta por defecto) -->
-                <div id="admin-wa-qr-box" class="hidden" style="text-align: center; width: 100%;">
-                  <p style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 8px; line-height: 1.3;">
-                    Escanea este código QR desde tu WhatsApp móvil (Dispositivos Vinculados) para emparejar la pasarela propia de VeciTurno:
-                  </p>
-                  <img id="admin-wa-qr-img" src="" alt="Vincular WhatsApp QR" style="width: 150px; height: 150px; border-radius: 8px; border: 4px solid #fff; margin: 4px auto 8px;">
-                </div>
-                
-                <!-- Área Conectada (Oculta por defecto) -->
-                <div id="admin-wa-connected-box" class="hidden" style="text-align: center; width: 100%;">
-                  <div class="success-msg wa-connected-status">
-                    <i data-lucide="shield-check" style="width: 14px; height: 14px;"></i>
-                    <span id="admin-wa-phone-span">Conectado</span>
+                <div class="wa-danger-row">
+                  <div class="wa-danger-info">
+                    <strong>Desvincular dispositivo</strong>
+                    <span>Cierra la sesión de WhatsApp. Habrá que escanear el QR de nuevo.</span>
                   </div>
-                  
-                  <div id="admin-wa-success" class="success-msg hidden" style="margin-bottom: 10px; font-size: 0.75rem; padding: 8px 12px;"></div>
-                  <div id="admin-wa-error" class="error-msg hidden" style="margin-bottom: 10px; font-size: 0.75rem; padding: 8px 12px;"></div>
-
-                  <div style="display: flex; flex-direction: column; gap: 8px;">
-                    <button type="button" class="btn btn-whatsapp btn-full" onclick="testSystemWhatsApp()" style="padding: 10px; font-size: 0.8rem; width: 100%;">
-                      <i data-lucide="send"></i>
-                      <span>Enviar Notificación de Prueba</span>
-                    </button>
-                    <button type="button" class="btn btn-danger-outline btn-full" onclick="disconnectSystemWhatsApp()" style="padding: 10px; font-size: 0.8rem; width: 100%;">
-                      <i data-lucide="log-out"></i>
-                      <span>Desvincular Dispositivo</span>
-                    </button>
-                  </div>
+                  <button type="button" class="btn btn-danger-outline" onclick="disconnectSystemWhatsApp()">
+                    <i data-lucide="log-out"></i>
+                    <span>Desvincular</span>
+                  </button>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        </section>
       </div>
 
-        <section id="admin-section-visualization" class="section-card glass-card" style="margin-top: 18px;">
+        <section id="admin-section-visualization" data-exp="Comunidad · Edificio" class="section-card glass-card" style="margin-top: 18px;">
           <div class="admin-force-turn-card">
             <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
               <div>
                 <h3 style="margin: 0; display: flex; align-items: center; gap: 8px;">
-                  <i data-lucide="calendar" class="text-primary" style="color: var(--color-primary); width: 20px; height: 20px;"></i>
+                  <i data-lucide="calendar" style="width: 20px; height: 20px;"></i>
                   <span>Visualización de Pisos y Control de Turnos</span>
                 </h3>
                 <p class="box-desc" style="margin: 4px 0 0 0;">Anula o fuerza manualmente el mes de limpieza y qué vecino tiene el turno activo en el calendario.</p>
@@ -1563,11 +1614,11 @@
         </section>
 
         <!-- Personalización de Plantillas de WhatsApp -->
-        <section id="admin-section-whatsapp-templates" class="section-card glass-card" style="margin-top: 18px;">
+        <section id="admin-section-whatsapp-templates" data-exp="Comunicación · Plantillas" class="section-card glass-card" style="margin-top: 18px;">
           <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 14px;">
             <div>
               <h3 style="margin: 0; display: flex; align-items: center; gap: 8px; border-bottom: none; padding-bottom: 0;">
-                <i data-lucide="layout-template" class="text-primary" style="color: var(--color-primary); width: 20px; height: 20px;"></i>
+                <i data-lucide="layout-template" style="width: 20px; height: 20px;"></i>
                 <span>Personalización de Plantillas de WhatsApp</span>
               </h3>
               <p class="box-desc" style="margin: 4px 0 0 0;">Configura y personaliza los textos que se envían automáticamente por WhatsApp usando placeholders dinámicos.</p>
@@ -1706,70 +1757,60 @@
           <span>Volver a Inicio</span>
         </button>
       </div>
-      <div class="glass-card finance-dashboard">
-        <h2 style="font-family: var(--font-title); margin-bottom: 8px;">Estado de Cuentas</h2>
-        <p class="box-desc">Resumen simple de tesorería de la comunidad.</p>
-        <div id="finance-summary-cards" class="finance-kpi-grid" style="margin-bottom:12px;">
-          <div class="history-item">Cargando resumen...</div>
+      <div class="ledger-scene">
+        <header class="ledger-head">
+          <div class="ledger-kicker">El libro de cuentas del portal</div>
+        </header>
+        <div class="ledger-lamp" aria-hidden="true">
+          <span class="lamp-cord"></span>
+          <span class="lamp-bulb"></span>
         </div>
-        <div class="finance-exec-layout">
-          <div class="finance-exec-main">
-        <h3 style="font-size:1rem; margin-bottom:8px;">Resumen Principal</h3>
-            <div id="finance-monthly-chart" class="history-list" style="margin-bottom:12px;">
-              <div class="history-item">Cargando gráfico...</div>
+        <div class="ledger-book">
+          <section class="ledger-page is-left" id="ledger-month-page" aria-label="Cuentas del mes">
+            <div class="ledger-empty">Cargando el libro de cuentas...</div>
+          </section>
+          <section class="ledger-page is-right" id="ledger-quota-page" aria-label="Lista de cuotas">
+            <div class="ledger-empty">Cargando la lista de cuotas...</div>
+          </section>
+        </div>
+        <div class="ledger-label">Folios anteriores — un mes, una hoja</div>
+        <div id="ledger-folios" class="ledger-folios">
+          <div class="ledger-folios-empty">Cargando folios...</div>
+        </div>
+        <div class="ledger-label">El gasto, línea a línea</div>
+        <div class="expenses-book">
+          <div class="ledger-tabs" role="tablist" aria-label="Filtro por tipo de gasto">
+            <button class="ledger-tab is-active" type="button" role="tab" aria-selected="true" data-expense-tab-btn="all" onclick="setExpenseTypeFilter('all')">Todos</button>
+            <button class="ledger-tab" type="button" role="tab" aria-selected="false" data-expense-tab-btn="expense_electricity" onclick="setExpenseTypeFilter('expense_electricity')">Luz</button>
+            <button class="ledger-tab" type="button" role="tab" aria-selected="false" data-expense-tab-btn="expense_insurance" onclick="setExpenseTypeFilter('expense_insurance')">Seguro</button>
+            <button class="ledger-tab" type="button" role="tab" aria-selected="false" data-expense-tab-btn="other" onclick="setExpenseTypeFilter('other')">Otros</button>
+          </div>
+          <h3 class="ledger-title">Registro de gastos</h3>
+          <p class="ledger-sub">Cada salida de dinero, apuntada como en el libro.</p>
+          <div class="ledger-filters">
+            <div class="form-group">
+              <label for="finance-search">Buscar gasto</label>
+              <div class="input-wrapper">
+                <i data-lucide="search"></i>
+                <input type="text" id="finance-search" placeholder="Ej. luz, seguro, recibo">
+              </div>
             </div>
-            <div id="finance-donut-panels" class="finance-donut-grid" style="margin-bottom:12px;">
-              <div class="history-item">Cargando gráficos circulares...</div>
+            <div class="form-group">
+              <label for="finance-sort">Ordenar</label>
+              <div class="input-wrapper">
+                <i data-lucide="arrow-up-down"></i>
+                <select id="finance-sort">
+                  <option value="date_asc">Fecha (más antigua)</option>
+                  <option value="date_desc">Fecha (más reciente)</option>
+                  <option value="amount_desc">Importe (mayor)</option>
+                  <option value="amount_asc">Importe (menor)</option>
+                </select>
+              </div>
             </div>
           </div>
-          <aside class="finance-exec-side">
-            <h3 style="font-size:1rem; margin-bottom:8px;">Control de Pagos</h3>
-            <div id="finance-payment-check" class="history-list" style="margin-bottom:12px;">
-              <div class="history-item">Cargando control de pagos...</div>
-            </div>
-          </aside>
-        </div>
-        <h3 style="font-size:1rem; margin-bottom:8px;">Lista de Gastos</h3>
-        <div id="finance-expense-evolution" class="history-list" style="margin-bottom:10px;">
-          <div class="history-item">Cargando evolución de gastos...</div>
-        </div>
-        <div class="expense-tabs" role="tablist" aria-label="Filtro por tipo de gasto">
-          <button class="btn btn-secondary admin-menu-btn-active" type="button" data-expense-tab-btn="all" onclick="setExpenseTypeFilter('all')">
-            <span>Todos</span>
-          </button>
-          <button class="btn btn-secondary" type="button" data-expense-tab-btn="expense_electricity" onclick="setExpenseTypeFilter('expense_electricity')">
-            <span>Luz</span>
-          </button>
-          <button class="btn btn-secondary" type="button" data-expense-tab-btn="expense_insurance" onclick="setExpenseTypeFilter('expense_insurance')">
-            <span>Seguro</span>
-          </button>
-          <button class="btn btn-secondary" type="button" data-expense-tab-btn="other" onclick="setExpenseTypeFilter('other')">
-            <span>Otros</span>
-          </button>
-        </div>
-        <div class="auth-form" style="margin-bottom:10px;">
-          <div class="form-group">
-            <label for="finance-search">Buscar gasto (concepto o tipo)</label>
-            <div class="input-wrapper">
-              <i data-lucide="search"></i>
-              <input type="text" id="finance-search" placeholder="Ej. luz, seguro, recibo">
-            </div>
+          <div id="finance-contributions-table" class="ledger-lines">
+            <div class="ledger-empty">Cargando gastos...</div>
           </div>
-          <div class="form-group">
-            <label for="finance-sort">Ordenar</label>
-            <div class="input-wrapper">
-              <i data-lucide="arrow-up-down"></i>
-              <select id="finance-sort">
-                <option value="date_asc">Fecha (más antigua)</option>
-                <option value="date_desc">Fecha (más reciente)</option>
-                <option value="amount_desc">Importe (mayor)</option>
-                <option value="amount_asc">Importe (menor)</option>
-              </select>
-            </div>
-          </div>
-        </div>
-        <div id="finance-contributions-table" class="history-list">
-          <div class="history-item">Cargando gastos...</div>
         </div>
       </div>
     </div>
@@ -1783,12 +1824,21 @@
           <span>Volver a Inicio</span>
         </button>
       </div>
-      <div class="glass-card finance-dashboard">
-        <h2 style="font-family: var(--font-title); margin-bottom: 8px;">Certificados</h2>
-        <p class="box-desc">Descarga tu certificado PDF de cuotas abonadas por año y trimestre.</p>
-        <div class="section-card" style="margin-bottom:12px;">
-          <h3 style="font-size:1rem;">Certificado de Abonos</h3>
-          <div class="auth-form" style="margin-bottom:6px;">
+      <div class="ledger-scene">
+        <header class="ledger-head">
+          <div class="ledger-kicker">La ventanilla de certificados</div>
+        </header>
+        <div class="ledger-lamp" aria-hidden="true">
+          <span class="lamp-cord"></span>
+          <span class="lamp-bulb"></span>
+        </div>
+        <div class="cert-oficio">
+          <div class="cert-cabecera">
+            <div class="cert-comunidad">Comunidad de vecinos · Portal 37</div>
+            <h2>Certificado de Abonos</h2>
+            <p class="cert-sub">Documento oficial de cuotas abonadas, expedido en PDF por año y trimestre.</p>
+          </div>
+          <div class="ledger-filters">
             <div class="form-group">
               <label for="finance-cert-year">Año</label>
               <div class="input-wrapper">
@@ -1810,10 +1860,14 @@
               </div>
             </div>
           </div>
-          <button class="btn btn-primary" type="button" onclick="downloadFinanceCertificate()">
+          <button class="btn-descargar" type="button" onclick="downloadFinanceCertificate()">
             <i data-lucide="file-text"></i>
-            <span>Descargar Certificado PDF</span>
+            <span>Expedir certificado PDF</span>
           </button>
+          <div class="cert-nota">
+            <p>Cada certificado lleva un Código de Verificación Seguro (CSV) al pie. Cualquiera puede comprobarlo en la portada, en «Validar Certificado».</p>
+            <div class="cert-sello-csv" aria-hidden="true">CSV verificable<small>VeciTurno · Portal 37</small></div>
+          </div>
         </div>
       </div>
     </div>
@@ -1825,6 +1879,6 @@
   <nav id="mobile-bottom-nav" class="mobile-bottom-nav"></nav>
 
   <!-- SCRIPT DEL FRONTEND -->
-  <script src="js/app.js?v=incidencias-1"></script>
+  <script src="js/app.js?v=portal-noche-0.16.1"></script>
 </body>
 </html>

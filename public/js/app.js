@@ -23,6 +23,43 @@ const passkeyActionState = {
 let financeOverviewData = null;
 let expenseTypeFilter = 'all';
 
+// --- Sesión caducada: detectarla y despedirse con elegancia ---
+// El token JWT vive 7 días; sin esto, un token muerto dejaba al usuario
+// "dentro" mientras cada petición llovía errores 403 por pantalla.
+function vtTokenExpired(token) {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return typeof payload.exp === 'number' && payload.exp * 1000 < Date.now() + 30000;
+  } catch (_) {
+    return true; // token ilegible = token inservible
+  }
+}
+
+let vtSessionExpiredHandled = false;
+function vtSessionExpired() {
+  if (vtSessionExpiredHandled) return;
+  vtSessionExpiredHandled = true;
+  handleLogout();
+  showToast('Tu sesión ha caducado. Vuelve a iniciar sesión.', 'info');
+  setTimeout(() => { vtSessionExpiredHandled = false; }, 3000);
+}
+
+// Un solo vigilante para todos los fetch: si el servidor responde que el
+// token murió a mitad de sesión, se cierra la sesión una vez en lugar de
+// mostrar un error por cada petición en vuelo.
+const vtNativeFetch = window.fetch.bind(window);
+window.fetch = async function (input, init) {
+  const res = await vtNativeFetch(input, init);
+  if ((res.status === 401 || res.status === 403) && state.token) {
+    try {
+      const peek = await res.clone().json();
+      const msg = peek && peek.error ? String(peek.error) : '';
+      if (/Sesión expirada o token no válido|Token de sesión faltante/.test(msg)) vtSessionExpired();
+    } catch (_) { /* cuerpo no-JSON: no viene del middleware de sesión */ }
+  }
+  return res;
+};
+
 function fmtEur(value) {
   const n = Number(value || 0);
   if (!Number.isFinite(n)) return '0,00 €';
@@ -71,6 +108,133 @@ function showToast(message, type = 'info') {
   }, 4000);
 }
 
+// Modal de confirmación estilado (sustituye a window.confirm). Devuelve Promise<boolean>.
+// Detecta acciones destructivas por el texto para pintar el botón en rojo.
+function showConfirm(message, options = {}) {
+  const text = String(message == null ? '' : message);
+  const danger = options.danger != null
+    ? options.danger
+    : /elimina|borrar|borrará|dar de baja|desvincul|reestablec|cancelar|permanente|perder/i.test(text);
+  const title = options.title || (danger ? 'Confirmar acción' : '¿Confirmar?');
+  const confirmText = options.confirmText || 'Aceptar';
+  const cancelText = options.cancelText || 'Cancelar';
+  const safe = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/\n/g, '<br>');
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'confirm-overlay';
+    overlay.innerHTML = `
+      <div class="confirm-dialog glass-card" role="alertdialog" aria-modal="true">
+        <div class="confirm-header">
+          <div class="confirm-icon ${danger ? 'danger' : ''}">
+            <i data-lucide="${danger ? 'alert-triangle' : 'help-circle'}"></i>
+          </div>
+          <h3>${title}</h3>
+        </div>
+        <div class="confirm-body">${safe}</div>
+        <div class="confirm-actions">
+          <button type="button" class="btn-secondary confirm-cancel">${cancelText}</button>
+          <button type="button" class="${danger ? 'btn-danger-ghost' : 'btn-primary'} confirm-ok">${confirmText}</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    if (window.lucide) lucide.createIcons();
+    requestAnimationFrame(() => overlay.classList.add('show'));
+
+    const close = (result) => {
+      overlay.classList.remove('show');
+      document.removeEventListener('keydown', onKey);
+      setTimeout(() => overlay.remove(), 250);
+      resolve(result);
+    };
+    const onKey = (e) => {
+      if (e.key === 'Escape') close(false);
+      else if (e.key === 'Enter') close(true);
+    };
+    overlay.querySelector('.confirm-ok').addEventListener('click', () => close(true));
+    overlay.querySelector('.confirm-cancel').addEventListener('click', () => close(false));
+    overlay.addEventListener('mousedown', (e) => { if (e.target === overlay) close(false); });
+    document.addEventListener('keydown', onKey);
+    setTimeout(() => { const ok = overlay.querySelector('.confirm-ok'); if (ok) ok.focus(); }, 60);
+  });
+}
+
+// Modal de formulario genérico (sustituye a window.prompt). Devuelve un objeto
+// {campoId: valor} o null si se cancela. Los campos siguen el estilo de la app.
+function showFormModal({ title, icon = 'edit-3', confirmText = 'Aceptar', fields = [] }) {
+  const esc = (v) => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'confirm-overlay';
+    overlay.innerHTML = `
+      <div class="confirm-dialog glass-card broadcast-dialog" role="dialog" aria-modal="true" aria-label="${esc(title)}">
+        <div class="confirm-header">
+          <div class="confirm-icon"><i data-lucide="${esc(icon)}"></i></div>
+          <h3>${esc(title)}</h3>
+        </div>
+        ${fields.map((f) => `
+          <div class="form-group">
+            <label for="fm-${esc(f.id)}">${esc(f.label)}</label>
+            ${f.type === 'textarea'
+              ? `<textarea id="fm-${esc(f.id)}" rows="3" placeholder="${esc(f.placeholder || '')}">${esc(f.value || '')}</textarea>`
+              : `<input id="fm-${esc(f.id)}" type="${esc(f.type || 'text')}" placeholder="${esc(f.placeholder || '')}" value="${esc(f.value || '')}">`}
+            ${f.hint ? `<span class="fm-hint">${esc(f.hint)}</span>` : ''}
+          </div>`).join('')}
+        <div class="confirm-actions">
+          <button type="button" class="btn-secondary confirm-cancel">Cancelar</button>
+          <button type="button" class="btn-primary confirm-ok">${esc(confirmText)}</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    if (window.lucide) lucide.createIcons();
+    requestAnimationFrame(() => overlay.classList.add('show'));
+
+    const close = (value) => {
+      overlay.classList.remove('show');
+      document.removeEventListener('keydown', onKey);
+      setTimeout(() => overlay.remove(), 250);
+      resolve(value);
+    };
+    const collect = () => {
+      const out = {};
+      for (const f of fields) {
+        const el = overlay.querySelector(`#fm-${f.id}`);
+        out[f.id] = el ? el.value.trim() : '';
+        if (f.required && !out[f.id]) {
+          el.focus();
+          el.classList.add('fm-invalid');
+          return null;
+        }
+      }
+      return out;
+    };
+    const onKey = (e) => { if (e.key === 'Escape') close(null); };
+    overlay.querySelector('.confirm-ok').addEventListener('click', () => {
+      const values = collect();
+      if (values) close(values);
+    });
+    overlay.querySelector('.confirm-cancel').addEventListener('click', () => close(null));
+    overlay.addEventListener('mousedown', (e) => { if (e.target === overlay) close(null); });
+    document.addEventListener('keydown', onKey);
+    setTimeout(() => { const first = overlay.querySelector('input, textarea'); if (first) first.focus(); }, 60);
+  });
+}
+
+// Pilota el semáforo de estado del bot de WhatsApp (componente .wa-status).
+// Estados: connected | qr | connecting | loading | disconnected | error
+function setWaStatus(stateName, title, sub = '') {
+  const box = document.getElementById('admin-wa-status');
+  const titleEl = document.getElementById('admin-wa-desc');
+  const subEl = document.getElementById('admin-wa-sub');
+  const scene = document.getElementById('porteria-scene');
+  if (box) box.dataset.state = stateName;
+  if (scene) scene.dataset.state = stateName;
+  if (titleEl) titleEl.textContent = title;
+  if (subEl) subEl.textContent = sub;
+}
+
 function b64urlToBuffer(b64url) {
   const pad = '='.repeat((4 - (b64url.length % 4)) % 4);
   const base64 = (b64url + pad).replace(/-/g, '+').replace(/_/g, '/');
@@ -116,6 +280,16 @@ document.addEventListener('DOMContentLoaded', () => {
 async function initApp() {
   normalizeAdminLayout();
 
+  // Token caducado al arrancar: limpiar sesión ANTES de restaurar la última
+  // ruta, o el router metería al usuario en un panel lleno de errores 403.
+  if (state.token && vtTokenExpired(state.token)) {
+    localStorage.removeItem('vt_token');
+    localStorage.removeItem('vt_user');
+    state.token = null;
+    state.user = null;
+    showToast('Tu sesión ha caducado. Vuelve a iniciar sesión.', 'info');
+  }
+
   // Inicializar iconos de Lucide
   lucide.createIcons();
   
@@ -132,6 +306,13 @@ async function initApp() {
   // Comprobar la ruta actual al cargar la página
   checkUrlRoute();
 
+  // Sin hash en la URL: retomar la última ruta guardada (recuerda dónde quedaste)
+  const initialRoute = window.location.hash.replace(/^#\/?/, '');
+  if (!initialRoute && state.token && state.user) {
+    const saved = localStorage.getItem(VT_ROUTE_KEY);
+    if (saved && saved !== 'inicio') applyRoute(saved);
+  }
+
   const financeSearch = document.getElementById('finance-search');
   const financeSort = document.getElementById('finance-sort');
   if (financeSearch) financeSearch.addEventListener('input', renderFinanceContributionsTable);
@@ -142,7 +323,7 @@ function normalizeAdminLayout() {
   const adminContent = document.querySelector('#view-admin .admin-content');
   if (!adminContent) return;
 
-  ['admin-section-visualization', 'admin-section-whatsapp-templates'].forEach((id) => {
+  ['admin-section-visualization', 'admin-panel-porteria', 'admin-section-whatsapp-templates'].forEach((id) => {
     const section = document.getElementById(id);
     if (section && section.parentElement !== adminContent) {
       adminContent.appendChild(section);
@@ -159,18 +340,70 @@ function preloadRememberedUsername() {
   }
 }
 
-// Enrutador de URL (SPA hashes)
+// ==========================================
+// ENRUTADOR SPA CON MEMORIA
+// Rutas: #/inicio, #/finanzas, #/certificados, #/admin/<panel>
+// La última ruta se guarda en localStorage: al volver a abrir
+// la app, retoma donde quedaste.
+// ==========================================
+const VT_ROUTE_KEY = 'vt_last_route';
+let vtExpectedHash = null;
+
 function checkUrlRoute() {
   const hash = window.location.hash;
-  
+
   if (hash.startsWith('#register')) {
     // Detectar si hay un token de registro
     const params = new URLSearchParams(hash.substring(hash.indexOf('?')));
     const token = params.get('token');
-    
+
     if (token) {
       handleRegistrationRoute(token);
     }
+    return;
+  }
+
+  // Cambio de hash provocado por setRoute(): no re-navegar
+  if (vtExpectedHash !== null) {
+    const expected = vtExpectedHash;
+    vtExpectedHash = null;
+    if (hash === expected) return;
+  }
+
+  applyRoute(hash.replace(/^#\/?/, ''));
+}
+
+async function applyRoute(route) {
+  const r = String(route || '').trim();
+  if (!r || r === 'inicio') {
+    if (r === 'inicio') showView('dashboard');
+    return;
+  }
+  // Rutas privadas: solo con sesión iniciada
+  if (!state.token || !state.user) return;
+  if (r === 'finanzas') {
+    await openFinancePage();
+    return;
+  }
+  if (r === 'certificados') {
+    openCertificatesPage();
+    return;
+  }
+  if (r === 'admin' || r.startsWith('admin/')) {
+    if (!state.user.isAdmin) return;
+    await openAdminPanel();
+    const panel = r.split('/')[1];
+    if (panel && panel !== 'config') adminShowPanel(panel);
+    return;
+  }
+}
+
+function setRoute(route) {
+  try { localStorage.setItem(VT_ROUTE_KEY, route); } catch (_) { /* almacenamiento lleno o bloqueado */ }
+  const target = `#/${route}`;
+  if (window.location.hash !== target) {
+    vtExpectedHash = target;
+    window.location.hash = target;
   }
 }
 
@@ -199,6 +432,181 @@ async function loadCommunityStatus() {
 }
 
 // Renderizar el Dashboard principal
+// Altura real de cada unidad para apilar el edificio (ático arriba).
+// floorNumber puede venir como texto ("Primer Piso"), así que solo se usa si
+// es numérico; si no, el id numérico. Los locales/comerciales van a pie de
+// calle (debajo del todo, junto al portal).
+function floorRank(n) {
+  if ((n.kind || '') === 'comercial') return -1;
+  const fn = Number(n.floorNumber);
+  if (Number.isFinite(fn)) return fn;
+  const idn = Number(n.id);
+  return Number.isFinite(idn) ? idn : 0;
+}
+
+// El edificio como interfaz: los pisos se apilan como en el portal real
+// (ático arriba, bajo abajo) y el turno se lee como en el portero automático.
+// Cada piso muestra su mes proyectado siguiendo el orden de rotación.
+// opts.compact → oculta metadatos (vista vecino); opts.onFloorClick → hace
+// cada piso interactivo (vista admin: seleccionar turno).
+function renderBuildingView(container, data, opts = {}) {
+  if (!container) return;
+  container.innerHTML = '';
+
+  const activeFloorId = data.state.currentTurnFloorId;
+
+  // Orden de rotación (misma lógica que el backend: no exentos, por id)
+  const rotation = [...data.neighbors]
+    .filter((n) => !n.exemptFromCleaning)
+    .sort((a, b) => Number(a.id) - Number(b.id));
+  const rotIndex = rotation.findIndex(n => n.id === activeFloorId);
+  const baseMonth = data.state.currentMonth ? new Date(data.state.currentMonth) : new Date();
+  const monthShort = (offset) => {
+    const d = new Date(baseMonth.getFullYear(), baseMonth.getMonth() + offset, 1);
+    const label = d.toLocaleDateString('es-ES', { month: 'short' });
+    return label.charAt(0).toUpperCase() + label.slice(1).replace('.', '');
+  };
+
+  // Apilado como edificio: planta más alta arriba. floorNumber si existe; id como fallback.
+  const stacked = [...data.neighbors].sort((a, b) => floorRank(b) - floorRank(a));
+
+  const building = document.createElement('div');
+  building.className = `building-view${opts.compact ? ' compact' : ''}`;
+  building.setAttribute('aria-label', 'Edificio: rotación de turnos por piso');
+
+  stacked.forEach((neighbor) => {
+    const isActive = neighbor.id === activeFloorId;
+    const isRegistered = neighbor.registered;
+    const idx = rotation.findIndex(n => n.id === neighbor.id);
+    const offset = (idx >= 0 && rotIndex >= 0) ? (idx - rotIndex + rotation.length) % rotation.length : -1;
+
+    let turnBadge;
+    if (neighbor.exemptFromCleaning) {
+      turnBadge = '<span class="bf-badge exempt">Exento</span>';
+    } else if (isActive) {
+      turnBadge = '<span class="bf-badge now">Le toca ahora</span>';
+    } else if (offset === 1) {
+      turnBadge = `<span class="bf-badge next">Siguiente · ${monthShort(1)}</span>`;
+    } else if (offset > 1) {
+      turnBadge = `<span class="bf-badge future">${monthShort(offset)}</span>`;
+    } else {
+      turnBadge = '';
+    }
+
+    const row = document.createElement('div');
+    row.className = `building-floor ${isActive ? 'active' : ''}${opts.onFloorClick ? '' : ' static'}`;
+    row.innerHTML = `
+      <div class="bf-door" aria-hidden="true">${neighbor.id}</div>
+      <div class="bf-info">
+        <span class="bf-name">${neighbor.floor} ${neighbor.isAdmin ? '👑' : ''}</span>
+        <span class="bf-meta">
+          ${isRegistered ? 'Registrado' : 'Pendiente de registro'}
+          · ${(Number(neighbor.monthlyFee || 0)).toFixed(2)} €/mes
+          ${neighbor.phone ? '· 📱' : '· <span class="bf-nophone">sin número</span>'}
+        </span>
+      </div>
+      ${turnBadge}
+    `;
+    if (opts.onFloorClick) {
+      row.addEventListener('click', () => opts.onFloorClick(neighbor));
+    }
+    building.appendChild(row);
+  });
+
+  container.appendChild(building);
+}
+
+// La fachada del portal de noche: cada piso es una ventana; la del turno
+// activo está encendida (ámbar). El siguiente en rotación se marca en verde.
+function renderFacade(container, data) {
+  if (!container) return;
+  container.innerHTML = '';
+
+  const activeFloorId = data.state.currentTurnFloorId;
+  const rotation = [...data.neighbors]
+    .filter((n) => !n.exemptFromCleaning)
+    .sort((a, b) => Number(a.id) - Number(b.id));
+  const rotIndex = rotation.findIndex(n => n.id === activeFloorId);
+  const baseMonth = data.state.currentMonth ? new Date(data.state.currentMonth) : new Date();
+  const monthName = (offset) => {
+    const d = new Date(baseMonth.getFullYear(), baseMonth.getMonth() + offset, 1);
+    const label = d.toLocaleDateString('es-ES', { month: 'long' });
+    return label.charAt(0).toUpperCase() + label.slice(1);
+  };
+  const monthShort = (offset) => {
+    const d = new Date(baseMonth.getFullYear(), baseMonth.getMonth() + offset, 1);
+    const label = d.toLocaleDateString('es-ES', { month: 'short' });
+    return label.charAt(0).toUpperCase() + label.slice(1).replace('.', '');
+  };
+
+  const stacked = [...data.neighbors].sort((a, b) => floorRank(b) - floorRank(a));
+
+  stacked.forEach((neighbor) => {
+    const isActive = neighbor.id === activeFloorId;
+    const idx = rotation.findIndex(n => n.id === neighbor.id);
+    const offset = (idx >= 0 && rotIndex >= 0) ? (idx - rotIndex + rotation.length) % rotation.length : -1;
+
+    let turnLabel = '';
+    let chip = '';
+    if (neighbor.exemptFromCleaning) {
+      turnLabel = 'Exento de turno';
+      chip = '<span class="f-chip">—</span>';
+    } else if (isActive) {
+      turnLabel = 'Le toca ahora';
+      chip = `<span class="f-chip">${monthShort(0)}</span>`;
+    } else if (offset >= 1) {
+      turnLabel = `Turno en ${monthName(offset).toLowerCase()}`;
+      chip = `<span class="f-chip">${monthShort(offset)}</span>`;
+    }
+
+    const row = document.createElement('div');
+    row.className = `floor-row${isActive ? ' lit' : ''}${offset === 1 ? ' next' : ''}`;
+    row.innerHTML = `
+      <div class="window" aria-hidden="true"></div>
+      <div class="f-label">
+        <span class="f-name">${neighbor.floor}</span>
+        <span class="f-turn">${turnLabel}</span>
+      </div>
+      ${chip}
+    `;
+    container.appendChild(row);
+  });
+
+  const portal = document.createElement('div');
+  portal.className = 'portal';
+  portal.setAttribute('aria-hidden', 'true');
+  container.appendChild(portal);
+}
+
+// Cinta de rotación del año: los próximos meses con su piso asignado.
+function renderRotaStrip(container, data) {
+  if (!container) return;
+  container.innerHTML = '';
+
+  const activeFloorId = data.state.currentTurnFloorId;
+  const rotation = [...data.neighbors]
+    .filter((n) => !n.exemptFromCleaning)
+    .sort((a, b) => Number(a.id) - Number(b.id));
+  const rotIndex = rotation.findIndex(n => n.id === activeFloorId);
+  if (rotIndex < 0 || !rotation.length) return;
+  const baseMonth = data.state.currentMonth ? new Date(data.state.currentMonth) : new Date();
+
+  const count = Math.min(Math.max(rotation.length, 4), 8);
+  for (let offset = 0; offset < count; offset += 1) {
+    const neighbor = rotation[(rotIndex + offset) % rotation.length];
+    const d = new Date(baseMonth.getFullYear(), baseMonth.getMonth() + offset, 1);
+    let label = d.toLocaleDateString('es-ES', { month: 'long' });
+    label = label.charAt(0).toUpperCase() + label.slice(1);
+    const card = document.createElement('div');
+    card.className = `rota-card${offset === 0 ? ' now' : ''}`;
+    card.innerHTML = `
+      <span class="rota-m">${label}</span>
+      <span class="rota-who">${neighbor.floor}</span>
+    `;
+    container.appendChild(card);
+  }
+}
+
 function renderDashboard(data) {
   const activeFloorId = data.state.currentTurnFloorId;
   const activeNeighbor = data.neighbors.find(n => n.id === activeFloorId);
@@ -239,8 +647,8 @@ function renderDashboard(data) {
   }
   
   if (activeNeighbor) {
-    activeBadgeEl.textContent = activeNeighbor.id;
-    activeTitleEl.textContent = activeNeighbor.floor;
+    if (activeBadgeEl) activeBadgeEl.textContent = activeNeighbor.id;
+    if (activeTitleEl) activeTitleEl.textContent = activeNeighbor.floor;
 
     // Calcular siguiente turno ignorando unidades exentas
     const orderedNeighbors = [...data.neighbors]
@@ -298,46 +706,18 @@ function renderDashboard(data) {
   }
 
 
-  // 2. Renderizar lista de vecinos / pisos
-  const neighborsContainer = document.getElementById('neighbors-container');
-  neighborsContainer.innerHTML = '';
-
-  data.neighbors.forEach(neighbor => {
-    const isActive = neighbor.id === activeFloorId;
-    const isRegistered = neighbor.registered;
-    
-    const row = document.createElement('div');
-    row.className = `neighbor-row ${isActive ? 'active' : ''}`;
-    
-    row.innerHTML = `
-      <div class="neighbor-info">
-        <div class="neighbor-mini-avatar">
-          ${neighbor.id}
-        </div>
-        <div class="neighbor-details">
-          <span class="neighbor-name">${neighbor.floor} ${neighbor.isAdmin ? '👑' : ''}</span>
-          <span class="neighbor-status-badge">
-            <i data-lucide="${isActive ? 'sparkles' : (isRegistered ? 'check-circle' : 'circle-dashed')}"></i>
-            ${isActive ? 'Turno Activo' : (isRegistered ? 'Registrado' : 'Pendiente de Registro')}
-          </span>
-          <span class="history-date">Cuota: ${(Number(neighbor.monthlyFee || 0)).toFixed(2)} €/mes</span>
-        </div>
-      </div>
-      <div class="neighbor-action">
-        ${neighbor.phone ? `
-          <span class="badge badge-success" title="${neighbor.phone}">
-            <i data-lucide="phone-call" style="width: 12px; height: 12px; margin-right: 4px;"></i>
-            Con número
-          </span>
-        ` : `
-          <span class="badge badge-danger">
-            Sin número
-          </span>
-        `}
-      </div>
-    `;
-    
-    neighborsContainer.appendChild(row);
+  // 2. El Portal de Noche en la home (fachada + cinta de rotación) y el
+  // edificio interactivo en el panel admin de Visualización.
+  renderFacade(document.getElementById('facade-home'), data);
+  renderRotaStrip(document.getElementById('rota-strip'), data);
+  renderBuildingView(document.getElementById('neighbors-container'), data, {
+    onFloorClick: (neighbor) => {
+      const sel = document.getElementById('admin-force-floor');
+      if (sel) {
+        sel.value = String(neighbor.id);
+        sel.closest('form')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
   });
 
   // 3. Renderizar el historial
@@ -437,6 +817,7 @@ function showView(viewName) {
 
   if (viewName === 'dashboard') {
     // Vista principal
+    setRoute('inicio');
     return;
   }
 
@@ -462,6 +843,7 @@ function showView(viewName) {
       }
       targetView.classList.add('active');
       window.scrollTo({ top: 0, behavior: 'auto' });
+      if (viewName === 'certificates') setRoute('certificados');
     }
   }
 }
@@ -695,6 +1077,7 @@ async function openFinancePage() {
   if (dashboardView) dashboardView.classList.remove('active');
   financeView.classList.add('active');
   window.scrollTo({ top: 0, behavior: 'auto' });
+  setRoute('finanzas');
   await loadFinanceOverview();
 }
 
@@ -734,10 +1117,11 @@ async function downloadFinanceCertificate() {
 
 async function loadFinanceOverview() {
   if (!state.token || !state.user) return;
-  const summaryEl = document.getElementById('finance-summary-cards');
-  const monthlyEl = document.getElementById('finance-monthly-chart');
+  const monthPageEl = document.getElementById('ledger-month-page');
+  const quotaPageEl = document.getElementById('ledger-quota-page');
+  const foliosEl = document.getElementById('ledger-folios');
   const tableEl = document.getElementById('finance-contributions-table');
-  if (!summaryEl || !monthlyEl || !tableEl) return;
+  if (!monthPageEl || !quotaPageEl || !foliosEl || !tableEl) return;
   try {
     const res = await fetch(`${API_URL}/neighbors/finance/overview`, {
       headers: { 'Authorization': `Bearer ${state.token}` }
@@ -747,136 +1131,198 @@ async function loadFinanceOverview() {
     financeOverviewData = data;
     renderFinanceOverview();
   } catch (err) {
-    const errorHtml = `<div class="history-item">${err.message}</div>`;
-    summaryEl.innerHTML = errorHtml;
-    monthlyEl.innerHTML = errorHtml;
-    const donutsEl = document.getElementById('finance-donut-panels');
-    const paymentEl = document.getElementById('finance-payment-check');
-    const evolutionEl = document.getElementById('finance-expense-evolution');
-    if (donutsEl) donutsEl.innerHTML = errorHtml;
-    if (paymentEl) paymentEl.innerHTML = errorHtml;
-    if (evolutionEl) evolutionEl.innerHTML = errorHtml;
+    const errorHtml = `<div class="ledger-empty">${escapeHtml(err.message)}</div>`;
+    monthPageEl.innerHTML = errorHtml;
+    quotaPageEl.innerHTML = errorHtml;
+    foliosEl.innerHTML = `<div class="ledger-folios-empty">${escapeHtml(err.message)}</div>`;
     tableEl.innerHTML = errorHtml;
   }
+}
+
+// ==========================================
+// EL LIBRO DE CUENTAS DEL PORTAL
+// La vista de finanzas es un libro contable: página del mes (Debe/Haber),
+// lista de cuotas con sello, folios por mes y registro de gastos.
+// ==========================================
+
+let ledgerSelectedMonth = null;
+const LEDGER_MONTH_NAMES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+function ledgerMonthName(month) {
+  const m = String(month || '');
+  if (!/^\d{4}-\d{2}$/.test(m)) return m || 'Sin mes';
+  const name = LEDGER_MONTH_NAMES[Number(m.slice(5, 7)) - 1] || m;
+  return `${name} de ${m.slice(0, 4)}`;
+}
+
+// "12 JUL" a partir de dateValue (ISO o dd/mm/aaaa); si no hay fecha, el mes corto
+function ledgerDateLabel(dateValue, month) {
+  const s = String(dateValue || '').trim();
+  let day = '';
+  let mm = '';
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const dmy = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+  if (iso) {
+    day = iso[3];
+    mm = iso[2];
+  } else if (dmy) {
+    day = dmy[1].padStart(2, '0');
+    mm = dmy[2].padStart(2, '0');
+  }
+  if (day && mm) {
+    const name = LEDGER_MONTH_NAMES[Number(mm) - 1] || '';
+    return `${day} ${name.slice(0, 3).toUpperCase()}`.trim();
+  }
+  const m = String(month || '');
+  if (/^\d{4}-\d{2}$/.test(m)) {
+    const name = LEDGER_MONTH_NAMES[Number(m.slice(5, 7)) - 1] || '';
+    return name.slice(0, 3).toUpperCase();
+  }
+  return s.slice(0, 8);
+}
+
+// Un renglón del libro. side: 'haber' (ingreso), 'debe' (gasto, tinta roja) o 'carry' (suma anterior)
+function ledgerLine({ date, concept, sub, amount, side }) {
+  const amtText = `${side === 'debe' ? '−' : ''}${fmtEur(Math.abs(Number(amount || 0)))}`;
+  const debeCell = side === 'debe'
+    ? `<span class="lr-amt is-debe">${amtText}</span>`
+    : '<span class="lr-amt is-blank"></span>';
+  const haberCell = side === 'debe'
+    ? '<span class="lr-amt is-blank"></span>'
+    : `<span class="lr-amt">${amtText}</span>`;
+  return `<div class="ledger-row${side === 'carry' ? ' is-carry' : ''}">
+    <span class="lr-date">${escapeHtml(date || '')}</span>
+    <span class="lr-concept">${escapeHtml(concept || '')}${sub ? `<small>${escapeHtml(sub)}</small>` : ''}</span>
+    ${debeCell}${haberCell}
+  </div>`;
 }
 
 function renderFinanceOverview() {
   const data = financeOverviewData;
   if (!data) return;
-  const summaryEl = document.getElementById('finance-summary-cards');
-  const donutsEl = document.getElementById('finance-donut-panels');
-  const monthlyEl = document.getElementById('finance-monthly-chart');
-  const paymentEl = document.getElementById('finance-payment-check');
-  if (!summaryEl || !monthlyEl || !donutsEl || !paymentEl) return;
+  const monthPageEl = document.getElementById('ledger-month-page');
+  const quotaPageEl = document.getElementById('ledger-quota-page');
+  const foliosEl = document.getElementById('ledger-folios');
+  if (!monthPageEl || !quotaPageEl || !foliosEl) return;
 
-  const saldoCuenta = data.currentBankBalance === null || data.currentBankBalance === undefined
-    ? 'Sin dato'
-    : fmtEur(data.currentBankBalance);
-  const pc = data.paymentCheck || {};
-  const saldoPrincipal = (data.currentBankBalance === null || data.currentBankBalance === undefined)
-    ? Number(data.totals?.balance || 0)
-    : Number(data.currentBankBalance);
   const monthly = Array.isArray(data.monthly) ? data.monthly : [];
-  const currentMonth = monthly[0] || null;
-  const currentYear = (currentMonth?.month || '').slice(0, 4);
-  const yearRows = monthly.filter((m) => String(m.month || '').startsWith(currentYear));
-  const yearExpenses = yearRows.reduce((a, m) => a + Number(m.expenseInsurance || 0) + Number(m.expenseElectricity || 0), 0);
-  summaryEl.innerHTML = `
-    <div class="finance-kpi-card"><div class="finance-kpi-title">Saldo Total Actual</div><div class="finance-kpi-value">${fmtEur(saldoPrincipal)}</div></div>
-    <div class="finance-kpi-card"><div class="finance-kpi-title">Gastos Acumulados</div><div class="finance-kpi-value">${fmtEur(data.totals?.expenses || 0)}</div></div>
-    <div class="finance-kpi-card"><div class="finance-kpi-title">Gastos Año en Curso ${currentYear ? `(${currentYear})` : ''}</div><div class="finance-kpi-value">${fmtEur(yearExpenses)}</div></div>
-  `;
+  const monthsAsc = monthly.slice().sort((a, b) => String(a.month).localeCompare(String(b.month)));
 
-  const prevYear = currentYear ? String(Number(currentYear) - 1) : '';
-  const prevYearRows = monthly.filter((m) => prevYear && String(m.month || '').startsWith(prevYear));
-  const yearIncome = yearRows.reduce((a, m) => a + Number(m.incomeFees || 0), 0);
-  const prevYearIncome = prevYearRows.reduce((a, m) => a + Number(m.incomeFees || 0), 0);
-  const prevYearExpenses = prevYearRows.reduce((a, m) => a + Number(m.expenseInsurance || 0) + Number(m.expenseElectricity || 0), 0);
-  const monthIncome = Number(currentMonth?.incomeFees || 0);
-  const monthExpenses = Number(currentMonth ? (Number(currentMonth.expenseInsurance || 0) + Number(currentMonth.expenseElectricity || 0)) : 0);
-  const totalIncome = Number(data.totals?.income || 0);
-  const totalExpenses = Number(data.totals?.expenses || 0);
+  // Saldo acumulado mes a mes; si hay saldo bancario real, ancla el último mes a esa cifra
+  let run = 0;
+  const cumByMonth = new Map();
+  monthsAsc.forEach((m) => {
+    run += Number(m.balance || 0);
+    cumByMonth.set(m.month, run);
+  });
+  const bank = data.currentBankBalance;
+  const offset = (bank === null || bank === undefined) ? 0 : Number(bank) - run;
+  const saldoAt = (month) => Number(((cumByMonth.get(month) || 0) + offset).toFixed(2));
 
-  donutsEl.innerHTML = [
-    renderDonutCard('Mes Actual', monthIncome, monthExpenses),
-    renderDonutCard(`Año ${currentYear || 'Actual'}`, yearIncome, yearExpenses),
-    renderDonutCard(`Año ${prevYear || 'Anterior'}`, prevYearIncome, prevYearExpenses),
-    renderDonutCard('Acumulado', totalIncome, totalExpenses)
-  ].join('');
-
-  const maxVal = Math.max(1, ...monthly.map((m) => Math.max(Number(m.incomeFees || 0), Number(m.expenseInsurance || 0) + Number(m.expenseElectricity || 0))));
-  const recent = monthly.slice(0, 6).reverse();
-  if (!recent.length) {
-    monthlyEl.innerHTML = '<div class="history-item">Sin meses disponibles.</div>';
+  // --- Página izquierda: el mes abierto ---
+  if (!monthsAsc.length) {
+    monthPageEl.innerHTML = '<div class="ledger-empty">El libro está en blanco. Importa el Excel de finanzas desde Administración.</div>';
   } else {
-    const bars = recent.map((m) => {
-      const ing = Number(m.incomeFees || 0);
-      const gas = Number(m.expenseInsurance || 0) + Number(m.expenseElectricity || 0);
-      const ingH = Math.max(8, Math.round((ing / maxVal) * 100));
-      const gasH = Math.max(8, Math.round((gas / maxVal) * 100));
-      return `<div class="finance-mini-bar-col" title="${m.month} · Ingresos ${fmtEur(ing)} · Gastos ${fmtEur(gas)}"><div class="finance-mini-bar-stack"><div class="finance-mini-income" style="height:${ingH}%"></div><div class="finance-mini-expense" style="height:${gasH}%"></div></div><div class="finance-mini-month">${m.month.slice(5)}</div></div>`;
-    }).join('');
-    monthlyEl.innerHTML = `
-      <div class="finance-trend-grid">
-        <div class="finance-trend-card">
-          <div class="finance-kpi-title" style="margin-bottom:8px;">Tendencia 6 últimos meses (Ingresos vs Gastos)</div>
-          <div class="finance-mini-bars">${bars}</div>
-        </div>
-        <div class="finance-trend-card">
-          <div class="finance-kpi-title" style="margin-bottom:8px;">Salud Financiera</div>
-          <div class="finance-health-pill"><span>Ingresos:</span><strong>${fmtEur(data.totals?.income || 0)}</strong></div>
-          <div style="height:8px"></div>
-          <div class="finance-health-pill"><span>Gastos:</span><strong>${fmtEur(data.totals?.expenses || 0)}</strong></div>
-          <div style="height:8px"></div>
-          <div class="finance-health-pill"><span>Al corriente:</span><strong>${Number(pc.currentCount || 0)}/${Number(pc.totalOwners || 0)}</strong></div>
-        </div>
+    const latestMonth = monthsAsc[monthsAsc.length - 1].month;
+    if (!ledgerSelectedMonth || !cumByMonth.has(ledgerSelectedMonth)) ledgerSelectedMonth = latestMonth;
+    const row = monthsAsc.find((m) => m.month === ledgerSelectedMonth);
+    const folioNum = monthsAsc.findIndex((m) => m.month === ledgerSelectedMonth) + 1;
+    const closing = saldoAt(ledgerSelectedMonth);
+    const carry = Number((closing - Number(row.balance || 0)).toFixed(2));
+    const movements = (Array.isArray(data.expenseMovements) ? data.expenseMovements : [])
+      .filter((r) => String(r.month) === ledgerSelectedMonth)
+      .sort((a, b) => String(a.dateValue).localeCompare(String(b.dateValue)));
+
+    const lines = [];
+    lines.push(ledgerLine({ date: '', concept: 'Suma anterior', sub: '', amount: carry, side: 'carry' }));
+    if (Number(row.incomeFees || 0) > 0) {
+      lines.push(ledgerLine({ date: ledgerDateLabel('', row.month), concept: 'Cuotas de la comunidad', sub: 'Ingresos del mes', amount: row.incomeFees, side: 'haber' }));
+    }
+    if (movements.length) {
+      movements.forEach((r) => {
+        const typeLabel = r.movementType === 'expense_electricity'
+          ? 'Luz'
+          : (r.movementType === 'expense_insurance' ? 'Seguro' : 'Otro gasto');
+        lines.push(ledgerLine({ date: ledgerDateLabel(r.dateValue, r.month), concept: r.description || typeLabel, sub: typeLabel, amount: r.amount, side: 'debe' }));
+      });
+    } else {
+      if (Number(row.expenseElectricity || 0) > 0) {
+        lines.push(ledgerLine({ date: ledgerDateLabel('', row.month), concept: 'Luz de la escalera', sub: 'Recibo eléctrica', amount: row.expenseElectricity, side: 'debe' }));
+      }
+      if (Number(row.expenseInsurance || 0) > 0) {
+        lines.push(ledgerLine({ date: ledgerDateLabel('', row.month), concept: 'Seguro del edificio', sub: 'Prima del seguro', amount: row.expenseInsurance, side: 'debe' }));
+      }
+    }
+
+    const isLatest = ledgerSelectedMonth === latestMonth;
+    monthPageEl.innerHTML = `
+      <div class="ledger-folio-head">
+        <h3>${ledgerMonthName(ledgerSelectedMonth)}</h3>
+        <span class="ledger-folio-num">Folio ${folioNum}</span>
+      </div>
+      <div class="ledger-cols">
+        <span></span><span>Concepto</span><span class="lc-num">Debe</span><span class="lc-num lc-haber">Haber</span>
+      </div>
+      ${lines.join('')}
+      <div class="ledger-total">
+        <span class="lt-label">${isLatest ? 'En caja, hoy' : 'Al cierre del mes'}<small>Saldo de la comunidad</small></span>
+        <span class="lt-amt${closing < 0 ? ' is-rojo' : ''}">${fmtEur(closing)}</span>
       </div>
     `;
   }
 
-  const totalOwners = Number(pc.totalOwners || 0);
-  const currentCount = Number(pc.currentCount || 0);
+  // --- Página derecha: la lista de cuotas ---
+  const pc = data.paymentCheck || {};
+  const owners = Array.isArray(pc.owners) ? pc.owners : [];
   const pendingCount = Number(pc.pendingCount || 0);
-  const currentPct = totalOwners > 0 ? (currentCount / totalOwners) * 100 : 0;
-  const circle = 2 * Math.PI * 30;
-  const currentLen = (currentPct / 100) * circle;
-  paymentEl.innerHTML = `
-    <div class="history-item">
-      <div class="history-meta" style="width:100%;">
-        <span class="history-floor">Propietarios al corriente (${currentCount}/${totalOwners}) · Periodos: ${Number(pc.monthsCount || 0)} meses</span>
-        <div style="display:flex;align-items:center;gap:14px;margin-top:8px;flex-wrap:wrap;">
-          <svg width="86" height="86" viewBox="0 0 86 86" aria-label="Control de pagos">
-            <g transform="translate(43,43) rotate(-90)">
-              <circle r="30" cx="0" cy="0" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="10"></circle>
-              <circle r="30" cx="0" cy="0" fill="none" stroke="rgba(16,185,129,0.9)" stroke-width="10" stroke-linecap="round" stroke-dasharray="${currentLen} ${circle - currentLen}" stroke-dashoffset="0"></circle>
-              <circle r="30" cx="0" cy="0" fill="none" stroke="rgba(239,68,68,0.9)" stroke-width="10" stroke-linecap="round" stroke-dasharray="${circle - currentLen} ${currentLen}" stroke-dashoffset="-${currentLen}"></circle>
-            </g>
-            <text x="43" y="40" text-anchor="middle" fill="#e5e7eb" font-size="10">${currentPct.toFixed(0)}%</text>
-            <text x="43" y="53" text-anchor="middle" fill="#9ca3af" font-size="8">al corriente</text>
-          </svg>
-          <div>
-            <div class="history-by">Al corriente: ${currentCount}</div>
-            <div class="history-by">Pendientes: ${pendingCount}</div>
-          </div>
-        </div>
-      </div>
-    </div>
-    ${(pc.owners || []).map((o) => `<div class="history-item"><div class="history-meta"><span class="history-floor">${o.unitName}</span><span class="history-by">Pagado: ${fmtEur(o.paid || 0)} · Esperado: ${fmtEur(o.expected || 0)} · Deuda: ${fmtEur(o.debt || 0)}</span></div></div>`).join('')}
+  const ownersRows = owners.map((o) => {
+    let mark;
+    if (Number(o.monthlyFee || 0) <= 0) {
+      mark = '<span class="lq-mark is-exempt">exento</span>';
+    } else if (o.current) {
+      mark = '<span class="lq-mark is-ok">al corriente</span>';
+    } else {
+      mark = `<span class="lq-mark is-pend">debe ${fmtEur(o.debt || 0)}</span>`;
+    }
+    return `<div class="ledger-quota-row">
+      <span class="lq-who">${escapeHtml(o.unitName || '')}</span>
+      <span class="lq-dots"></span>
+      ${mark}
+    </div>`;
+  }).join('');
+  const stamp = pendingCount === 0
+    ? `<div class="ledger-stamp">Al corriente<small>${Number(pc.currentCount || 0)} de ${Number(pc.totalOwners || 0)} · ${Number(pc.monthsCount || 0)} meses</small></div>`
+    : `<div class="ledger-stamp is-pend">Pendiente<small>faltan ${pendingCount} de ${Number(pc.totalOwners || 0)}</small></div>`;
+  quotaPageEl.innerHTML = `
+    <h3 class="ledger-quota-title">La lista de cuotas</h3>
+    <p class="ledger-quota-sub">Acumulado sobre ${Number(pc.monthsCount || 0)} meses de comunidad</p>
+    ${ownersRows || '<div class="ledger-empty">Sin vecinos con cuota.</div>'}
+    <div class="ledger-stamp-zone">${stamp}</div>
   `;
-  renderExpenseEvolutionByType();
+
+  // --- Folios anteriores: una hoja por mes, la abierta resaltada ---
+  const monthsDesc = monthsAsc.slice().reverse().slice(0, 12);
+  foliosEl.innerHTML = monthsDesc.map((m) => {
+    const saldo = saldoAt(m.month);
+    const gastos = Number(m.expenseInsurance || 0) + Number(m.expenseElectricity || 0);
+    const idx = monthsAsc.findIndex((x) => x.month === m.month) + 1;
+    return `<button type="button" class="ledger-folio-card${m.month === ledgerSelectedMonth ? ' is-open' : ''}" onclick="selectLedgerMonth('${m.month}')">
+      <span class="lf-m">${ledgerMonthName(m.month)} · F.${idx}</span>
+      <span class="lf-s${saldo < 0 ? ' is-rojo' : ''}">${fmtEur(saldo)}</span>
+      <span class="lf-d">+${fmtEur(m.incomeFees || 0)} · −${fmtEur(gastos)}</span>
+    </button>`;
+  }).join('') || '<div class="ledger-folios-empty">Sin meses registrados.</div>';
+
   renderFinanceContributionsTable();
 }
 
-function renderDonutCard(title, income, expenses) {
-  const safeIncome = Math.max(0, Number(income || 0));
-  const safeExpenses = Math.max(0, Number(expenses || 0));
-  const total = Math.max(1, safeIncome + safeExpenses);
-  const incomePct = (safeIncome / total) * 100;
-  const expensePct = (safeExpenses / total) * 100;
-  const circle = 2 * Math.PI * 30;
-  const incomeLen = (incomePct / 100) * circle;
-  const expenseLen = (expensePct / 100) * circle;
-  return `<div class="history-item" style="padding: 10px 12px;"><div class="history-meta" style="width:100%;"><span class="history-floor" style="font-size: 0.82rem; font-weight: 700; color: var(--text-main); opacity: 0.95;">${title}</span><div style="display:flex;align-items:center;gap:12px;margin-top:6px;flex-wrap:wrap;"><svg width="74" height="74" viewBox="0 0 86 86" aria-label="${title}" style="flex-shrink:0;"><g transform="translate(43,43) rotate(-90)"><circle r="30" cx="0" cy="0" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="8"></circle><circle r="30" cx="0" cy="0" fill="none" stroke="rgba(16,185,129,0.9)" stroke-width="8" stroke-linecap="round" stroke-dasharray="${incomeLen} ${circle - incomeLen}" stroke-dashoffset="0"></circle><circle r="30" cx="0" cy="0" fill="none" stroke="rgba(239,68,68,0.9)" stroke-width="8" stroke-linecap="round" stroke-dasharray="${expenseLen} ${circle - expenseLen}" stroke-dashoffset="-${incomeLen}"></circle></g><text x="43" y="42" text-anchor="middle" fill="#e5e7eb" font-size="11" font-weight="700">${incomePct.toFixed(0)}%</text><text x="43" y="55" text-anchor="middle" fill="#9ca3af" font-size="7.5" font-weight="500" letter-spacing="0.2px">ingresos</text></svg><div style="font-size: 0.72rem; display:flex; flex-direction:column; gap:2px;"><div class="history-by" style="font-size: 0.7rem; color: #34d399; font-weight:600;">Ingresos: ${fmtEur(safeIncome)}</div><div class="history-by" style="font-size: 0.7rem; color: #f87171; font-weight:600;">Gastos: ${fmtEur(safeExpenses)}</div><div class="history-by" style="font-size: 0.7rem; color: var(--text-muted);">Balance: ${fmtEur(safeIncome - safeExpenses)}</div></div></div></div></div>`;
+function selectLedgerMonth(month) {
+  ledgerSelectedMonth = String(month || '');
+  renderFinanceOverview();
+  const page = document.getElementById('ledger-month-page');
+  if (page && typeof page.scrollIntoView === 'function') {
+    page.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
 }
 
 function renderFinanceContributionsTable() {
@@ -910,200 +1356,24 @@ function renderFinanceContributionsTable() {
     const typeLabel = r.movementType === 'expense_electricity'
       ? 'Luz'
       : (r.movementType === 'expense_insurance' ? 'Seguro' : 'Otro gasto');
-    return `<div class="history-item"><div class="history-meta"><span class="history-floor">${r.month} · ${r.dateValue} · ${fmtEur(r.amount || 0)}</span><span class="history-by">${typeLabel}</span><span class="history-by">${r.description || ''}</span></div></div>`;
-  }).join('') || '<div class="history-item">Sin gastos.</div>';
+    return ledgerLine({
+      date: ledgerDateLabel(r.dateValue, r.month),
+      concept: r.description || typeLabel,
+      sub: `${typeLabel} · ${ledgerMonthName(r.month)}`,
+      amount: r.amount,
+      side: 'debe'
+    });
+  }).join('') || '<div class="ledger-empty">Sin gastos apuntados.</div>';
 }
 
 function setExpenseTypeFilter(type) {
   expenseTypeFilter = type || 'all';
   document.querySelectorAll('[data-expense-tab-btn]').forEach((btn) => {
-    btn.classList.toggle('admin-menu-btn-active', btn.getAttribute('data-expense-tab-btn') === expenseTypeFilter);
+    const active = btn.getAttribute('data-expense-tab-btn') === expenseTypeFilter;
+    btn.classList.toggle('is-active', active);
+    btn.setAttribute('aria-selected', active ? 'true' : 'false');
   });
-  renderExpenseEvolutionByType();
   renderFinanceContributionsTable();
-}
-
-function renderExpenseEvolutionByType() {
-  const el = document.getElementById('finance-expense-evolution');
-  if (!el || !financeOverviewData) return;
-  const rows = Array.isArray(financeOverviewData.expenseMovements) ? financeOverviewData.expenseMovements : [];
-  
-  // 1. Obtener la lista de todos los meses de forma ordenada y quedarnos con los últimos 12 meses
-  const monthsSet = new Set();
-  rows.forEach((r) => {
-    const m = String(r.month || '').trim();
-    if (/^\d{4}-\d{2}$/.test(m)) {
-      monthsSet.add(m);
-    }
-  });
-  const sortedMonths = Array.from(monthsSet).sort().slice(-12);
-  const label = expenseTypeFilter === 'expense_electricity'
-    ? 'Luz'
-    : expenseTypeFilter === 'expense_insurance'
-      ? 'Seguro'
-      : expenseTypeFilter === 'other'
-        ? 'Otros'
-        : 'Todos';
-
-  if (!sortedMonths.length) {
-    el.innerHTML = `<div class="history-item">Sin datos de evolución para: <strong>${label}</strong>.</div>`;
-    return;
-  }
-
-  // 2. Mapear los gastos de cada tipo por mes
-  const electricityByMonth = {};
-  const insuranceByMonth = {};
-  const otherByMonth = {};
-
-  sortedMonths.forEach((m) => {
-    electricityByMonth[m] = 0;
-    insuranceByMonth[m] = 0;
-    otherByMonth[m] = 0;
-  });
-
-  rows.forEach((r) => {
-    const m = String(r.month || '').trim();
-    if (!sortedMonths.includes(m)) return;
-    const amt = Math.abs(Number(r.amount || 0));
-    const mt = String(r.movementType || '');
-    if (mt === 'expense_electricity') {
-      electricityByMonth[m] += amt;
-    } else if (mt === 'expense_insurance') {
-      insuranceByMonth[m] += amt;
-    } else if (mt === 'other') {
-      otherByMonth[m] += amt;
-    }
-  });
-
-  // calcular totales individuales y globales en este periodo de 12 meses
-  let totalElec = 0;
-  let totalIns = 0;
-  let totalOth = 0;
-  sortedMonths.forEach((m) => {
-    totalElec += electricityByMonth[m];
-    totalIns += insuranceByMonth[m];
-    totalOth += otherByMonth[m];
-  });
-  const totalGlobal = totalElec + totalIns + totalOth;
-
-  // 3. Calcular el valor máximo absoluto para escalar el eje Y
-  let maxVal = 1;
-  sortedMonths.forEach((m) => {
-    if (expenseTypeFilter === 'all') {
-      maxVal = Math.max(maxVal, electricityByMonth[m], insuranceByMonth[m], otherByMonth[m]);
-    } else if (expenseTypeFilter === 'expense_electricity') {
-      maxVal = Math.max(maxVal, electricityByMonth[m]);
-    } else if (expenseTypeFilter === 'expense_insurance') {
-      maxVal = Math.max(maxVal, insuranceByMonth[m]);
-    } else if (expenseTypeFilter === 'other') {
-      maxVal = Math.max(maxVal, otherByMonth[m]);
-    }
-  });
-  maxVal = maxVal * 1.15; // 15% de margen superior para evitar colisiones estéticas
-
-  // 4. Parámetros de dibujo SVG
-  const width = 1000;
-  const height = 220;
-  const padX = 42;
-  const padY = 24;
-  const drawW = width - (padX * 2);
-  const drawH = height - (padY * 2);
-  const stepX = sortedMonths.length > 1 ? (drawW / (sortedMonths.length - 1)) : 0;
-
-  // Función para obtener coordenadas
-  const getCoords = (seriesData) => {
-    return sortedMonths.map((month, idx) => {
-      const val = Number(seriesData[month] || 0);
-      const x = padX + (idx * stepX);
-      const y = padY + (drawH - ((val / maxVal) * drawH));
-      return { month, val, x, y };
-    });
-  };
-
-  // Función para renderizar una línea en el SVG
-  const getPaths = (coords, strokeColor, gradId) => {
-    const linePath = coords.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(' ');
-    const areaPath = `${linePath} L ${(padX + drawW).toFixed(2)} ${(padY + drawH).toFixed(2)} L ${padX.toFixed(2)} ${(padY + drawH).toFixed(2)} Z`;
-    
-    const stroke = `<path d="${linePath}" class="finance-line-stroke" style="stroke: ${strokeColor}; filter: drop-shadow(0px 4px 8px ${strokeColor}66); stroke-width: 3.5; fill: none;"></path>`;
-    const area = `<path d="${areaPath}" class="finance-line-area" style="fill: url(#${gradId}); opacity: 0.15;"></path>`;
-    const dots = coords.map((p) => (
-      `<circle cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" r="4.5" class="finance-line-dot" style="stroke: ${strokeColor}; fill: #ffffff; stroke-width: 2.5; filter: drop-shadow(0 0 4px ${strokeColor});">
-        <title>${monthLabel(p.month)} · ${fmtEur(p.val)}</title>
-      </circle>`
-    )).join('');
-    
-    return { stroke, area, dots };
-  };
-
-  // Generar las series de dibujo
-  let chartContentHtml = '';
-  if (expenseTypeFilter === 'all' || expenseTypeFilter === 'expense_electricity') {
-    const coords = getCoords(electricityByMonth);
-    const { stroke, area, dots } = getPaths(coords, '#3b82f6', 'financeLineGradElec');
-    chartContentHtml += area + stroke + dots;
-  }
-  if (expenseTypeFilter === 'all' || expenseTypeFilter === 'expense_insurance') {
-    const coords = getCoords(insuranceByMonth);
-    const { stroke, area, dots } = getPaths(coords, '#10b981', 'financeLineGradIns');
-    chartContentHtml += area + stroke + dots;
-  }
-  if (expenseTypeFilter === 'all' || expenseTypeFilter === 'other') {
-    const coords = getCoords(otherByMonth);
-    const { stroke, area, dots } = getPaths(coords, '#a78bfa', 'financeLineGradOth');
-    chartContentHtml += area + stroke + dots;
-  }
-
-  // Eje X ticks
-  const ticks = sortedMonths.map((month, idx) => {
-    const x = padX + (idx * stepX);
-    return `<text x="${x.toFixed(2)}" y="${height - 4}" text-anchor="middle" class="finance-line-x-label">${monthLabel(month)}</text>`;
-  }).join('');
-
-  // Título y Leyenda
-  let legendHtml = '';
-  let subText = `12 últimos meses · Total ${fmtEur(totalGlobal)}`;
-  if (expenseTypeFilter === 'all') {
-    legendHtml = `
-      <div style="display:flex; gap:16px; font-size:0.75rem; color:var(--text-muted); justify-content:flex-end; margin-top:6px; flex-wrap:wrap;">
-        <span style="display:inline-flex; align-items:center; gap:6px;"><span style="width:8px; height:8px; border-radius:50%; background:#3b82f6; box-shadow: 0 0 6px #3b82f6; display:inline-block;"></span>Luz (${fmtEur(totalElec)})</span>
-        <span style="display:inline-flex; align-items:center; gap:6px;"><span style="width:8px; height:8px; border-radius:50%; background:#10b981; box-shadow: 0 0 6px #10b981; display:inline-block;"></span>Seguros (${fmtEur(totalIns)})</span>
-        <span style="display:inline-flex; align-items:center; gap:6px;"><span style="width:8px; height:8px; border-radius:50%; background:#a78bfa; box-shadow: 0 0 6px #a78bfa; display:inline-block;"></span>Otros (${fmtEur(totalOth)})</span>
-      </div>
-    `;
-  } else {
-    const activeTotal = expenseTypeFilter === 'expense_electricity' ? totalElec : (expenseTypeFilter === 'expense_insurance' ? totalIns : totalOth);
-    subText = `12 últimos meses · Total ${label}: ${fmtEur(activeTotal)}`;
-  }
-
-  el.innerHTML = `
-    <div class="finance-evo-head">
-      <span class="history-floor">Evolución de gastos: ${label}</span>
-      <span class="history-by">${subText}</span>
-    </div>
-    ${legendHtml}
-    <div class="finance-line-wrap">
-      <svg viewBox="0 0 ${width} ${height}" class="finance-line-svg" role="img" aria-label="Evolución de gastos ${label}">
-        <defs>
-          <linearGradient id="financeLineGradElec" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#3b82f6"></stop>
-            <stop offset="100%" stop-color="rgba(59,130,246,0)"></stop>
-          </linearGradient>
-          <linearGradient id="financeLineGradIns" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#10b981"></stop>
-            <stop offset="100%" stop-color="rgba(16,185,129,0)"></stop>
-          </linearGradient>
-          <linearGradient id="financeLineGradOth" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#a78bfa"></stop>
-            <stop offset="100%" stop-color="rgba(167,139,250,0)"></stop>
-          </linearGradient>
-        </defs>
-        <line x1="${padX}" y1="${padY + drawH}" x2="${padX + drawW}" y2="${padY + drawH}" class="finance-line-axis"></line>
-        ${chartContentHtml}
-        ${ticks}
-      </svg>
-    </div>
-  `;
 }
 
 // Cerrar sesión
@@ -1704,7 +1974,7 @@ async function handleProfileUpdate(event) {
 async function rotateTurn() {
   if (!state.token) return;
 
-  const confirmRotate = confirm('¿Confirmas que el turno mensual de limpieza de la escalera ha sido completado y deseas rotar al siguiente vecino?');
+  const confirmRotate = await showConfirm('¿Confirmas que el turno mensual de limpieza de la escalera ha sido completado y deseas rotar al siguiente vecino?');
   if (!confirmRotate) return;
 
   try {
@@ -1724,9 +1994,9 @@ async function rotateTurn() {
     // Recargar el dashboard con los nuevos datos
     await loadCommunityStatus();
     
-    alert('✅ ¡Turno mensual completado y rotado al siguiente vecino con éxito!');
+    showToast('✅ ¡Turno mensual completado y rotado al siguiente vecino con éxito!', 'success');
   } catch (err) {
-    alert(`Error: ${err.message}`);
+    showToast(`Error: ${err.message}`, 'error');
   }
 }
 
@@ -1897,7 +2167,7 @@ async function resetFinanceData() {
   if (successEl) successEl.classList.add('hidden');
   if (errorEl) errorEl.classList.add('hidden');
 
-  const confirmReset = window.confirm('Esto borrará movimientos, aportaciones, histórico mensual y saldo actual. ¿Continuar?');
+  const confirmReset = await showConfirm('Esto borrará movimientos, aportaciones, histórico mensual y saldo actual. ¿Continuar?');
   if (!confirmReset) return;
 
   try {
@@ -2184,14 +2454,12 @@ function adminShowPanel(panelKey) {
   const usersManagement = document.getElementById('admin-section-users-management');
   const invites = document.getElementById('admin-section-invites');
   const visualization = document.getElementById('admin-section-visualization');
-  const whatsapp = document.getElementById('admin-section-whatsapp');
+  const porteria = document.getElementById('admin-panel-porteria');
   const whatsappTemplates = document.getElementById('admin-section-whatsapp-templates');
   const announcements = document.getElementById('admin-section-announcements');
   const documents = document.getElementById('admin-section-documents');
   const areas = document.getElementById('admin-section-areas');
   const incidents = document.getElementById('admin-section-incidents');
-  const invitesTable = invites ? invites.querySelector('.invite-table-container') : null;
-  const invitesTitle = invites ? invites.querySelector('h3') : null;
 
   if (config) config.style.display = 'none';
   if (fees) fees.style.display = 'none';
@@ -2202,14 +2470,12 @@ function adminShowPanel(panelKey) {
   if (users) users.style.display = 'none';
   if (invites) invites.style.display = 'none';
   if (visualization) visualization.style.display = 'none';
-  if (whatsapp) whatsapp.style.display = 'none';
+  if (porteria) porteria.style.display = 'none';
   if (whatsappTemplates) whatsappTemplates.style.display = 'none';
   if (announcements) announcements.style.display = 'none';
   if (documents) documents.style.display = 'none';
   if (areas) areas.style.display = 'none';
   if (incidents) incidents.style.display = 'none';
-  if (invitesTable) invitesTable.style.display = '';
-  if (invitesTitle) invitesTitle.style.display = '';
   [inviteGenerator, securitySummary, usersSeparator, directRegister, usersManagement].forEach((el) => {
     if (el) el.style.display = '';
   });
@@ -2251,6 +2517,7 @@ function adminShowPanel(panelKey) {
   if (panelKey === 'users' && grid && users) {
     grid.style.display = '';
     grid.classList.add('admin-grid-single-panel');
+    users.dataset.exp = 'Comunidad · Vecinos';
     users.style.display = 'flex';
     users.style.flexDirection = 'column';
     loadAdminNeighborsManagement();
@@ -2260,7 +2527,9 @@ function adminShowPanel(panelKey) {
   if (panelKey === 'invites' && grid && invites) {
     grid.style.display = '';
     grid.classList.remove('admin-grid-single-panel');
+    invites.dataset.exp = 'Comunidad · Invitaciones';
     if (users) {
+      users.dataset.exp = 'Comunidad · Invitaciones';
       users.style.display = 'flex';
       users.style.flexDirection = 'column';
     }
@@ -2270,26 +2539,23 @@ function adminShowPanel(panelKey) {
     if (inviteGenerator) inviteGenerator.style.display = '';
     invites.style.display = 'flex';
     invites.style.flexDirection = 'column';
-    if (whatsapp) whatsapp.style.display = 'none';
-    if (invitesTitle) invitesTitle.style.display = '';
-    if (invitesTable) invitesTable.style.display = '';
   }
 
-  if (panelKey === 'whatsapp' && grid && invites) {
-    grid.style.display = '';
-    grid.classList.add('admin-grid-single-panel');
-    invites.style.display = 'flex';
-    invites.style.flexDirection = 'column';
-    if (invitesTable) invitesTable.style.display = 'none';
-    if (invitesTitle) invitesTitle.style.display = 'none';
-    if (whatsapp) whatsapp.style.display = '';
-    if (whatsappTemplates) whatsappTemplates.style.display = '';
+  if (panelKey === 'whatsapp' && porteria) {
+    porteria.style.display = '';
+  }
+
+  if (panelKey === 'templates' && whatsappTemplates) {
+    whatsappTemplates.style.display = '';
+    loadWhatsAppTemplates();
   }
 
   document.querySelectorAll('[data-admin-panel-btn]').forEach((btn) => {
     const isActive = btn.getAttribute('data-admin-panel-btn') === panelKey;
     btn.classList.toggle('admin-menu-btn-active', isActive);
   });
+
+  setRoute(`admin/${panelKey}`);
 
   // Master-detail móvil: al abrir un panel, pasar a "vista detalle"
   // (CSS oculta la lista de secciones y muestra el botón "Volver"). Inerte en desktop.
@@ -2393,7 +2659,7 @@ async function handleCreateAnnouncement(event) {
   }
 }
 async function handleDeleteAnnouncement(id) {
-  if (!confirm('¿Eliminar este anuncio?')) return;
+  if (!await showConfirm('¿Eliminar este anuncio?')) return;
   try {
     const res = await fetch(`${API_URL}/admin/announcements/${id}`, {
       method: 'DELETE',
@@ -2553,7 +2819,7 @@ async function handleUploadDocument(event) {
   }
 }
 async function handleDeleteDocument(id) {
-  if (!confirm('¿Eliminar este documento?')) return;
+  if (!await showConfirm('¿Eliminar este documento?')) return;
   try {
     const res = await fetch(`${API_URL}/admin/documents/${id}`, {
       method: 'DELETE',
@@ -2707,7 +2973,7 @@ async function loadMyReservations() {
   }
 }
 async function handleCancelReservation(id) {
-  if (!confirm('¿Cancelar esta reserva?')) return;
+  if (!await showConfirm('¿Cancelar esta reserva?')) return;
   try {
     const res = await fetch(`${API_URL}/neighbors/reservations/${id}`, {
       method: 'DELETE',
@@ -2791,7 +3057,7 @@ async function handleToggleArea(id) {
   }
 }
 async function handleDeleteArea(id) {
-  if (!confirm('¿Eliminar esta zona? Se borrarán también sus reservas.')) return;
+  if (!await showConfirm('¿Eliminar esta zona? Se borrarán también sus reservas.')) return;
   try {
     const res = await fetch(`${API_URL}/admin/areas/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${state.token}` } });
     if (!res.ok) throw new Error('fail');
@@ -2982,7 +3248,7 @@ async function handleSetIncidentStatus(id, status) {
   }
 }
 async function handleDeleteIncident(id) {
-  if (!confirm('¿Eliminar esta incidencia?')) return;
+  if (!await showConfirm('¿Eliminar esta incidencia?')) return;
   try {
     const res = await fetch(`${API_URL}/admin/incidents/${id}`, {
       method: 'DELETE',
@@ -3039,7 +3305,7 @@ function renderBuildingUnitsList() {
     const generatedLabel = parts.join(' · ');
     const safeName = String(u.name || '').replace(/"/g, '&quot;');
     const safeLegalName = String(u.legalName || '').replace(/"/g, '&quot;');
-    return `<div class="history-item"><div class="history-meta" style="width:100%;"><div class="input-wrapper" style="margin-top:2px;"><i data-lucide="tag"></i><input type="text" value="${safeName}" placeholder="${generatedLabel}" oninput="updateBuildingUnitName(${idx}, this.value)"></div><div class="input-wrapper" style="margin-top:8px;"><i data-lucide="file-text"></i><input type="text" value="${safeLegalName}" placeholder="Nombre legal para documentación (opcional)" oninput="updateBuildingUnitLegalName(${idx}, this.value)"></div><span class="history-by" style="margin-top:8px;">${labelKind}${u.exemptFromCleaning ? ' · Exenta de limpieza' : ''}</span><label style="display:inline-flex;align-items:center;gap:8px;margin-top:8px;font-size:0.75rem;color:var(--text-muted);"><input type="checkbox" ${u.exemptFromCleaning ? 'checked' : ''} onchange="toggleBuildingUnitExempt(${idx}, this.checked)"> Exenta del turno de limpieza</label></div><button type="button" class="btn btn-secondary btn-icon" onclick="removeBuildingUnit(${idx})" title="Eliminar"><i data-lucide="trash-2" style="width:14px;height:14px;"></i></button></div>`;
+    return `<div class="history-item"><div class="history-meta" style="width:100%;"><div class="input-wrapper" style="margin-top:2px;"><i data-lucide="tag"></i><input type="text" value="${safeName}" placeholder="${generatedLabel}" oninput="updateBuildingUnitName(${idx}, this.value)"></div><div class="input-wrapper" style="margin-top:8px;"><i data-lucide="file-text"></i><input type="text" value="${safeLegalName}" placeholder="Nombre legal para documentación (opcional)" oninput="updateBuildingUnitLegalName(${idx}, this.value)"></div><span class="history-by" style="margin-top:8px;">${labelKind}${u.exemptFromCleaning ? ' · Exenta de limpieza' : ''}</span><label style="display:inline-flex;align-items:center;gap:8px;margin-top:8px;font-size:0.75rem;"><input type="checkbox" ${u.exemptFromCleaning ? 'checked' : ''} onchange="toggleBuildingUnitExempt(${idx}, this.checked)"> Exenta del turno de limpieza</label></div><button type="button" class="btn btn-secondary btn-icon" onclick="removeBuildingUnit(${idx})" title="Eliminar"><i data-lucide="trash-2" style="width:14px;height:14px;"></i></button></div>`;
   }).join('');
   lucide.createIcons();
 }
@@ -3455,7 +3721,7 @@ async function loadAdminNeighborsManagement() {
       
       let statusBadge = '';
       if (n.isAdmin) {
-        statusBadge = `<span class="badge" style="background: rgba(59, 130, 246, 0.1); color: var(--color-primary); display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="shield" style="width: 12px; height: 12px;"></i>Admin</span>`;
+        statusBadge = `<span class="badge badge-admin" style="display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="shield" style="width: 12px; height: 12px;"></i>Admin</span>`;
       } else if (isRegistered) {
         let authType = 'Activo';
         if (n.deactivated) {
@@ -3469,29 +3735,29 @@ async function loadAdminNeighborsManagement() {
         }
 
         if (n.deactivated) {
-          statusBadge = `<span class="badge" style="background: rgba(239, 68, 68, 0.1); color: #f87171; display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="user-x" style="width: 12px; height: 12px;"></i>Desactivado</span>`;
+          statusBadge = `<span class="badge badge-off" style="display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="user-x" style="width: 12px; height: 12px;"></i>Desactivado</span>`;
         } else {
           statusBadge = `<span class="badge badge-success" title="Registrado como @${n.username}" style="display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="user-check" style="width: 12px; height: 12px;"></i>${authType}</span>`;
         }
       } else {
-        statusBadge = `<span class="badge" style="background: rgba(245, 158, 11, 0.1); color: var(--color-warning); display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="user-x" style="width: 12px; height: 12px;"></i>Pendiente</span>`;
+        statusBadge = `<span class="badge badge-pending" style="display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="user-x" style="width: 12px; height: 12px;"></i>Pendiente</span>`;
       }
       
       const exemptBadge = n.exemptFromCleaning 
-        ? `<button class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.7rem; border-color: rgba(239, 68, 68, 0.2); background: rgba(239, 68, 68, 0.05); color: #f87171; display: inline-flex; align-items: center; gap: 4px; height: 26px;" onclick="toggleNeighborExempt('${n.id}', false)" title="Haga clic para INCLUIR en limpieza">
+        ? `<button class="btn btn-secondary chip-toggle is-exempt" style="padding: 4px 8px; font-size: 0.7rem; display: inline-flex; align-items: center; gap: 4px; height: 26px;" onclick="toggleNeighborExempt('${n.id}', false)" title="Haga clic para INCLUIR en limpieza">
             <i data-lucide="moon" style="width: 12px; height: 12px;"></i>Exento
            </button>`
-        : `<button class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.7rem; border-color: rgba(16, 185, 129, 0.2); background: rgba(16, 185, 129, 0.05); color: #34d399; display: inline-flex; align-items: center; gap: 4px; height: 26px;" onclick="toggleNeighborExempt('${n.id}', true)" title="Haga clic para EXIMIR de limpieza">
+        : `<button class="btn btn-secondary chip-toggle is-active" style="padding: 4px 8px; font-size: 0.7rem; display: inline-flex; align-items: center; gap: 4px; height: 26px;" onclick="toggleNeighborExempt('${n.id}', true)" title="Haga clic para EXIMIR de limpieza">
             <i data-lucide="sun" style="width: 12px; height: 12px;"></i>Activo
            </button>`;
 
       const phoneDisplay = n.phone 
         ? `<span style="font-size: 0.8rem; font-family: monospace;">${n.phone}</span>`
-        : `<span style="color: var(--text-muted); font-style: italic; font-size: 0.75rem;">Sin número</span>`;
+        : `<span class="muted-note">Sin número</span>`;
       
       const isSelf = state.user?.id === n.id;
       const editButton = `
-        <button class="btn btn-secondary" style="padding: 4px 8px; border-color: rgba(255, 255, 255, 0.15); background: rgba(255, 255, 255, 0.02); color: var(--text-main); display: inline-flex; align-items: center; gap: 4px; height: 28px; margin-right: 4px;" onclick="openEditNeighborModal('${n.id}')" title="Modificar Vivienda / Vecino">
+        <button class="btn btn-secondary" style="padding: 4px 8px; display: inline-flex; align-items: center; gap: 4px; height: 28px; margin-right: 4px;" onclick="openEditNeighborModal('${n.id}')" title="Modificar Vivienda / Vecino">
           <i data-lucide="edit-3" style="width: 12px; height: 12px;"></i>
           <span style="font-size: 0.72rem;">Modificar</span>
         </button>
@@ -3555,13 +3821,21 @@ async function loadAdminNeighborsManagement() {
 async function inviteNeighborViaWhatsApp(floorId, currentPhone) {
   let phone = currentPhone;
   if (!phone) {
-    const input = prompt("Introduce el número de teléfono móvil de España (9 dígitos, ej. 600112233) para enviar la invitación por WhatsApp:");
-    if (input === null) return; // Cancelado por usuario
-    phone = input.trim();
-    if (!phone) {
-      showToast("Es necesario un número de teléfono móvil para enviar la invitación.", "error");
-      return;
-    }
+    const values = await showFormModal({
+      title: 'Invitar por WhatsApp',
+      icon: 'send',
+      confirmText: 'Enviar invitación',
+      fields: [{
+        id: 'phone',
+        label: 'Teléfono móvil del vecino',
+        type: 'tel',
+        placeholder: '600112233',
+        hint: '9 dígitos, España. Recibirá el enlace de registro por WhatsApp.',
+        required: true
+      }]
+    });
+    if (!values) return; // Cancelado por usuario
+    phone = values.phone;
   }
 
   try {
@@ -3591,11 +3865,11 @@ async function inviteNeighborViaWhatsApp(floorId, currentPhone) {
 // Dar de baja/reinicializar a un vecino
 async function resetNeighbor(floorId, floorName, isSelf) {
   if (isSelf) {
-    if (!confirm("⚠️ ¿Estás seguro de que deseas DAR DE BAJA tu propio usuario administrador?\n\nPerderás la sesión de forma inmediata y la cuenta quedará pendiente de registro nuevamente.")) {
+    if (!await showConfirm("⚠️ ¿Estás seguro de que deseas DAR DE BAJA tu propio usuario administrador?\n\nPerderás la sesión de forma inmediata y la cuenta quedará pendiente de registro nuevamente.")) {
       return;
     }
   } else {
-    if (!confirm(`🚨 ¿Estás seguro de que deseas DAR DE BAJA al vecino de la ${floorName}?\n\nEsto borrará permanentemente su usuario, contraseña, doble factor (2FA) y huellas. Deberá volver a registrarse.`)) {
+    if (!await showConfirm(`🚨 ¿Estás seguro de que deseas DAR DE BAJA al vecino de la ${floorName}?\n\nEsto borrará permanentemente su usuario, contraseña, doble factor (2FA) y huellas. Deberá volver a registrarse.`)) {
       return;
     }
   }
@@ -3611,7 +3885,7 @@ async function resetNeighbor(floorId, floorName, isSelf) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error al reiniciar vecino.');
     
-    alert(data.message);
+    showToast(data.message, 'info');
     
     if (isSelf) {
       handleLogout();
@@ -3620,7 +3894,7 @@ async function resetNeighbor(floorId, floorName, isSelf) {
       await loadCommunityStatus();
     }
   } catch (err) {
-    alert(`Error: ${err.message}`);
+    showToast(`Error: ${err.message}`, 'error');
   }
 }
 
@@ -3640,7 +3914,7 @@ async function toggleNeighborExempt(floorId, exempt) {
     await loadAdminNeighborsManagement();
     await loadCommunityStatus();
   } catch (err) {
-    alert(`Error: ${err.message}`);
+    showToast(`Error: ${err.message}`, 'error');
   }
 }
 
@@ -3660,7 +3934,7 @@ async function toggleNeighborActive(floorId, active) {
     await loadAdminNeighborsManagement();
     await loadCommunityStatus();
   } catch (err) {
-    alert(`Error: ${err.message}`);
+    showToast(`Error: ${err.message}`, 'error');
   }
 }
 
@@ -3827,7 +4101,7 @@ async function open2FASetupModal() {
 
     showView('setup-2fa');
   } catch (err) {
-    alert(`Error: ${err.message}`);
+    showToast(`Error: ${err.message}`, 'error');
   }
 }
 
@@ -3916,7 +4190,7 @@ async function handleActivate2FA(event) {
       throw new Error(data.error || 'Código de verificación incorrecto');
     }
 
-    alert('🛡️ ¡Doble Factor de Autenticación (2FA) activado correctamente en tu cuenta!');
+    showToast('🛡️ ¡Doble Factor de Autenticación (2FA) activado correctamente en tu cuenta!', 'success');
     
     // Ocultar modal y volver al dashboard
     showView('dashboard');
@@ -3974,7 +4248,7 @@ async function testSystemWhatsApp() {
 async function handleRegisterWithout2FA() {
   if (!state.activeRegisterToken) return;
 
-  const confirmSkip = confirm('¿Estás seguro de que deseas registrarte sin activar el Doble Factor de Autenticación (2FA)? Podrás activarlo más adelante desde tu perfil para asegurar tu cuenta.');
+  const confirmSkip = await showConfirm('¿Estás seguro de que deseas registrarte sin activar el Doble Factor de Autenticación (2FA)? Podrás activarlo más adelante desde tu perfil para asegurar tu cuenta.');
   if (!confirmSkip) return;
 
   const errorEl = document.getElementById('register-error-2');
@@ -4013,7 +4287,7 @@ async function handleRegisterWithout2FA() {
     await loadCommunityStatus();
     showView('dashboard');
     
-    alert('🎉 ¡Registro completado correctamente sin 2FA! Te recomendamos activarlo más adelante desde tu perfil.');
+    showToast('🎉 ¡Registro completado correctamente sin 2FA! Te recomendamos activarlo más adelante desde tu perfil.', 'success');
   } catch (err) {
     errorEl.textContent = err.message;
     errorEl.classList.remove('hidden');
@@ -4046,9 +4320,8 @@ async function pollWhatsAppStatus() {
   const qrBox = document.getElementById('admin-wa-qr-box');
   const qrImg = document.getElementById('admin-wa-qr-img');
   const connectedBox = document.getElementById('admin-wa-connected-box');
-  const phoneSpan = document.getElementById('admin-wa-phone-span');
 
-  if (!descEl || !spinnerEl || !qrBox || !qrImg || !connectedBox || !phoneSpan) {
+  if (!descEl || !spinnerEl || !qrBox || !qrImg || !connectedBox) {
     if (adminWaPollInterval) {
       clearInterval(adminWaPollInterval);
       adminWaPollInterval = null;
@@ -4073,16 +4346,16 @@ async function pollWhatsAppStatus() {
 
     // Manejar la actualización visual según el estado de la pasarela
     if (data.status === 'connecting') {
-      descEl.textContent = 'Estado: Conectando con WhatsApp Web...';
+      setWaStatus('connecting', 'Conectando con WhatsApp Web…');
       spinnerEl.classList.remove('hidden');
       qrBox.classList.add('hidden');
       connectedBox.classList.add('hidden');
-    } 
+    }
     else if (data.status === 'qr') {
-      descEl.textContent = 'Estado: Pendiente de Vinculación';
+      setWaStatus('qr', 'Pendiente de vinculación', 'Escanea el código QR con el móvil de la comunidad');
       spinnerEl.classList.add('hidden');
       connectedBox.classList.add('hidden');
-      
+
       // Mostrar QR
       if (data.qrCodeUrl) {
         qrImg.src = data.qrCodeUrl;
@@ -4092,22 +4365,21 @@ async function pollWhatsAppStatus() {
         spinnerEl.textContent = 'Generando QR...';
         qrBox.classList.add('hidden');
       }
-    } 
+    }
     else if (data.status === 'connected') {
-      descEl.textContent = 'Estado: Vinculado Correctamente';
+      setWaStatus('connected', 'WhatsApp en línea', data.phoneConnected ? `Vinculado como ${data.phoneConnected}` : '');
       spinnerEl.classList.add('hidden');
       qrBox.classList.add('hidden');
-      
-      // Mostrar área de conexión exitosa y teléfono
-      phoneSpan.innerHTML = `Conectado como: <strong>${data.phoneConnected}</strong>`;
+
+      // El teléfono vinculado ya lo anuncia el semáforo; aquí solo se abre el área de acciones
       connectedBox.classList.remove('hidden');
-      
+
       // Recargar iconos insertados dinámicamente
       lucide.createIcons();
-    } 
+    }
     else {
       // Disconnected
-      descEl.textContent = 'Estado: Pasarela apagada o desvinculada.';
+      setWaStatus('disconnected', 'Pasarela apagada o desvinculada', 'Reintentando conexión automáticamente…');
       spinnerEl.classList.remove('hidden');
       spinnerEl.textContent = 'Inicializando cliente...';
       qrBox.classList.add('hidden');
@@ -4115,10 +4387,7 @@ async function pollWhatsAppStatus() {
     }
   } catch (err) {
     console.error('Error al sondear WhatsApp status:', err);
-    const retryDescEl = document.getElementById('admin-wa-desc');
-    if (retryDescEl) {
-      retryDescEl.textContent = 'Estado: Error al comunicar con el servidor.';
-    }
+    setWaStatus('error', 'Sin conexión con el servidor', err && err.message ? err.message : '');
   }
 }
 
@@ -4176,7 +4445,7 @@ async function saveWhatsAppGroupConfig() {
 
 async function forceTurnStartNotification() {
   if (!state.token || !state.user || !state.user.isAdmin) return;
-  const confirmed = confirm('¿Seguro que quieres forzar el aviso del turno actual?');
+  const confirmed = await showConfirm('¿Seguro que quieres forzar el aviso del turno actual?');
   if (!confirmed) return;
 
   try {
@@ -4203,8 +4472,8 @@ async function runWhatsAppRemindersNow() {
     headers: { 'Authorization': `Bearer ${state.token}` }
   });
   const data = await res.json();
-  if (!res.ok) return alert(data.error || 'No se pudo ejecutar recordatorios.');
-  alert(data.message || 'Recordatorios ejecutados.');
+  if (!res.ok) return showToast(data.error || 'No se pudo ejecutar recordatorios.', 'error');
+  showToast(data.message || 'Recordatorios ejecutados.', 'success');
   loadNotificationLogs();
 }
 
@@ -4215,14 +4484,26 @@ async function sendMonthlySummaryNow() {
     headers: { 'Authorization': `Bearer ${state.token}` }
   });
   const data = await res.json();
-  if (!res.ok) return alert(data.error || 'No se pudo enviar el resumen mensual.');
-  alert(data.message || 'Resumen enviado.');
+  if (!res.ok) return showToast(data.error || 'No se pudo enviar el resumen mensual.', 'error');
+  showToast(data.message || 'Resumen enviado.', 'success');
   loadNotificationLogs();
 }
 
 async function sendFinanceSummaryNow() {
   if (!state.token || !state.user || !state.user.isAdmin) return;
-  const month = prompt('Mes a enviar (YYYY-MM). Déjalo vacío para último registro:') || '';
+  const values = await showFormModal({
+    title: 'Enviar estado de cuotas',
+    icon: 'piggy-bank',
+    confirmText: 'Enviar al grupo',
+    fields: [{
+      id: 'month',
+      label: 'Mes a enviar',
+      type: 'month',
+      hint: 'Déjalo vacío para usar el último registro disponible.'
+    }]
+  });
+  if (!values) return;
+  const month = values.month || '';
   const res = await fetch(`${API_URL}/admin/notifications/finance-summary`, {
     method: 'POST',
     headers: {
@@ -4232,19 +4513,39 @@ async function sendFinanceSummaryNow() {
     body: JSON.stringify({ month, targetType: 'group' })
   });
   const data = await res.json();
-  if (!res.ok) return alert(data.error || 'No se pudo enviar estado de cuotas.');
-  alert(data.message || 'Estado de cuotas enviado.');
+  if (!res.ok) return showToast(data.error || 'No se pudo enviar estado de cuotas.', 'error');
+  showToast(data.message || 'Estado de cuotas enviado.', 'success');
   loadNotificationLogs();
 }
 
 async function createQuickPoll() {
   if (!state.token || !state.user || !state.user.isAdmin) return;
-  const question = prompt('Pregunta de la encuesta:');
-  if (!question) return;
-  const rawOptions = prompt('Opciones separadas por coma (mínimo 2):', 'Sí,No');
-  if (!rawOptions) return;
-  const options = rawOptions.split(',').map(s => s.trim()).filter(Boolean);
-  if (options.length < 2) return alert('Debes indicar al menos 2 opciones.');
+  const values = await showFormModal({
+    title: 'Encuesta rápida',
+    icon: 'list-checks',
+    confirmText: 'Crear encuesta',
+    fields: [
+      {
+        id: 'question',
+        label: 'Pregunta',
+        type: 'text',
+        placeholder: '¿Cambiamos el día de limpieza?',
+        required: true
+      },
+      {
+        id: 'options',
+        label: 'Opciones (separadas por coma)',
+        type: 'text',
+        value: 'Sí,No',
+        hint: 'Mínimo 2 opciones. Los vecinos votan respondiendo VOTO <número>.',
+        required: true
+      }
+    ]
+  });
+  if (!values) return;
+  const question = values.question;
+  const options = values.options.split(',').map(s => s.trim()).filter(Boolean);
+  if (options.length < 2) return showToast('Debes indicar al menos 2 opciones.', 'error');
   const res = await fetch(`${API_URL}/admin/polls`, {
     method: 'POST',
     headers: {
@@ -4254,28 +4555,123 @@ async function createQuickPoll() {
     body: JSON.stringify({ question, options })
   });
   const data = await res.json();
-  if (!res.ok) return alert(data.error || 'No se pudo crear la encuesta.');
-  alert(data.message || 'Encuesta creada.');
+  if (!res.ok) return showToast(data.error || 'No se pudo crear la encuesta.', 'error');
+  showToast(data.message || 'Encuesta creada.', 'success');
   loadNotificationLogs();
 }
 
+// Difusión con previsualización: el mensaje se ve como burbuja de WhatsApp y
+// el contador de destinatarios se calcula en vivo con la misma lógica que el
+// backend (teléfono presente + filtros de portal/tipo). Nunca se envía a ciegas.
 async function sendSegmentedMessageNow() {
   if (!state.token || !state.user || !state.user.isAdmin) return;
-  const text = prompt('Mensaje a enviar:');
-  if (!text) return;
-  const portal = prompt('Portal (vacío=todos):', '') || '';
-  const kind = prompt('Tipo (vivienda/comercial o vacío=todos):', '') || '';
+  if (!state.statusData || !Array.isArray(state.statusData.neighbors)) {
+    await loadCommunityStatus();
+  }
+  const neighbors = (state.statusData && state.statusData.neighbors) || [];
+  const portals = [...new Set(neighbors.map(n => String(n.portal || '').trim()).filter(Boolean))].sort();
+
+  // Réplica exacta del filtro del backend (whatsapp.service.sendSegmentedMessage)
+  const countTargets = (portal, kind) => neighbors.filter((n) => {
+    if (!n.phone) return false;
+    if (portal && String(n.portal || '').toUpperCase() !== portal.toUpperCase()) return false;
+    if (kind && (n.kind || 'vivienda') !== kind) return false;
+    return true;
+  }).length;
+
+  const esc = (v) => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+
+  const result = await new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'confirm-overlay';
+    overlay.innerHTML = `
+      <div class="confirm-dialog glass-card broadcast-dialog" role="dialog" aria-modal="true" aria-label="Difusión segmentada">
+        <div class="confirm-header">
+          <div class="confirm-icon"><i data-lucide="send"></i></div>
+          <h3>Difusión segmentada</h3>
+        </div>
+        <div class="form-group">
+          <label for="bc-text">Mensaje</label>
+          <textarea id="bc-text" rows="4" maxlength="1000" placeholder="Escribe el aviso para los vecinos…"></textarea>
+        </div>
+        <div class="broadcast-filters">
+          <div class="form-group">
+            <label for="bc-portal">Portal</label>
+            <select id="bc-portal">
+              <option value="">Todos</option>
+              ${portals.map(p => `<option value="${esc(p)}">${esc(p)}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="bc-kind">Tipo</label>
+            <select id="bc-kind">
+              <option value="">Todos</option>
+              <option value="vivienda">Vivienda</option>
+              <option value="comercial">Comercial</option>
+            </select>
+          </div>
+        </div>
+        <div class="broadcast-preview">
+          <span class="broadcast-preview-label">Así lo verán:</span>
+          <div class="wa-bubble" id="bc-bubble"><em class="wa-bubble-empty">El mensaje aparecerá aquí…</em></div>
+        </div>
+        <div class="confirm-actions">
+          <button type="button" class="btn-secondary confirm-cancel">Cancelar</button>
+          <button type="button" class="btn-primary confirm-ok" id="bc-send" disabled>Se enviará a 0 vecinos</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    if (window.lucide) lucide.createIcons();
+    requestAnimationFrame(() => overlay.classList.add('show'));
+
+    const textEl = overlay.querySelector('#bc-text');
+    const portalEl = overlay.querySelector('#bc-portal');
+    const kindEl = overlay.querySelector('#bc-kind');
+    const bubbleEl = overlay.querySelector('#bc-bubble');
+    const sendBtn = overlay.querySelector('#bc-send');
+
+    const refresh = () => {
+      const text = textEl.value.trim();
+      const n = countTargets(portalEl.value, kindEl.value);
+      bubbleEl.innerHTML = text
+        ? esc(text).replace(/\n/g, '<br>')
+        : '<em class="wa-bubble-empty">El mensaje aparecerá aquí…</em>';
+      sendBtn.textContent = n === 1 ? 'Enviar a 1 vecino' : `Enviar a ${n} vecinos`;
+      sendBtn.disabled = !text || n === 0;
+    };
+    textEl.addEventListener('input', refresh);
+    portalEl.addEventListener('change', refresh);
+    kindEl.addEventListener('change', refresh);
+    refresh();
+
+    const close = (value) => {
+      overlay.classList.remove('show');
+      setTimeout(() => overlay.remove(), 250);
+      resolve(value);
+    };
+    sendBtn.addEventListener('click', () => close({
+      text: textEl.value.trim(),
+      portal: portalEl.value,
+      kind: kindEl.value
+    }));
+    overlay.querySelector('.confirm-cancel').addEventListener('click', () => close(null));
+    overlay.addEventListener('mousedown', (e) => { if (e.target === overlay) close(null); });
+    setTimeout(() => textEl.focus(), 60);
+  });
+
+  if (!result) return;
+
   const res = await fetch(`${API_URL}/admin/notifications/segmented`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${state.token}`
     },
-    body: JSON.stringify({ text, filter: { portal, kind } })
+    body: JSON.stringify({ text: result.text, filter: { portal: result.portal, kind: result.kind } })
   });
   const data = await res.json();
-  if (!res.ok) return alert(data.error || 'No se pudo enviar la difusión.');
-  alert(data.message || 'Difusión enviada.');
+  if (!res.ok) return showToast(data.error || 'No se pudo enviar la difusión.', 'error');
+  showToast(data.message || 'Difusión enviada.', 'success');
   loadNotificationLogs();
 }
 
@@ -4367,8 +4763,8 @@ async function handleSaveWhatsAppTemplates(event) {
   }
 }
 
-function resetWhatsAppTemplatesToDefault() {
-  const confirmed = confirm('¿Estás seguro de que deseas reestablecer los textos a los valores por defecto?\n\n(Deberás hacer clic en "Guardar Plantillas" para confirmar los cambios permanentemente en el servidor)');
+async function resetWhatsAppTemplatesToDefault() {
+  const confirmed = await showConfirm('¿Estás seguro de que deseas reestablecer los textos a los valores por defecto?\n\n(Deberás hacer clic en "Guardar Plantillas" para confirmar los cambios permanentemente en el servidor)');
   if (!confirmed) return;
 
   const defaults = {
@@ -4406,11 +4802,47 @@ async function loadNotificationLogs() {
       container.innerHTML = '<div class="history-item">Sin notificaciones registradas todavía.</div>';
       return;
     }
+    // Un log operativo se escanea por color y forma antes que por texto:
+    // chip de estado + tipo humanizado + hora tabular. El error técnico crudo
+    // no pertenece a la UI: se traduce y el detalle vive plegado.
+    const TYPE_LABELS = {
+      turn_cleanup_start: 'Aviso de turno',
+      turn_cleanup_reminder: 'Recordatorio de turno',
+      monthly_summary: 'Resumen mensual',
+      finance_summary: 'Estado de cuotas',
+      segmented_broadcast: 'Difusión',
+      turn_confirmation: 'Confirmación de turno',
+      invite_neighbor: 'Invitación',
+      whatsapp_poll: 'Encuesta'
+    };
+    const humanizeError = (raw) => {
+      const s = String(raw || '');
+      if (/detached Frame|Target closed|Session closed|Protocol error|Execution context/i.test(s)) {
+        return 'El navegador del bot perdió la sesión durante el envío';
+      }
+      if (/Cliente no vinculado|no está registrado|Sin grupo|no tiene teléfono/i.test(s)) return s;
+      if (/timeout|net::|ERR_|ECONN/i.test(s)) return 'Fallo de red durante el envío';
+      return s;
+    };
+    const esc = (v) => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;');
     container.innerHTML = logs.map((log) => {
-      const when = new Date(log.createdAt).toLocaleString('es-ES');
-      const status = log.status === 'sent' ? 'Enviado' : 'Fallido';
-      const detail = log.error ? ` · ${log.error}` : '';
-      return `<div class="history-item"><div class="history-meta"><span class="history-floor">${log.notificationType} · ${log.mode} · ${log.channel}</span><span class="history-by">${status}${detail}</span></div><span class="history-date">${when}</span></div>`;
+      const d = new Date(log.createdAt);
+      const when = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+      const ok = log.status === 'sent';
+      const type = TYPE_LABELS[log.notificationType] || log.notificationType;
+      const channel = log.channel === 'group' ? 'grupo' : 'individual';
+      const mode = log.mode === 'automatic' ? 'auto' : 'manual';
+      const human = ok ? '' : humanizeError(log.error);
+      const showRaw = !ok && log.error && human !== log.error;
+      return `<div class="log-row">
+        <time class="log-time">${when}</time>
+        <span class="log-chip ${ok ? 'sent' : 'fail'}">${ok ? 'OK' : 'FALLO'}</span>
+        <div class="log-body">
+          <span class="log-title">${esc(type)} <span class="log-ctx">· ${channel} · ${mode}</span></span>
+          ${human ? `<span class="log-err">${esc(human)}</span>` : ''}
+          ${showRaw ? `<details class="log-raw"><summary>Detalle técnico</summary><code>${esc(log.error)}</code></details>` : ''}
+        </div>
+      </div>`;
     }).join('');
   } catch (err) {
     container.innerHTML = `<div class="history-item">Error cargando registro: ${err.message}</div>`;
@@ -4445,7 +4877,7 @@ async function loadIncidents() {
 async function disconnectSystemWhatsApp() {
   if (!state.token || !state.user || !state.user.isAdmin) return;
 
-  const confirmDisconnect = confirm('¿Estás seguro de que deseas desvincular tu número de WhatsApp del servidor de la comunidad? Las notificaciones automáticas de turnos dejarán de enviarse de forma directa.');
+  const confirmDisconnect = await showConfirm('¿Estás seguro de que deseas desvincular tu número de WhatsApp del servidor de la comunidad? Las notificaciones automáticas de turnos dejarán de enviarse de forma directa.');
   if (!confirmDisconnect) return;
 
   const descEl = document.getElementById('admin-wa-desc');
@@ -4454,7 +4886,7 @@ async function disconnectSystemWhatsApp() {
   const connectedBox = document.getElementById('admin-wa-connected-box');
 
   // Mostrar cargando
-  descEl.textContent = 'Desvinculando dispositivo...';
+  setWaStatus('connecting', 'Desvinculando dispositivo…');
   spinnerEl.classList.remove('hidden');
   spinnerEl.textContent = 'Cerrando sesión de WhatsApp...';
   qrBox.classList.add('hidden');
@@ -4474,12 +4906,12 @@ async function disconnectSystemWhatsApp() {
       throw new Error(data.error || 'Error al desvincular');
     }
 
-    alert('✅ Dispositivo desvinculado con éxito del servidor. Se generará un nuevo QR listo para escanear en unos segundos.');
+    showToast('✅ Dispositivo desvinculado con éxito del servidor. Se generará un nuevo QR listo para escanear en unos segundos.', 'success');
     
     // Forzar comprobación inmediata
     pollWhatsAppStatus();
   } catch (err) {
-    alert(`Error al desvincular: ${err.message}`);
+    showToast(`Error al desvincular: ${err.message}`, 'error');
     pollWhatsAppStatus(); // Volver al estado actual
   }
 }
@@ -4492,7 +4924,7 @@ async function restartSystemWhatsApp() {
   const qrBox = document.getElementById('admin-wa-qr-box');
   const connectedBox = document.getElementById('admin-wa-connected-box');
 
-  descEl.textContent = 'Reiniciando cliente de WhatsApp...';
+  setWaStatus('connecting', 'Reiniciando cliente de WhatsApp…');
   spinnerEl.classList.remove('hidden');
   spinnerEl.textContent = 'Reiniciando...';
   qrBox.classList.add('hidden');
@@ -4508,12 +4940,12 @@ async function restartSystemWhatsApp() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'No se pudo reiniciar WhatsApp.');
 
-    descEl.textContent = data.message || 'Cliente reiniciado.';
+    setWaStatus('connecting', data.message || 'Cliente reiniciado.');
     setTimeout(() => {
       pollWhatsAppStatus();
     }, 2000);
   } catch (err) {
-    descEl.textContent = `Error: ${err.message}`;
+    setWaStatus('error', 'No se pudo reiniciar el cliente', err.message);
   }
 }
   const monthLabel = (monthValue) => {

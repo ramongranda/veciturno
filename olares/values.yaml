@@ -1,0 +1,19 @@
+# Imagen del contenedor de VeciTurno.
+# Sustituye por tu imagen publicada (Docker Hub o GHCR) construida con el
+# Dockerfile del repo (ya incluye Chromium + Puppeteer).
+image:
+  repository: docker.io/TU_USUARIO/veciturno
+  tag: "1.0.0"
+  pullPolicy: IfNotPresent
+
+# Puerto interno del servidor Node (server.js escucha en process.env.PORT).
+port: 7860
+
+# Recursos. Chromium necesita margen; no bajar de ~512Mi de request.
+resources:
+  requests:
+    cpu: "0.5"
+    memory: 512Mi
+  limits:
+    cpu: "1"
+    memory: 1536Mi

@@ -1,0 +1,100 @@
+olaresManifest.version: '0.11.0'
+olaresManifest.type: app
+apiVersion: v1
+
+metadata:
+  name: veciturno
+  appid: veciturno
+  title: VeciTurno
+  description: Gestión de turnos rotativos de limpieza de la comunidad con bot de WhatsApp autohospedado.
+  icon: https://app.cdn.olares.com/appstore/default/icon.webp
+  version: 1.0.0
+  categories:
+    - Utilities
+    - Productivity
+
+# Acceso web al panel. authLevel: public → la app gestiona su propio login/2FA,
+# así los vecinos entran sin necesitar cuenta de Olares.
+entrances:
+  - name: web
+    host: veciturno-svc
+    port: 7860
+    title: VeciTurno
+    authLevel: public
+    invisible: false
+    openMethod: default
+
+# Almacenamiento persistente. appData sobrevive reinicios/actualizaciones →
+# la sesión de WhatsApp (.wwebjs_auth) y la base de datos local quedan FIJAS.
+permission:
+  appData: true
+  appCache: true
+
+spec:
+  versionName: '1.0.0'
+  fullDescription: >-
+    VeciTurno gestiona los turnos rotativos de limpieza, cuotas, incidencias,
+    documentos y avisos automáticos por WhatsApp (whatsapp-web.js autohospedado,
+    sin APIs de pago). La sesión de WhatsApp se guarda en almacenamiento
+    persistente, por lo que la vinculación se mantiene entre reinicios.
+  developer: Ramón Granda
+  website: https://github.com/ramongranda/veciturno
+  sourceCode: https://github.com/ramongranda/veciturno
+  submitter: Ramón Granda
+  locale:
+    - es-ES
+  # Chromium (Puppeteer) necesita margen de RAM. NO usar límites minúsculos.
+  requiredMemory: 512Mi
+  requiredDisk: 512Mi
+  requiredCpu: 0.5
+  limitedMemory: 1536Mi
+  limitedDisk: 2Gi
+  limitedCpu: 1
+  supportArch:
+    - amd64
+    - arm64
+  onlyAdmin: false
+  runAsUser: false
+
+# Variables que Olares pide al instalar y expone como .Values.olaresEnv.<NAME>.
+# JWT_SECRET FIJO aquí → los tokens de sesión sobreviven reinicios (adiós 403
+# "Sesión expirada o token no válido").
+envs:
+  - envName: JWT_SECRET
+    required: true
+    type: password
+    editable: true
+    description: "Clave secreta larga para firmar sesiones JWT y 2FA (32+ chars)."
+  - envName: COMMUNITY_NAME
+    required: true
+    type: string
+    default: "Mi Comunidad"
+    editable: true
+    description: "Nombre oficial de la comunidad."
+  - envName: BOOTSTRAP_TOKEN
+    required: true
+    type: string
+    default: "registro-inicial-planta3"
+    editable: true
+    description: "Token de un solo uso para registrar al primer administrador."
+  - envName: START_MONTH
+    required: true
+    type: string
+    default: "2026-06-01"
+    editable: true
+    description: "Mes de inicio de la rotación (YYYY-MM-DD)."
+  - envName: START_FLOOR_ID
+    required: true
+    type: string
+    default: "1"
+    editable: true
+    description: "ID de la vivienda que arranca el primer turno."
+  - envName: APP_BASE_URL
+    required: false
+    type: string
+    editable: true
+    description: "URL pública de la app en Olares (para los enlaces de invitación)."
+
+options:
+  appScope:
+    clusterScoped: false

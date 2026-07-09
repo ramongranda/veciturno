@@ -97,6 +97,7 @@ body.modal-open {
   border-radius: 20px;
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
+  -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px);
   margin-bottom: 24px;
   box-shadow: var(--shadow-lg);
@@ -196,28 +197,32 @@ body.modal-open {
   flex-shrink: 0;
 }
 
+/* Ley del primario único: un solo botón acento por vista, plano y sin fuegos
+   artificiales. La jerarquía la da el color, no el gradiente. */
 .btn-primary {
-  background: linear-gradient(135deg, #3b82f6, #7c3aed);
+  background: var(--color-primary);
   color: #fff;
-  box-shadow: 0 4px 15px rgba(124, 58, 237, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 2px 10px rgba(59, 130, 246, 0.25);
+  border: 1px solid transparent;
 }
 
 .btn-primary:hover {
-  background: linear-gradient(135deg, #2563eb, #6d28d9);
-  transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 8px 24px rgba(124, 58, 237, 0.38);
+  background: var(--color-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.32);
 }
 
+/* Secundario = fantasma silencioso: no compite, acompaña. */
 .btn-secondary {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: var(--text-main);
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  color: var(--text-muted);
 }
 
 .btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.09);
-  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.20);
+  color: var(--text-main);
   transform: translateY(-1px);
 }
 
@@ -233,14 +238,14 @@ body.modal-open {
 }
 
 .btn-success {
-  background: linear-gradient(135deg, var(--color-success), var(--color-success-hover));
+  background: var(--color-success);
   color: #fff;
-  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.25);
 }
 
 .btn-success:hover {
-  background: linear-gradient(135deg, var(--color-success-hover), #047857);
-  transform: translateY(-2px);
+  background: var(--color-success-hover);
+  transform: translateY(-1px);
 }
 
 .btn-whatsapp {
@@ -279,8 +284,8 @@ body.modal-open {
 .glass-card {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
-  backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
   border-radius: 24px;
   padding: 24px;
   box-shadow: var(--shadow-lg);
@@ -571,6 +576,7 @@ body.modal-open {
 .history-date {
   color: var(--text-muted);
   font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
 }
 
 /* MODALES Y CAPAS */
@@ -597,6 +603,7 @@ body.modal-open {
   width: 100vw;
   height: 100vh;
   background: rgba(3, 7, 18, 0.8);
+  -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
   z-index: 100;
   display: none; /* Se maneja con .active */
@@ -665,7 +672,26 @@ body.modal-open {
 .admin-menu-nav {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 20px;
+}
+
+/* Grupos semánticos del menú: la etiqueta hace de decisión de primer nivel. */
+.admin-menu-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-menu-group-label {
+  font-family: var(--font-title);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+  opacity: 0.85;
+  padding: 0 12px;
+  margin-bottom: 2px;
 }
 
 .admin-menu-nav .btn {
@@ -1543,9 +1569,10 @@ body.modal-open {
   border-radius: 16px;
   padding: 16px;
   border: 1px solid rgba(255, 255, 255, 0.09);
-  background: linear-gradient(150deg, rgba(18, 32, 59, 0.7), rgba(13, 25, 47, 0.65));
-  backdrop-filter: blur(12px);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+  /* Sin blur anidado: una sola capa de vidrio por vista (el contenedor).
+     Menos backdrop-filter apilados = scroll fluido en móviles modestos. */
+  background: rgba(15, 27, 48, 0.85);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.30);
   transition: var(--transition-smooth);
 }
 
@@ -1873,8 +1900,8 @@ input[type='number'] {
   gap: 12px;
   padding: 14px 20px;
   background: rgba(20, 20, 25, 0.7);
-  backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
   color: #fff;
@@ -2005,9 +2032,10 @@ input[type='number'] {
 .recommendation-banner .btn {
   padding: 8px 16px;
   font-size: 0.85rem;
-  background: linear-gradient(135deg, var(--color-warning), #d97706);
-  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.2);
-  border: none;
+  background: rgba(245, 158, 11, 0.10);
+  color: var(--color-warning);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  box-shadow: none;
   flex-shrink: 0;
 }
 
@@ -2163,8 +2191,8 @@ input[type='number'] {
   right: 0;
   min-width: 220px;
   background: rgba(17, 24, 39, 0.95);
-  backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   padding: 8px;
@@ -2219,8 +2247,8 @@ input[type='number'] {
 
   .header-dropdown-overlay.active {
     background: rgba(3, 7, 18, 0.58);
-    backdrop-filter: blur(5px);
     -webkit-backdrop-filter: blur(5px);
+    backdrop-filter: blur(5px);
   }
 
   .header-dropdown {
@@ -2258,6 +2286,7 @@ input[type='number'] {
   position: fixed;
   inset: 0;
   background: rgba(3, 7, 18, 0.7);
+  -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
   z-index: 199;
   opacity: 0;
@@ -2344,8 +2373,8 @@ input[type='number'] {
   left: 0;
   right: 0;
   background: rgba(11, 15, 25, 0.92);
-  backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   z-index: 50;
   padding: 6px 0 max(6px, env(safe-area-inset-bottom));
@@ -2448,18 +2477,21 @@ input[type='number'] {
    FASE 3 P2+P3: FAVICON, MISC POLISH
    ========================================================================== */
 
-/* Warning button style extracted */
+/* Acción masiva/sensible ("Forzar Aviso Turno"): contenida, no festiva.
+   El ámbar marca precaución con un outline sereno en vez del gradiente
+   más llamativo de la vista. */
 .btn-warning-solid {
-  background: linear-gradient(135deg, var(--color-warning), #d97706);
-  color: #fff;
-  border: none;
-  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.2);
+  background: rgba(245, 158, 11, 0.08);
+  color: var(--color-warning);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  box-shadow: none;
 }
 
 .btn-warning-solid:hover {
-  background: linear-gradient(135deg, #d97706, #b45309);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.3);
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.55);
+  transform: translateY(-1px);
+  box-shadow: none;
 }
 
 /* Danger outline button */
@@ -2498,18 +2530,7 @@ input[type='number'] {
   margin-bottom: 8px;
 }
 
-/* WhatsApp connected box */
-.wa-connected-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.8rem;
-  padding: 6px 12px;
-  margin-bottom: 10px;
-  width: 100%;
-  justify-content: center;
-  border-radius: 8px;
-}
+/* (La caja "Conectado: +34…" murió en 0.16: el semáforo ya anuncia el teléfono.) */
 
 /* Admin force turn form label */
 .admin-force-turn-form .form-group label {
@@ -2799,4 +2820,2163 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
 #incident-photo::file-selector-button {
   margin-right: 12px; padding: 8px 14px; border-radius: 8px; cursor: pointer;
   border: 1px solid var(--glass-border); background: rgba(255, 255, 255, 0.05); color: var(--text-light, #e5e7eb);
+}
+
+/* ===== Registro de notificaciones semántico ===== */
+.log-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 9px 4px;
+  border-bottom: 1px solid var(--glass-border);
+  font-size: 0.84rem;
+}
+.log-row:last-child { border-bottom: none; }
+.log-time {
+  font-family: monospace;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  flex: none;
+  min-width: 74px;
+}
+.log-chip {
+  font-family: monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  flex: none;
+  font-weight: 700;
+}
+.log-chip.sent { color: var(--color-success); background: rgba(16, 185, 129, 0.12); }
+.log-chip.fail { color: var(--color-danger); background: rgba(239, 68, 68, 0.12); }
+.log-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.log-title { font-weight: 600; color: var(--text-main); }
+.log-ctx { font-weight: 400; color: var(--text-muted); font-size: 0.78rem; }
+.log-err { color: var(--text-muted); font-size: 0.78rem; }
+.log-raw summary {
+  cursor: pointer;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  opacity: 0.75;
+}
+.log-raw code {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  padding: 6px 8px;
+  margin-top: 4px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 6px;
+  word-break: break-all;
+}
+
+/* ===== Estado del bot de WhatsApp (semáforo con pulso) ===== */
+.wa-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.03);
+  transition: border-color 0.3s ease, background 0.3s ease;
+}
+.wa-status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--text-muted);
+}
+.wa-status-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.wa-status-title { font-weight: 700; font-size: 0.92rem; line-height: 1.35; }
+.wa-status-sub {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.wa-status-sub:empty { display: none; }
+
+/* Verde vivo: conectado (con latido) */
+.wa-status[data-state="connected"] {
+  border-color: rgba(16, 185, 129, 0.30);
+  background: rgba(16, 185, 129, 0.06);
+}
+.wa-status[data-state="connected"] .wa-status-dot {
+  background: var(--color-success);
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.45);
+  animation: wa-pulse 2s infinite;
+}
+/* Ámbar: esperando escaneo de QR o conectando */
+.wa-status[data-state="qr"],
+.wa-status[data-state="connecting"],
+.wa-status[data-state="loading"] {
+  border-color: rgba(245, 158, 11, 0.28);
+  background: rgba(245, 158, 11, 0.05);
+}
+.wa-status[data-state="qr"] .wa-status-dot,
+.wa-status[data-state="connecting"] .wa-status-dot,
+.wa-status[data-state="loading"] .wa-status-dot {
+  background: var(--color-warning);
+}
+/* Rojo: caído o error de comunicación */
+.wa-status[data-state="disconnected"],
+.wa-status[data-state="error"] {
+  border-color: rgba(239, 68, 68, 0.30);
+  background: rgba(239, 68, 68, 0.06);
+}
+.wa-status[data-state="disconnected"] .wa-status-dot,
+.wa-status[data-state="error"] .wa-status-dot {
+  background: var(--color-danger);
+}
+@keyframes wa-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.45); }
+  70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wa-status[data-state="connected"] .wa-status-dot { animation: none; }
+}
+
+/* ===== Modal de confirmación (showConfirm) — sustituye a window.confirm ===== */
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 4000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(2, 6, 23, 0.62);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.confirm-overlay.show { opacity: 1; }
+.confirm-dialog {
+  width: 100%;
+  max-width: 440px;
+  padding: 24px;
+  transform: translateY(10px) scale(0.98);
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.confirm-overlay.show .confirm-dialog { transform: translateY(0) scale(1); }
+.confirm-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.confirm-icon {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: rgba(59, 130, 246, 0.14);
+  color: var(--color-primary);
+}
+.confirm-icon.danger {
+  background: rgba(239, 68, 68, 0.14);
+  color: var(--color-danger);
+}
+.confirm-icon svg { width: 24px; height: 24px; }
+.confirm-header h3 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-light, #e5e7eb);
+}
+.confirm-body {
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--text-muted, #cbd5e1);
+  margin-bottom: 22px;
+}
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.confirm-actions button { min-width: 116px; }
+@media (max-width: 480px) {
+  .confirm-actions { flex-direction: column-reverse; }
+  .confirm-actions button { width: 100%; }
+}
+
+/* ===== El edificio como interfaz (Fase 3) =====
+   Los pisos se apilan como en el portal real: ático arriba, bajo abajo.
+   El turno se lee de un vistazo, como en el portero automático. */
+.building-view {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 560px;
+  margin: 4px auto;
+  padding: 12px 12px 16px;
+  border: 1px solid var(--glass-border);
+  border-radius: 14px 14px 10px 10px;
+  background: rgba(255, 255, 255, 0.015);
+  position: relative;
+}
+/* Tejado sutil */
+.building-view::before {
+  content: "";
+  position: absolute;
+  top: -7px;
+  left: 18px;
+  right: 18px;
+  height: 7px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 6px 6px 0 0;
+}
+.building-floor {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.15s ease;
+}
+.building-floor:hover {
+  border-color: rgba(59, 130, 246, 0.35);
+  transform: translateX(3px);
+}
+.building-floor.active {
+  border-color: rgba(59, 130, 246, 0.55);
+  background: rgba(59, 130, 246, 0.08);
+  box-shadow: 0 0 18px rgba(59, 130, 246, 0.12);
+}
+.bf-door {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-title);
+  font-weight: 800;
+  font-size: 0.9rem;
+  border-radius: 8px 8px 3px 3px; /* silueta de puerta */
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--glass-border);
+  color: var(--text-muted);
+}
+.building-floor.active .bf-door {
+  background: var(--color-primary);
+  border-color: transparent;
+  color: #fff;
+}
+.bf-info { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
+.bf-name { font-weight: 700; font-size: 0.9rem; }
+.building-floor.active .bf-name { color: var(--text-main); }
+.bf-meta { font-size: 0.72rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.bf-nophone { color: var(--color-danger); opacity: 0.85; }
+.bf-badge {
+  flex: none;
+  font-family: var(--font-title);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.bf-badge.now {
+  background: var(--color-primary);
+  color: #fff;
+  animation: bf-glow 2.4s ease-in-out infinite;
+}
+.bf-badge.next {
+  background: rgba(16, 185, 129, 0.14);
+  color: var(--color-success);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+.bf-badge.future {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+  border: 1px solid var(--glass-border);
+}
+.bf-badge.exempt {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px dashed var(--glass-border);
+  opacity: 0.7;
+}
+@keyframes bf-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.35); }
+  50% { box-shadow: 0 0 12px 2px rgba(59, 130, 246, 0.25); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bf-badge.now { animation: none; }
+  .building-floor:hover { transform: none; }
+}
+@media (max-width: 480px) {
+  .bf-meta { display: none; }
+}
+/* Variante compacta (home del vecino): sin metadatos ni cursor de acción */
+.building-view.compact .bf-meta { display: none; }
+.building-floor.static { cursor: default; }
+.building-floor.static:hover { transform: none; border-color: var(--glass-border); }
+.building-floor.static.active:hover { border-color: rgba(59, 130, 246, 0.55); }
+
+/* Bloque del edificio en la portada */
+.home-building-block {
+  width: 100%;
+  margin-top: 22px;
+}
+.home-building-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--font-title);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+.home-building-title svg { width: 15px; height: 15px; color: var(--color-primary); }
+
+/* ===== Zona de mantenimiento del bot (Fase 2) =====
+   Separada de las acciones cotidianas: lo que puede romper la vinculación
+   vive al final, con descripción de consecuencias junto a cada botón. */
+.wa-danger-zone {
+  border: 1px solid rgba(239, 68, 68, 0.18);
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: rgba(239, 68, 68, 0.03);
+}
+.wa-danger-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+.wa-danger-title svg { width: 14px; height: 14px; }
+.wa-danger-actions { display: flex; flex-direction: column; gap: 12px; }
+.wa-danger-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.wa-danger-info { display: flex; flex-direction: column; gap: 2px; min-width: 200px; flex: 1; }
+.wa-danger-info strong { font-size: 0.85rem; }
+.wa-danger-info span { font-size: 0.75rem; color: var(--text-muted); }
+
+/* ===== Difusión segmentada con previsualización (Fase 2) ===== */
+.broadcast-dialog { max-width: 520px; }
+.broadcast-dialog textarea,
+.broadcast-dialog select {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  color: var(--text-main);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  padding: 10px 12px;
+  resize: vertical;
+}
+.broadcast-dialog textarea:focus,
+.broadcast-dialog select:focus {
+  outline: 2px solid rgba(59, 130, 246, 0.45);
+  outline-offset: 1px;
+}
+.broadcast-dialog label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.broadcast-dialog .form-group { margin-bottom: 14px; }
+.broadcast-filters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 480px) {
+  .broadcast-filters { grid-template-columns: 1fr; }
+}
+.broadcast-preview { margin: 4px 0 20px; }
+.broadcast-preview-label {
+  display: block;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+/* Burbuja al estilo WhatsApp (modo oscuro): el admin ve exactamente lo que
+   recibirá el vecino antes de tocar Enviar. */
+.wa-bubble {
+  background: #005c4b;
+  color: #e9edef;
+  border-radius: 12px;
+  border-top-left-radius: 3px;
+  padding: 10px 14px;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  max-width: 92%;
+  word-wrap: break-word;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+.wa-bubble-empty { color: rgba(233, 237, 239, 0.5); font-style: italic; }
+.broadcast-dialog input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  color: var(--text-main);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  padding: 10px 12px;
+}
+.broadcast-dialog input:focus {
+  outline: 2px solid rgba(59, 130, 246, 0.45);
+  outline-offset: 1px;
+}
+.fm-hint {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 5px;
+  line-height: 1.4;
+}
+.fm-invalid { border-color: rgba(239, 68, 68, 0.55) !important; }
+
+/* ===== Disciplina tipográfica y de ritmo (Fase 1 del rediseño) ===== */
+/* Titulares con tracking intencional: el peso alto pide aire negativo. */
+.section-card h3,
+.admin-subsection-title,
+.modal-header h2 {
+  letter-spacing: -0.015em;
+}
+
+/* Cifras alineadas allí donde forman columnas. */
+table td,
+.finance-kpi-card,
+.history-item {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Ritmo de 8pt en los grupos de acciones: 12px dentro del grupo,
+   el doble entre grupos. Dos valores, ninguna excepción. */
+.action-group { gap: 12px; }
+.admin-grid { gap: 24px; }
+
+/* Una sola capa de vidrio: si una glass-card vive dentro de otra,
+   la interior pierde el blur (conserva fondo y borde). */
+.glass-card .glass-card {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: rgba(17, 24, 39, 0.55);
+}
+
+/* ==========================================================================
+   EL PORTAL DE NOCHE — rediseño de la portada
+   Noche urbana con una sola fuente de luz: la ventana ámbar del piso en
+   turno. Serif editorial (Fraunces) para lo que en el portal iría grabado.
+   ========================================================================== */
+:root {
+  --pn-night: #070B14;
+  --pn-amber: #FFB84D;
+  --pn-amber-deep: #F59E0B;
+  --pn-moon: #94A7C7;
+  --pn-moon-dim: #5A6B8C;
+  --pn-ink: #F2EFE7;
+  --pn-line: rgba(148, 167, 199, 0.14);
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+}
+
+/* Fondo global: de gris SaaS a noche urbana con resplandor ámbar lejano */
+body {
+  background-color: var(--pn-night);
+  background-image:
+    radial-gradient(1100px 500px at 78% -80px, rgba(255, 184, 77, 0.05), transparent 60%),
+    linear-gradient(180deg, #05080F 0%, var(--pn-night) 40%, #0A1120 100%);
+  background-attachment: fixed;
+}
+
+/* La placa del portal: el nombre de la comunidad, grabado */
+.logo-text h1 { font-family: var(--font-display); }
+
+/* ===== Hero nocturno ===== */
+.night-hero { overflow: visible; }
+.nh-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 36px;
+  align-items: center;
+}
+@media (max-width: 760px) { .nh-grid { grid-template-columns: 1fr; gap: 28px; } }
+
+.nh-month {
+  font-family: monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--pn-amber);
+  margin-bottom: 14px;
+}
+.nh-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.9rem, 4.2vw, 3.1rem);
+  line-height: 1.05;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--pn-ink);
+  margin: 0 0 12px;
+  text-wrap: balance;
+}
+.nh-title em {
+  font-style: normal;
+  color: var(--pn-amber);
+  text-shadow: 0 0 32px rgba(255, 184, 77, 0.35);
+}
+.nh-sub {
+  color: var(--pn-moon);
+  font-size: 0.98rem;
+  max-width: 44ch;
+  margin-bottom: 22px;
+}
+.nh-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+.btn-lantern {
+  background: linear-gradient(180deg, var(--pn-amber), var(--pn-amber-deep));
+  color: #1A1206;
+  font-weight: 800;
+  font-size: 0.88rem;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 20px;
+  cursor: pointer;
+  box-shadow: 0 6px 24px rgba(245, 158, 11, 0.25);
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+.btn-lantern:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(245, 158, 11, 0.38); }
+
+/* ===== La fachada ===== */
+.facade-scene { position: relative; display: flex; flex-direction: column; align-items: center; }
+.facade {
+  width: min(290px, 84vw);
+  background: linear-gradient(180deg, #131C2E 0%, #0E1524 100%);
+  border: 1px solid rgba(148, 167, 199, 0.18);
+  border-radius: 10px 10px 4px 4px;
+  padding: 16px 18px 0;
+  position: relative;
+  box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.8);
+}
+.facade::before {
+  content: "";
+  position: absolute;
+  top: -10px; left: -10px; right: -10px;
+  height: 10px;
+  background: #16203A;
+  border-radius: 8px 8px 0 0;
+  border: 1px solid rgba(148, 167, 199, 0.2);
+  border-bottom: none;
+}
+.floor-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 2px;
+  border-bottom: 1px dashed rgba(148, 167, 199, 0.1);
+}
+.floor-row:last-of-type { border-bottom: none; }
+.window {
+  width: 44px; height: 32px; flex: none;
+  border-radius: 4px 4px 2px 2px;
+  background: #0A101D;
+  border: 2px solid #2A3A57;
+  position: relative;
+  transition: all 0.4s ease;
+}
+.window::after {
+  content: "";
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(#2A3A57, #2A3A57) 50% 0 / 2px 100% no-repeat,
+    linear-gradient(#2A3A57, #2A3A57) 0 50% / 100% 2px no-repeat;
+}
+.floor-row.lit .window {
+  background: radial-gradient(circle at 50% 60%, #FFD98F 0%, var(--pn-amber) 55%, var(--pn-amber-deep) 100%);
+  border-color: #B8842D;
+  box-shadow:
+    0 0 22px 4px rgba(255, 184, 77, 0.45),
+    0 0 60px 12px rgba(255, 184, 77, 0.15);
+  animation: pn-flicker 4.5s ease-in-out infinite;
+}
+.floor-row.lit .window::after {
+  background:
+    linear-gradient(rgba(120, 80, 15, 0.5), rgba(120, 80, 15, 0.5)) 50% 0 / 2px 100% no-repeat,
+    linear-gradient(rgba(120, 80, 15, 0.5), rgba(120, 80, 15, 0.5)) 0 50% / 100% 2px no-repeat;
+}
+@keyframes pn-flicker {
+  0%, 100% { filter: brightness(1); }
+  48% { filter: brightness(0.96); }
+  52% { filter: brightness(1.05); }
+}
+.f-label { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.f-name {
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--pn-moon);
+}
+.floor-row.lit .f-name { color: var(--pn-ink); }
+.f-turn {
+  font-family: monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--pn-moon-dim);
+}
+.floor-row.lit .f-turn { color: var(--pn-amber); }
+.f-chip {
+  font-family: monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+  border: 1px solid var(--pn-line);
+  color: var(--pn-moon-dim);
+  flex: none;
+}
+.floor-row.lit .f-chip {
+  background: var(--pn-amber);
+  color: #1A1206;
+  border-color: transparent;
+  font-weight: 700;
+}
+.floor-row.next .f-chip { color: #4ADE80; border-color: rgba(74, 222, 128, 0.35); }
+.portal {
+  width: 72px; height: 44px;
+  margin: 6px auto 0;
+  background: #0A101D;
+  border: 2px solid #2A3A57;
+  border-bottom: none;
+  border-radius: 26px 26px 0 0;
+  position: relative;
+}
+.portal::after {
+  content: "37";
+  position: absolute;
+  top: 7px; left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  color: var(--pn-amber);
+  text-shadow: 0 0 8px rgba(255, 184, 77, 0.6);
+}
+.sidewalk {
+  width: min(340px, 92vw);
+  height: 8px;
+  background: linear-gradient(90deg, transparent, #182338 18%, #182338 82%, transparent);
+  border-radius: 999px;
+}
+.light-pool {
+  position: absolute;
+  width: 220px; height: 90px;
+  background: radial-gradient(ellipse at center, rgba(255, 184, 77, 0.10), transparent 70%);
+  filter: blur(6px);
+  pointer-events: none;
+  right: 4%; top: 26%;
+}
+.facade-cap {
+  margin-top: 12px;
+  font-family: monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--pn-moon-dim);
+}
+
+/* ===== Cinta de rotación ===== */
+.nh-rota-label {
+  font-family: monospace;
+  font-size: 0.66rem;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--pn-moon-dim);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 30px 0 12px;
+}
+.nh-rota-label::after { content: ""; flex: 1; height: 1px; background: var(--pn-line); }
+.rota-strip {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 4px 2px 8px;
+  scrollbar-width: none;
+}
+.rota-strip::-webkit-scrollbar { display: none; }
+.rota-card {
+  flex: none;
+  min-width: 138px;
+  border: 1px solid var(--pn-line);
+  border-radius: 14px;
+  padding: 12px 15px;
+  background: rgba(148, 167, 199, 0.03);
+}
+.rota-card.now {
+  border-color: rgba(255, 184, 77, 0.5);
+  background: rgba(255, 184, 77, 0.10);
+  box-shadow: 0 0 24px rgba(255, 184, 77, 0.08);
+}
+.rota-m {
+  font-family: monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--pn-moon-dim);
+  display: block;
+  margin-bottom: 3px;
+}
+.rota-card.now .rota-m { color: var(--pn-amber); }
+.rota-who {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--pn-ink);
+}
+
+/* ===== El mostrador: tarjetas laterales en clave nocturna ===== */
+.dashboard-side-column .section-card {
+  background: linear-gradient(180deg, rgba(16, 26, 46, 0.6), rgba(11, 18, 32, 0.4));
+  border-color: var(--pn-line);
+  transition: border-color 0.2s ease;
+}
+.dashboard-side-column .section-card:hover { border-color: rgba(255, 184, 77, 0.3); }
+.dashboard-side-column .section-card h3 {
+  font-family: var(--font-display);
+  letter-spacing: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .floor-row.lit .window { animation: none; }
+  .btn-lantern:hover { transform: none; }
+}
+
+/* "Secciones" es el botón de volver del panel a la lista en MÓVIL (flujo de
+   dos pantallas). En escritorio el menú siempre está visible al lado, así que
+   el botón no hace nada: se oculta. mobile.css lo muestra cuando corresponde. */
+.admin-back-btn { display: none; }
+
+/* ==========================================================================
+   PORTAL DE NOCHE — Fase 2: fidelidad total al mockup
+   Muere el grid de dos columnas: la portada respira como una página
+   editorial. Hero al aire, mostrador a lo ancho, header como placa.
+   ========================================================================== */
+
+/* --- Layout: una sola columna vertical --- */
+.dashboard-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* --- Hero al aire: la tarjeta desaparece, queda la noche --- */
+.night-hero,
+.night-hero.glass-card {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  padding: 56px 8px 40px;
+  overflow: visible;
+}
+.nh-grid { gap: 56px; }
+.facade { width: min(330px, 86vw); }
+.nh-sub { font-size: 1.05rem; }
+
+/* --- Header como placa de portal --- */
+.app-header {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--pn-line);
+  border-radius: 0;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+.logo-icon { display: none; }
+.logo-text h1 {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  background: none;
+  -webkit-background-clip: initial;
+  -webkit-text-fill-color: var(--pn-ink);
+  color: var(--pn-ink);
+  letter-spacing: 0.02em;
+}
+.logo-text span {
+  font-family: monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--pn-moon-dim);
+}
+/* Botones del header: píldoras fantasma */
+.app-header .btn,
+.app-header .btn-secondary {
+  background: transparent;
+  border: 1px solid var(--pn-line);
+  border-radius: 999px;
+  color: var(--pn-moon);
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 8px 16px;
+  box-shadow: none;
+}
+.app-header .btn:hover {
+  color: var(--pn-ink);
+  border-color: rgba(148, 167, 199, 0.35);
+  background: transparent;
+  transform: none;
+}
+.live-indicator {
+  border: 1px solid rgba(74, 222, 128, 0.3);
+  border-radius: 999px;
+  background: transparent;
+  color: #4ADE80;
+  font-size: 0.8rem;
+  padding: 8px 16px;
+}
+
+/* --- Etiqueta de sección genérica del concepto --- */
+.pn-section-label {
+  font-family: monospace;
+  font-size: 0.66rem;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--pn-moon-dim);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 26px 0 16px;
+  padding: 0 8px;
+}
+.pn-section-label::after { content: ""; flex: 1; height: 1px; background: var(--pn-line); }
+
+/* --- El mostrador: las tarjetas de servicios a lo ancho --- */
+.dashboard-side-column {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+.dashboard-side-column .section-card {
+  border-radius: 16px;
+  padding: 20px;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+.dashboard-side-column .section-card:hover { transform: translateY(-2px); }
+/* Punto de luz ámbar junto a cada título del mostrador */
+.dashboard-side-column .section-card h3 {
+  font-size: 1.05rem;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.dashboard-side-column .section-card h3::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--pn-amber);
+  box-shadow: 0 0 8px rgba(255, 184, 77, 0.7);
+  flex: none;
+}
+.dashboard-side-column .section-card h3 i,
+.dashboard-side-column .section-card h3 svg { display: none; }
+
+/* --- Formularios en la noche: nada de campos blancos --- */
+.dashboard-side-column textarea,
+.dashboard-side-column input[type="text"],
+.dashboard-side-column input[type="file"],
+.dashboard-side-column select {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--pn-line);
+  border-radius: 10px;
+  color: var(--pn-ink);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  padding: 10px 12px;
+  width: 100%;
+}
+/* Los campos con icono dentro (.input-wrapper) necesitan hueco a la izquierda */
+.dashboard-side-column .input-wrapper input,
+.dashboard-side-column .input-wrapper select {
+  padding-left: 42px;
+}
+.dashboard-side-column textarea:focus,
+.dashboard-side-column input:focus,
+.dashboard-side-column select:focus {
+  outline: 2px solid rgba(255, 184, 77, 0.4);
+  outline-offset: 1px;
+}
+.dashboard-side-column input[type="file"]::file-selector-button {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--pn-line);
+  border-radius: 8px;
+  color: var(--pn-moon);
+  padding: 7px 12px;
+  margin-right: 12px;
+  cursor: pointer;
+}
+
+/* --- Acciones del mostrador en ámbar: la luz marca lo accionable --- */
+.dashboard-side-column .btn-primary,
+.dashboard-side-column .btn-whatsapp {
+  background: linear-gradient(180deg, var(--pn-amber), var(--pn-amber-deep));
+  color: #1A1206;
+  font-weight: 800;
+  border: none;
+  box-shadow: 0 4px 18px rgba(245, 158, 11, 0.22);
+}
+.dashboard-side-column .btn-primary:hover,
+.dashboard-side-column .btn-whatsapp:hover {
+  background: linear-gradient(180deg, #FFC569, var(--pn-amber));
+  transform: translateY(-1px);
+}
+
+/* Móvil: hero compacto y mostrador a una columna */
+@media (max-width: 760px) {
+  .night-hero, .night-hero.glass-card { padding: 34px 4px 28px; }
+  .nh-grid { gap: 34px; }
+  .dashboard-side-column { grid-template-columns: 1fr; }
+}
+
+/* ==========================================================================
+   PORTAL DE NOCHE — ajustes móviles
+   El header placa recupera el cristal cuando se vuelve sticky en móvil
+   (el override transparente de escritorio dejaba el scroll pasando por
+   detrás), y el hero/cinta se compactan para pantallas estrechas.
+   ========================================================================== */
+@media (max-width: 768px) {
+  /* Header sticky: fondo de noche translúcido para que el contenido no
+     se lea a través al hacer scroll. */
+  .app-header {
+    background: rgba(7, 11, 20, 0.88);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--pn-line);
+  }
+  /* La dirección de la comunidad no debe pelear con la hamburguesa */
+  .logo-text span {
+    display: block;
+    max-width: 52vw;
+    font-size: 0.52rem;
+    letter-spacing: 0.14em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .logo-text h1 { font-size: 1.15rem; }
+
+  /* Hero compacto y centrado */
+  .night-hero,
+  .night-hero.glass-card { padding: 26px 2px 20px; }
+  .nh-copy { text-align: center; }
+  .nh-sub { margin-left: auto; margin-right: auto; }
+  .nh-actions { justify-content: center; }
+  .nh-title { font-size: clamp(1.7rem, 8.5vw, 2.4rem); }
+  .facade { width: min(300px, 88vw); }
+
+  /* Cinta de rotación: aire lateral y tarjetas más compactas */
+  .rota-strip { padding: 4px 6px 10px; }
+  .rota-card { min-width: 122px; padding: 10px 13px; }
+  .nh-rota-label { margin: 22px 0 10px; }
+
+  /* Mostrador y etiquetas de sección */
+  .pn-section-label { margin: 18px 0 12px; }
+  .dashboard-side-column { gap: 12px; }
+  .dashboard-side-column .section-card { padding: 16px; }
+}
+
+@media (max-width: 400px) {
+  .facade { width: 92vw; padding: 12px 12px 0; }
+  .f-name { font-size: 0.84rem; }
+  .rota-card { min-width: 112px; }
+}
+
+/* La cinta de rotación debe ocupar el ancho del hero y scrollear dentro de
+   su propia caja. Sin esto, el align-items:center del contenedor la centra
+   como bloque max-content y la corta por la izquierda en móvil. */
+.night-hero .nh-grid,
+.night-hero .nh-rota-label,
+.night-hero .rota-strip {
+  width: 100%;
+  align-self: stretch;
+}
+
+/* ==========================================================
+   EL LIBRO DE CUENTAS DEL PORTAL (vista Finanzas)
+   Papel cálido leído bajo la lámpara, dentro de la noche.
+   ========================================================== */
+:root {
+  --lb-paper: #F2E9D2;
+  --lb-paper-2: #EADFC2;
+  --lb-paper-edge: #D8C9A4;
+  --lb-ink: #2B2416;
+  --lb-ink-soft: #6B5F49;
+  --lb-ink-red: #A63A2B;
+  --lb-ink-green: #1F6B3A;
+}
+
+.ledger-scene { max-width: 1060px; margin: 0 auto; }
+
+.ledger-head { text-align: center; }
+.ledger-kicker {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.72rem;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--pn-amber);
+}
+
+/* La lámpara sobre el libro */
+.ledger-lamp { display: flex; flex-direction: column; align-items: center; margin: 10px 0 -30px; position: relative; z-index: 2; }
+.ledger-lamp .lamp-cord { width: 2px; height: 46px; background: linear-gradient(180deg, transparent, rgba(148, 167, 199, 0.5)); }
+.ledger-lamp .lamp-bulb {
+  width: 13px; height: 13px; border-radius: 50%;
+  background: var(--pn-amber);
+  box-shadow: 0 0 18px 6px rgba(255, 184, 77, 0.55), 0 0 90px 40px rgba(255, 184, 77, 0.12);
+  animation: pn-flicker 7s infinite;
+}
+@media (prefers-reduced-motion: reduce) { .ledger-lamp .lamp-bulb { animation: none; } }
+
+/* El libro abierto */
+.ledger-book {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin-top: 44px;
+  border-radius: 6px 6px 10px 10px;
+  box-shadow:
+    0 1px 0 var(--lb-paper-edge), 0 3px 0 #CBBB93, 0 5px 0 #BBA97F,
+    0 30px 60px -18px rgba(0, 0, 0, 0.85);
+}
+.ledger-page {
+  background: linear-gradient(180deg, rgba(255, 251, 240, 0.5), transparent 90px), var(--lb-paper);
+  color: var(--lb-ink);
+  padding: 30px 30px 26px;
+  min-height: 380px;
+}
+.ledger-page.is-left {
+  border-radius: 6px 0 0 10px;
+  box-shadow: inset -22px 0 30px -24px rgba(43, 36, 22, 0.35);
+}
+.ledger-page.is-right {
+  border-radius: 0 6px 10px 0;
+  background-color: var(--lb-paper-2);
+  box-shadow: inset 22px 0 30px -24px rgba(43, 36, 22, 0.55);
+}
+
+.ledger-folio-head {
+  display: flex; justify-content: space-between; align-items: baseline;
+  border-bottom: 2px solid var(--lb-ink);
+  padding-bottom: 8px;
+}
+.ledger-folio-head h3 {
+  font-family: var(--font-display, serif);
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: var(--lb-ink);
+  margin: 0;
+  border: none;
+  padding: 0;
+}
+.ledger-folio-num {
+  font-family: ui-monospace, monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--lb-ink-soft);
+}
+
+/* Renglones Debe/Haber */
+.ledger-cols {
+  display: grid; grid-template-columns: 52px 1fr 80px 80px;
+  gap: 10px; align-items: baseline;
+  font-family: ui-monospace, monospace;
+  font-size: 0.6rem; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--lb-ink-soft);
+  padding: 10px 0 4px;
+  border-bottom: 1px solid rgba(43, 36, 22, 0.35);
+}
+.ledger-cols .lc-num { text-align: right; }
+.ledger-row {
+  display: grid; grid-template-columns: 52px 1fr 80px 80px;
+  gap: 10px; align-items: baseline;
+  padding: 9px 0 7px;
+  border-bottom: 1px dotted rgba(43, 36, 22, 0.28);
+}
+.ledger-row .lr-date { font-family: ui-monospace, monospace; font-size: 0.7rem; color: var(--lb-ink-soft); }
+.ledger-row .lr-concept { font-size: 0.9rem; color: var(--lb-ink); }
+.ledger-row .lr-concept small { display: block; color: var(--lb-ink-soft); font-size: 0.7rem; }
+.ledger-row .lr-amt {
+  font-family: ui-monospace, monospace;
+  font-size: 0.84rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--lb-ink);
+}
+.ledger-row .lr-amt.is-debe { color: var(--lb-ink-red); }
+.ledger-row.is-carry { background: rgba(43, 36, 22, 0.045); }
+.ledger-row.is-carry .lr-concept { font-style: italic; color: var(--lb-ink-soft); }
+
+/* Total con doble subrayado contable */
+.ledger-total {
+  display: grid; grid-template-columns: 1fr 170px; gap: 10px; align-items: baseline;
+  margin-top: 16px; padding-top: 10px;
+}
+.ledger-total .lt-label {
+  font-family: var(--font-display, serif);
+  font-weight: 700; font-size: 1.02rem;
+  color: var(--lb-ink);
+}
+.ledger-total .lt-label small {
+  display: block; font-family: var(--font-body, sans-serif);
+  font-weight: 400; font-size: 0.7rem; color: var(--lb-ink-soft);
+}
+.ledger-total .lt-amt {
+  font-family: ui-monospace, monospace;
+  font-size: 1.4rem; font-weight: 700;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--lb-ink);
+  border-bottom: 4px double var(--lb-ink);
+  padding-bottom: 4px;
+}
+.ledger-total .lt-amt.is-rojo { color: var(--lb-ink-red); border-color: var(--lb-ink-red); }
+
+/* Página derecha: la lista de cuotas */
+.ledger-quota-title {
+  font-family: var(--font-display, serif);
+  font-size: 1.15rem; font-weight: 700;
+  color: var(--lb-ink);
+  margin: 0 0 2px; border: none; padding: 0;
+}
+.ledger-quota-sub { font-size: 0.76rem; color: var(--lb-ink-soft); margin: 0 0 12px; }
+.ledger-quota-row {
+  display: flex; align-items: baseline; gap: 10px;
+  padding: 11px 0 9px;
+  border-bottom: 1px dotted rgba(43, 36, 22, 0.28);
+  font-size: 0.9rem;
+}
+.ledger-quota-row .lq-who { font-weight: 600; color: var(--lb-ink); }
+.ledger-quota-row .lq-dots { flex: 1; border-bottom: 1px dotted rgba(43, 36, 22, 0.45); transform: translateY(-4px); }
+.lq-mark { font-family: ui-monospace, monospace; font-size: 0.76rem; white-space: nowrap; }
+.lq-mark.is-ok { color: var(--lb-ink-green); }
+.lq-mark.is-ok::before { content: "✓ "; font-weight: 700; }
+.lq-mark.is-pend { color: var(--lb-ink-red); font-weight: 700; }
+.lq-mark.is-exempt { color: var(--lb-ink-soft); font-style: italic; }
+
+/* El sello estampado */
+.ledger-stamp-zone { display: flex; justify-content: flex-end; margin-top: 26px; }
+.ledger-stamp {
+  font-family: ui-monospace, monospace;
+  font-size: 0.8rem; font-weight: 700; letter-spacing: 0.22em;
+  text-transform: uppercase; text-align: center;
+  color: rgba(31, 107, 58, 0.85);
+  border: 3px solid rgba(31, 107, 58, 0.75);
+  border-radius: 6px;
+  padding: 8px 16px;
+  transform: rotate(-7deg);
+  -webkit-mask-image: radial-gradient(circle at 30% 40%, #000 55%, rgba(0, 0, 0, 0.55) 78%, #000);
+          mask-image: radial-gradient(circle at 30% 40%, #000 55%, rgba(0, 0, 0, 0.55) 78%, #000);
+}
+.ledger-stamp.is-pend { color: rgba(166, 58, 43, 0.85); border-color: rgba(166, 58, 43, 0.75); }
+.ledger-stamp small { display: block; font-size: 0.56rem; letter-spacing: 0.14em; margin-top: 2px; }
+
+/* Etiquetas de sección nocturnas */
+.ledger-label {
+  font-family: ui-monospace, monospace;
+  font-size: 0.7rem; letter-spacing: 0.3em; text-transform: uppercase;
+  color: var(--pn-moon);
+  display: flex; align-items: center; gap: 14px;
+  margin: 56px 0 20px;
+}
+.ledger-label::after { content: ""; flex: 1; height: 1px; background: var(--pn-line); }
+
+/* Folios anteriores */
+.ledger-folios { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; }
+.ledger-folios-empty { color: var(--pn-moon); font-size: 0.85rem; }
+.ledger-folio-card {
+  background: var(--lb-paper);
+  color: var(--lb-ink);
+  border: none;
+  border-radius: 4px;
+  padding: 13px 15px 11px;
+  text-align: left;
+  font-family: inherit;
+  box-shadow: 0 2px 0 var(--lb-paper-edge), 0 12px 24px -12px rgba(0, 0, 0, 0.8);
+  transform: rotate(-0.6deg);
+  transition: transform 0.18s ease, outline-color 0.18s ease;
+  cursor: pointer;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.ledger-folio-card:nth-child(2n) { transform: rotate(0.7deg); }
+.ledger-folio-card:hover { transform: rotate(0deg) translateY(-4px); }
+.ledger-folio-card:focus-visible { outline: 3px solid var(--pn-amber); outline-offset: 2px; }
+.ledger-folio-card.is-open {
+  outline: 3px solid var(--pn-amber);
+  outline-offset: 2px;
+  transform: rotate(0deg);
+}
+.ledger-folio-card .lf-m {
+  font-family: ui-monospace, monospace;
+  font-size: 0.6rem; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--lb-ink-soft);
+}
+.ledger-folio-card .lf-s {
+  font-family: var(--font-display, serif);
+  font-weight: 700; font-size: 1.14rem;
+  font-variant-numeric: tabular-nums;
+}
+.ledger-folio-card .lf-s.is-rojo { color: var(--lb-ink-red); }
+.ledger-folio-card .lf-d { font-size: 0.68rem; color: var(--lb-ink-soft); }
+
+/* El registro de gastos: libro con pestañas laterales */
+.expenses-book {
+  position: relative;
+  background: var(--lb-paper);
+  color: var(--lb-ink);
+  border-radius: 6px;
+  padding: 28px 30px 24px;
+  box-shadow: 0 2px 0 var(--lb-paper-edge), 0 4px 0 #CBBB93, 0 26px 50px -18px rgba(0, 0, 0, 0.85);
+}
+/* Pestañas que asoman por el borde izquierdo del libro, como en un registro real */
+.ledger-tabs {
+  position: absolute;
+  left: 0;
+  top: 34px;
+  transform: translateX(-100%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+}
+.ledger-tab {
+  font-family: ui-monospace, monospace;
+  font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase;
+  background: var(--lb-paper-2); color: var(--lb-ink-soft);
+  border: none; border-radius: 4px 0 0 4px;
+  padding: 8px 10px 8px 12px;
+  box-shadow: -3px 3px 8px -3px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+}
+/* Sin sitio a la izquierda: las pestañas vuelven arriba en fila */
+@media (max-width: 1200px) {
+  .ledger-tabs {
+    position: static;
+    transform: none;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: stretch;
+    margin-bottom: 14px;
+  }
+  .ledger-tab { border-radius: 4px; padding: 7px 10px; }
+}
+.ledger-tab.is-active { background: var(--lb-ink); color: var(--lb-paper); }
+.ledger-tab:focus-visible { outline: 3px solid var(--pn-amber); outline-offset: 1px; }
+.ledger-title {
+  font-family: var(--font-display, serif);
+  font-size: 1.3rem; font-weight: 700;
+  color: var(--lb-ink);
+  margin: 0 0 2px; border: none; padding: 0;
+}
+.ledger-sub { font-size: 0.78rem; color: var(--lb-ink-soft); margin: 0 0 14px; }
+
+/* Buscador y orden sobre papel: tinta, no noche */
+.ledger-filters { display: grid; grid-template-columns: 1fr 220px; gap: 12px; margin-bottom: 6px; }
+.ledger-filters .form-group label { color: var(--lb-ink-soft); }
+.ledger-filters .input-wrapper input,
+.ledger-filters .input-wrapper select {
+  background: rgba(255, 251, 240, 0.6);
+  border: 1px solid rgba(43, 36, 22, 0.35);
+  color: var(--lb-ink);
+  padding-left: 42px;
+}
+.ledger-filters .input-wrapper input::placeholder { color: var(--lb-ink-soft); }
+.ledger-filters .input-wrapper i,
+.ledger-filters .input-wrapper svg { color: var(--lb-ink-soft); }
+.ledger-filters .input-wrapper input:focus,
+.ledger-filters .input-wrapper select:focus {
+  border-color: var(--lb-ink);
+  background: #FFFBF0;
+  box-shadow: none;
+}
+.ledger-lines { min-height: 40px; }
+.ledger-empty { color: var(--lb-ink-soft); font-size: 0.88rem; font-style: italic; padding: 10px 0; }
+
+/* Móvil: el libro pasa a una sola página */
+@media (max-width: 720px) {
+  .ledger-book { grid-template-columns: 1fr; }
+  .ledger-page { padding: 22px 18px 20px; min-height: auto; }
+  .ledger-page.is-left { border-radius: 6px 6px 0 0; box-shadow: none; }
+  .ledger-page.is-right { border-radius: 0 0 10px 10px; box-shadow: inset 0 22px 30px -24px rgba(43, 36, 22, 0.45); }
+  .ledger-cols, .ledger-row { grid-template-columns: 44px 1fr 78px; gap: 8px; }
+  /* En una sola columna de importes ya no hay Debe/Haber que etiquetar */
+  .ledger-cols .lc-num { display: none; }
+  .ledger-row .lr-amt.is-blank { display: none; }
+  .ledger-total { grid-template-columns: 1fr 130px; }
+  .ledger-total .lt-amt { font-size: 1.15rem; }
+  .expenses-book { padding: 24px 16px 20px; }
+  .ledger-tabs { position: static; flex-direction: row; flex-wrap: wrap; margin-bottom: 14px; }
+  .ledger-tab { border-radius: 4px; padding: 7px 10px; }
+  .ledger-filters { grid-template-columns: 1fr; }
+  .ledger-folios { grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 12px; }
+}
+
+/* ==========================================================
+   LA CONSERJERÍA (sección Administración)
+   Tablero de llaves, expedientes en carpeta manila y el
+   portero de noche en su ventanilla. Solo piel: misma lógica.
+   ========================================================== */
+:root {
+  --cj-manila: #D9BC8B;
+  --cj-manila-2: #CBAC77;
+  --cj-manila-edge: #B08F55;
+  --cj-brass: #C9A25E;
+  --cj-brass-hi: #E8C88A;
+  --cj-wood: #1A140D;
+  --cj-wood-2: #241B10;
+}
+
+/* --- El tablero de llaves (menú lateral) --- */
+.admin-sidebar.glass-card {
+  background: linear-gradient(180deg, var(--cj-wood-2), var(--cj-wood));
+  border: 1px solid rgba(201, 162, 94, 0.25);
+  box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.5), 0 20px 44px -18px rgba(0, 0, 0, 0.9);
+  backdrop-filter: none;
+}
+.admin-sidebar h3 {
+  font-family: var(--font-display, serif);
+  color: var(--cj-brass-hi);
+  border: none;
+}
+.admin-sidebar .admin-menu-group-label { color: rgba(232, 200, 138, 0.6); }
+.admin-sidebar .admin-menu-group { border-top: 1px solid rgba(255, 184, 77, 0.12); padding-top: 10px; }
+
+.admin-menu-nav .btn.btn-secondary {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 4px 2px;
+  width: 100%;
+}
+.admin-menu-nav .btn.btn-secondary:hover {
+  background: transparent;
+  transform: none;
+}
+.llave-anilla {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  border: 2.5px solid var(--cj-brass);
+  border-radius: 50%;
+  position: relative;
+  transition: transform 0.15s ease;
+}
+.llave-anilla::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  transform: translateX(-50%);
+  width: 3px;
+  height: 7px;
+  background: var(--cj-brass);
+  border-radius: 0 0 2px 2px;
+}
+.admin-menu-nav .btn.btn-secondary > span:last-child {
+  font-family: ui-monospace, monospace;
+  font-size: 0.64rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #E9DFC8;
+  background: rgba(217, 188, 139, 0.14);
+  border: 1px solid rgba(217, 188, 139, 0.3);
+  border-radius: 3px;
+  padding: 6px 10px;
+  transition: background 0.15s ease;
+  text-align: left;
+}
+.admin-menu-nav .btn.btn-secondary:hover .llave-anilla { transform: rotate(-14deg); }
+.admin-menu-nav .btn.btn-secondary:hover > span:last-child { background: rgba(217, 188, 139, 0.24); }
+.admin-menu-nav .btn.admin-menu-btn-active {
+  background: transparent;
+  border: none;
+}
+.admin-menu-nav .admin-menu-btn-active .llave-anilla {
+  border-color: var(--pn-amber);
+  box-shadow: 0 0 12px rgba(255, 184, 77, 0.5);
+}
+.admin-menu-nav .admin-menu-btn-active .llave-anilla::after { background: var(--pn-amber); }
+.admin-menu-nav .admin-menu-btn-active > span:last-child {
+  background: var(--pn-amber);
+  border-color: var(--pn-amber);
+  color: #1A1206;
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
+}
+
+/* --- Las carpetas manila (paneles) --- */
+.admin-content > .section-card.glass-card,
+#admin-section-users,
+#admin-section-invites {
+  background: linear-gradient(180deg, var(--cj-manila), var(--cj-manila-2));
+  border: none;
+  border-radius: 10px;
+  box-shadow:
+    0 2px 0 var(--cj-manila-edge), 0 5px 0 #9A7C47,
+    0 26px 50px -18px rgba(0, 0, 0, 0.85);
+  color: var(--lb-ink);
+  backdrop-filter: none;
+}
+#admin-section-users,
+#admin-section-invites { padding: 24px; }
+
+/* Pestaña de expediente */
+.admin-content [data-exp] { position: relative; margin-top: 36px; }
+.admin-content [data-exp]::before {
+  content: attr(data-exp);
+  position: absolute;
+  top: -27px;
+  left: 18px;
+  font-family: ui-monospace, monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--lb-ink);
+  background: var(--cj-manila);
+  border-radius: 8px 8px 0 0;
+  padding: 7px 16px 6px;
+  box-shadow: 0 -4px 10px -6px rgba(0, 0, 0, 0.7);
+}
+
+/* --- Tinta sobre manila: textos, títulos, listas --- */
+.admin-content h3:not(#admin-section-whatsapp *),
+.admin-content h4:not(#admin-section-whatsapp *) {
+  color: var(--lb-ink);
+  font-family: var(--font-display, serif);
+  border-bottom-color: rgba(43, 36, 22, 0.35);
+}
+.admin-content p:not(#admin-section-whatsapp *),
+.admin-content .box-desc:not(#admin-section-whatsapp *),
+.admin-content .input-hint:not(#admin-section-whatsapp *),
+.admin-content label:not(#admin-section-whatsapp *) {
+  color: var(--lb-ink-soft);
+}
+.admin-content .checkbox-row:not(#admin-section-whatsapp *) { color: var(--lb-ink); }
+.admin-content .history-item:not(#admin-section-whatsapp *),
+.admin-content .announcement-item:not(#admin-section-whatsapp *) {
+  background: rgba(255, 251, 240, 0.55);
+  border: 1px dotted rgba(43, 36, 22, 0.4);
+  color: var(--lb-ink);
+}
+.admin-content .history-floor:not(#admin-section-whatsapp *) { color: var(--lb-ink); }
+.admin-content .history-by:not(#admin-section-whatsapp *) { color: var(--lb-ink-soft); }
+.admin-content code:not(#admin-section-whatsapp *) {
+  background: rgba(255, 251, 240, 0.7);
+  color: var(--lb-ink);
+  border: 1px solid rgba(43, 36, 22, 0.25);
+}
+
+/* Fichas de cartón: cajas anidadas dentro de la carpeta */
+.admin-content .section-card .section-card,
+.admin-content .section-card .glass-card,
+#admin-section-users .section-card,
+#admin-section-users .glass-card {
+  background: var(--lb-paper);
+  border: none;
+  border-radius: 4px;
+  box-shadow: 0 1px 0 #D8C9A4, 0 10px 22px -12px rgba(0, 0, 0, 0.55);
+  backdrop-filter: none;
+}
+
+/* Campos a máquina */
+.admin-content .input-wrapper input:not(#admin-section-whatsapp *),
+.admin-content .input-wrapper select:not(#admin-section-whatsapp *) {
+  background: rgba(255, 251, 240, 0.55);
+  border: 1px solid rgba(43, 36, 22, 0.35);
+  color: var(--lb-ink);
+}
+.admin-content textarea:not(#admin-section-whatsapp *) {
+  background: rgba(255, 251, 240, 0.55);
+  border: 1px solid rgba(43, 36, 22, 0.35);
+  color: var(--lb-ink);
+  border-radius: 10px;
+}
+.admin-content .input-wrapper input:not(#admin-section-whatsapp *)::placeholder,
+.admin-content textarea:not(#admin-section-whatsapp *)::placeholder { color: var(--lb-ink-soft); }
+.admin-content .input-wrapper i:not(#admin-section-whatsapp *),
+.admin-content .input-wrapper svg:not(#admin-section-whatsapp *) { color: var(--lb-ink-soft); }
+.admin-content .input-wrapper input:not(#admin-section-whatsapp *):focus,
+.admin-content .input-wrapper select:not(#admin-section-whatsapp *):focus,
+.admin-content textarea:not(#admin-section-whatsapp *):focus {
+  border-color: var(--lb-ink);
+  background: #FFFBF0;
+  box-shadow: none;
+  outline: none;
+}
+.admin-content input[type="file"]:not(#admin-section-whatsapp *) { color: var(--lb-ink-soft); }
+.admin-content input[type="file"]:not(#admin-section-whatsapp *)::file-selector-button {
+  background: rgba(255, 251, 240, 0.7);
+  border: 1px solid rgba(43, 36, 22, 0.35);
+  color: var(--lb-ink);
+  border-radius: 6px;
+  padding: 7px 12px;
+  margin-right: 12px;
+  cursor: pointer;
+}
+
+/* Botón-tampón y secundarios de tinta */
+.admin-content .btn-primary:not(#admin-section-whatsapp *) {
+  background: var(--lb-ink);
+  color: var(--lb-paper);
+  border: none;
+  box-shadow: 0 3px 0 #14100A;
+  font-weight: 700;
+}
+.admin-content .btn-primary:not(#admin-section-whatsapp *):hover {
+  background: #3A3120;
+  transform: none;
+}
+.admin-content .btn-primary:not(#admin-section-whatsapp *):active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #14100A;
+}
+.admin-content .btn-secondary:not(#admin-section-whatsapp *):not(.admin-back-btn):not(.admin-mobile-menu-btn) {
+  background: transparent;
+  border: 1px solid rgba(43, 36, 22, 0.45);
+  color: var(--lb-ink);
+}
+.admin-content .btn-secondary:not(#admin-section-whatsapp *):not(.admin-back-btn):not(.admin-mobile-menu-btn):hover {
+  background: rgba(255, 251, 240, 0.5);
+  border-color: var(--lb-ink);
+}
+.admin-content .btn-warning-solid:not(#admin-section-whatsapp *) {
+  background: transparent;
+  border: 1px solid rgba(166, 58, 43, 0.6);
+  color: var(--lb-ink-red);
+}
+
+/* --- La ventanilla del portero (panel WhatsApp): sigue siendo de noche --- */
+#admin-section-whatsapp {
+  background:
+    radial-gradient(420px 200px at 50% 0%, rgba(255, 184, 77, 0.16), transparent 70%),
+    linear-gradient(180deg, #101826, #0B1120);
+  border: 1px solid rgba(148, 167, 199, 0.28);
+  border-radius: 12px;
+  padding: 22px;
+  box-shadow: 0 0 40px rgba(255, 184, 77, 0.08), inset 0 0 40px rgba(0, 0, 0, 0.4);
+}
+#admin-section-whatsapp::before {
+  content: "La ventanilla del portero";
+  display: block;
+  font-family: ui-monospace, monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: rgba(148, 167, 199, 0.65);
+  margin-bottom: 12px;
+}
+
+/* Móvil: carpetas a ras y pestañas pequeñas */
+@media (max-width: 768px) {
+  .admin-content [data-exp]::before { left: 10px; font-size: 0.56rem; padding: 6px 12px 5px; }
+  #admin-section-users, #admin-section-invites { padding: 18px 14px; }
+  #admin-section-whatsapp { padding: 16px 12px; }
+}
+
+/* --- Conserjería: ajustes tras captura real --- */
+/* La llave en mano vence al resaltado azul antiguo (que lleva !important) */
+.admin-menu-nav .btn.btn-secondary.admin-menu-btn-active {
+  background: transparent !important;
+  border-color: transparent !important;
+}
+.admin-menu-nav .btn.btn-secondary.admin-menu-btn-active > span:last-child {
+  background: var(--pn-amber);
+  border-color: var(--pn-amber);
+  color: #1A1206;
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
+}
+
+/* Tabla de usuarios en tinta sobre manila */
+.admin-content .admin-table:not(#admin-section-whatsapp *) { color: var(--lb-ink); }
+.admin-content .admin-table:not(#admin-section-whatsapp *) th {
+  color: var(--lb-ink-soft);
+  border-color: rgba(43, 36, 22, 0.4);
+}
+.admin-content .admin-table:not(#admin-section-whatsapp *) td {
+  color: var(--lb-ink);
+  border-color: rgba(43, 36, 22, 0.22);
+}
+
+/* Verdes fuera de la portería: pasan a tampón de tinta */
+.admin-content .btn-whatsapp:not(#admin-section-whatsapp *),
+.admin-content .btn-success:not(#admin-section-whatsapp *) {
+  background: var(--lb-ink);
+  color: var(--lb-paper);
+  border: none;
+  box-shadow: 0 3px 0 #14100A;
+  font-weight: 700;
+}
+.admin-content .btn-whatsapp:not(#admin-section-whatsapp *):hover,
+.admin-content .btn-success:not(#admin-section-whatsapp *):hover {
+  background: #3A3120;
+  transform: none;
+}
+
+/* Chips {placeholder} de plantillas, legibles sobre manila */
+.admin-content .template-placeholders .btn-xs:not(#admin-section-whatsapp *) {
+  background: rgba(255, 251, 240, 0.7);
+  border: 1px solid rgba(43, 36, 22, 0.35);
+  color: var(--lb-ink);
+}
+
+/* La ventanilla reafirma su noche: la tinta del expediente no entra */
+#admin-section-whatsapp { color: var(--pn-moon); }
+#admin-section-whatsapp h3,
+#admin-section-whatsapp h4,
+#admin-section-whatsapp strong { color: #EDF2FB; }
+#admin-section-whatsapp p,
+#admin-section-whatsapp .box-desc,
+#admin-section-whatsapp label,
+#admin-section-whatsapp .input-hint { color: var(--pn-moon); }
+#admin-section-whatsapp .history-item {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(148, 167, 199, 0.18);
+  color: var(--pn-moon);
+}
+#admin-section-whatsapp .history-floor { color: #EDF2FB; }
+#admin-section-whatsapp .history-by { color: var(--pn-moon); }
+
+/* Chips de la tabla de usuarios: tinta semántica sobre manila */
+.admin-table .badge-admin { background: rgba(37, 99, 235, 0.12); color: #1D4ED8; }
+.admin-table .badge-success { background: rgba(31, 107, 58, 0.12); color: #1F6B3A; }
+.admin-table .badge-off { background: rgba(166, 58, 43, 0.12); color: #A63A2B; }
+.admin-table .badge-pending { background: rgba(138, 90, 0, 0.14); color: #8A5A00; }
+.admin-table .chip-toggle.is-active {
+  background: rgba(31, 107, 58, 0.08) !important;
+  border-color: rgba(31, 107, 58, 0.45) !important;
+  color: #1F6B3A !important;
+}
+.admin-table .chip-toggle.is-exempt {
+  background: rgba(166, 58, 43, 0.08) !important;
+  border-color: rgba(166, 58, 43, 0.45) !important;
+  color: #A63A2B !important;
+}
+.admin-table .muted-note { color: var(--lb-ink-soft); font-style: italic; font-size: 0.75rem; }
+
+/* --- Aire en los expedientes: las fichas anidadas respiran --- */
+.admin-content .section-card .section-card,
+.admin-content .section-card .glass-card,
+#admin-section-users .section-card,
+#admin-section-users .glass-card {
+  padding: 20px 22px;
+  margin-bottom: 22px;
+}
+.admin-content .section-card .section-card > h3:first-child,
+#admin-section-users .section-card > h3:first-child {
+  margin: 0 0 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(43, 36, 22, 0.25);
+}
+.admin-content .box-desc:not(#admin-section-whatsapp *) { margin-bottom: 14px; }
+.admin-content > .section-card.glass-card { padding: 30px; }
+@media (max-width: 768px) {
+  .admin-content > .section-card.glass-card { padding: 20px 16px; }
+  .admin-content .section-card .section-card,
+  #admin-section-users .section-card { padding: 16px 14px; }
+}
+
+/* --- El certificado oficial (vista Certificados) --- */
+.cert-oficio {
+  position: relative;
+  max-width: 640px;
+  margin: 44px auto 0;
+  background:
+    linear-gradient(180deg, rgba(255, 251, 240, 0.5), transparent 90px),
+    var(--lb-paper);
+  color: var(--lb-ink);
+  border-radius: 6px;
+  padding: 44px 42px 38px;
+  box-shadow:
+    0 2px 0 var(--lb-paper-edge), 0 4px 0 #CBBB93,
+    0 30px 60px -18px rgba(0, 0, 0, 0.85);
+}
+/* Marco doble de documento oficial */
+.cert-oficio::before {
+  content: "";
+  position: absolute;
+  inset: 12px;
+  border: 1.5px solid rgba(43, 36, 22, 0.4);
+  border-radius: 3px;
+  pointer-events: none;
+}
+.cert-cabecera { text-align: center; margin-bottom: 26px; }
+.cert-comunidad {
+  font-family: ui-monospace, monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--lb-ink-soft);
+}
+.cert-cabecera h2 {
+  font-family: var(--font-display, serif);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--lb-ink);
+  margin: 10px 0 6px;
+}
+.cert-cabecera .cert-sub { font-size: 0.85rem; color: var(--lb-ink-soft); margin: 0 auto; max-width: 40ch; }
+.cert-oficio .ledger-filters { grid-template-columns: 1fr 1fr; margin-bottom: 16px; }
+.cert-oficio .btn-descargar {
+  width: 100%;
+  font-family: ui-monospace, monospace;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  background: var(--lb-ink);
+  color: var(--lb-paper);
+  border: none;
+  border-radius: 6px;
+  padding: 14px;
+  cursor: pointer;
+  box-shadow: 0 4px 0 #14100A;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.cert-oficio .btn-descargar:hover { background: #3A3120; }
+.cert-oficio .btn-descargar:active { transform: translateY(3px); box-shadow: 0 1px 0 #14100A; }
+.cert-nota {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 14px;
+  margin-top: 26px;
+}
+.cert-nota p { font-size: 0.72rem; color: var(--lb-ink-soft); margin: 0; max-width: 34ch; }
+.cert-sello-csv {
+  flex: none;
+  font-family: ui-monospace, monospace;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-align: center;
+  color: rgba(166, 58, 43, 0.85);
+  border: 3px solid rgba(166, 58, 43, 0.75);
+  border-radius: 6px;
+  padding: 7px 12px;
+  transform: rotate(-6deg);
+  -webkit-mask-image: radial-gradient(circle at 35% 45%, #000 55%, rgba(0, 0, 0, 0.55) 78%, #000);
+          mask-image: radial-gradient(circle at 35% 45%, #000 55%, rgba(0, 0, 0, 0.55) 78%, #000);
+}
+.cert-sello-csv small { display: block; font-size: 0.52rem; letter-spacing: 0.12em; margin-top: 2px; }
+@media (max-width: 720px) {
+  .cert-oficio { padding: 30px 20px 26px; }
+  .cert-oficio .ledger-filters { grid-template-columns: 1fr; }
+  .cert-nota { flex-direction: column; align-items: flex-start; }
+}
+
+/* --- Conserjería: revisión integral de paneles --- */
+/* Las pestañas de expediente asoman: glass-card traía overflow:hidden */
+.admin-content > .section-card.glass-card,
+#admin-section-users,
+#admin-section-invites { overflow: visible; }
+
+/* Todo campo nativo (sin .input-wrapper) también es ficha: hora, fecha, número, texto suelto */
+.admin-content input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not(#admin-section-whatsapp *),
+.admin-content select:not(#admin-section-whatsapp *) {
+  background: rgba(255, 251, 240, 0.55);
+  border: 1px solid rgba(43, 36, 22, 0.35);
+  border-radius: 10px;
+  color: var(--lb-ink);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  padding: 10px 12px;
+}
+.admin-content input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not(#admin-section-whatsapp *)::placeholder {
+  color: var(--lb-ink-soft);
+}
+.admin-content input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not(#admin-section-whatsapp *):focus,
+.admin-content select:not(#admin-section-whatsapp *):focus {
+  border-color: var(--lb-ink);
+  background: #FFFBF0;
+  outline: none;
+  box-shadow: none;
+}
+/* Los campos con icono conservan su hueco (mismos :not que la regla ancha para ganarle) */
+.admin-content .input-wrapper input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not(#admin-section-whatsapp *),
+.admin-content .input-wrapper select:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not(#admin-section-whatsapp *) {
+  padding: 12px 14px 12px 42px;
+}
+
+/* La maqueta es de noche: los rótulos de los pisos no se escriben con tinta */
+#admin-section-visualization .building-view,
+#admin-section-visualization .building-floor {
+  color: var(--pn-moon);
+}
+#admin-section-visualization .building-floor h4,
+#admin-section-visualization .bf-name { color: #EDF2FB; }
+
+/* Textareas con letra de la app (las plantillas de la portería siguen a máquina) */
+.admin-content textarea:not(#admin-section-whatsapp *) { font-family: var(--font-body); }
+
+/* Checkboxes de tinta, no azules del sistema */
+.admin-content input[type="checkbox"]:not(#admin-section-whatsapp *) {
+  accent-color: #2B2416;
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+/* Cualquier tabla sobre manila, en tinta (enlaces generados, usuarios...) */
+.admin-content table:not(#admin-section-whatsapp *) { color: var(--lb-ink); }
+.admin-content table:not(#admin-section-whatsapp *) th {
+  color: var(--lb-ink-soft);
+  border-color: rgba(43, 36, 22, 0.4);
+}
+.admin-content table:not(#admin-section-whatsapp *) td {
+  color: var(--lb-ink);
+  border-color: rgba(43, 36, 22, 0.22);
+}
+
+/* La maqueta nocturna: el edificio sobre la mesa del conserje */
+#admin-section-visualization .building-view {
+  background:
+    radial-gradient(320px 160px at 50% 0%, rgba(255, 184, 77, 0.14), transparent 70%),
+    linear-gradient(180deg, #101826, #0B1120);
+  border: 1px solid rgba(148, 167, 199, 0.28);
+  border-radius: 12px;
+  padding: 18px;
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.4);
+}
+
+/* ==========================================================
+   FASE COHERENCIA: UNA SOLA LUZ
+   El azul deja de ser acento de interacción. De noche manda
+   el ámbar; sobre papel, la tinta (los ámbitos papel ya traen
+   sus propios overrides y no se ven afectados).
+   ========================================================== */
+
+/* Acción primaria global: la luz del portal */
+.btn-primary {
+  background: linear-gradient(180deg, var(--pn-amber), var(--pn-amber-deep));
+  color: #1A1206;
+  font-weight: 800;
+  border: none;
+  box-shadow: 0 4px 18px rgba(245, 158, 11, 0.22);
+}
+.btn-primary:hover {
+  background: linear-gradient(180deg, #FFC569, var(--pn-amber));
+  color: #1A1206;
+}
+
+/* Iconos de modal: farolillo ámbar (verde/rojo semánticos se conservan) */
+.modal-icon {
+  background: rgba(255, 184, 77, 0.1);
+  color: var(--pn-amber);
+  border-color: rgba(255, 184, 77, 0.22);
+}
+
+/* Los modales hablan con la voz del portal */
+.modal-header h2 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: #EDF2FB;
+}
+
+/* Diálogos confirm/form: título serif y botones con cuerpo
+   (llevan btn-primary/btn-secondary sin la clase base .btn) */
+.confirm-header h3 { font-family: var(--font-display); font-weight: 700; }
+.confirm-actions button {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 700;
+  padding: 10px 20px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+.confirm-actions .btn-secondary {
+  background: transparent;
+  border: 1px solid var(--glass-border);
+  color: var(--text-muted);
+}
+.confirm-actions .btn-secondary:hover { color: #EDF2FB; border-color: rgba(148, 167, 199, 0.5); }
+
+/* Nav inferior móvil: la luz te sigue */
+.mobile-bottom-nav button:hover,
+.mobile-bottom-nav button.active {
+  color: var(--pn-amber);
+  background: rgba(255, 184, 77, 0.1);
+}
+
+/* La ventana encendida de la maqueta ya no es azul */
+.bf-badge.now {
+  background: var(--pn-amber);
+  color: #1A1206;
+}
+
+/* Focos ámbar en la noche (papel y libro traen los suyos de tinta) */
+.input-wrapper input:focus,
+.input-wrapper select:focus {
+  border-color: rgba(255, 184, 77, 0.6);
+  box-shadow: 0 0 10px rgba(255, 184, 77, 0.15);
+}
+
+/* Restos de azul en diálogos: icono y foco también ámbar */
+.confirm-icon {
+  background: rgba(255, 184, 77, 0.1);
+  color: var(--pn-amber);
+  border-color: rgba(255, 184, 77, 0.22);
+}
+.confirm-icon.danger {
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+.confirm-dialog input:focus,
+.confirm-dialog select:focus,
+.confirm-dialog textarea:focus {
+  border-color: rgba(255, 184, 77, 0.6);
+  box-shadow: 0 0 10px rgba(255, 184, 77, 0.15);
+  outline: none;
+}
+
+/* La ventanilla, sin reliquias verdes: el verde es solo la luz del semáforo */
+#admin-section-whatsapp .btn-whatsapp {
+  background: transparent;
+  border: 1px solid rgba(255, 184, 77, 0.45);
+  color: var(--pn-amber);
+  box-shadow: none;
+  font-weight: 700;
+}
+#admin-section-whatsapp .btn-whatsapp:hover {
+  background: rgba(255, 184, 77, 0.12);
+  transform: none;
+}
+
+/* --- La escena de la ventanilla: la ventana del conserje, encendida según el estado --- */
+.porteria-scene {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 14px;
+}
+.porteria-scene .wa-status { flex: 1; margin-bottom: 0; }
+.ventanilla {
+  flex: none;
+  width: 96px;
+  height: 116px;
+  border-radius: 10px 10px 4px 4px;
+  background:
+    radial-gradient(80px 60px at 50% 38%, rgba(148, 167, 199, 0.18), transparent 70%),
+    #0D1422;
+  border: 2px solid rgba(148, 167, 199, 0.3);
+  position: relative;
+  transition: box-shadow 0.4s ease, background 0.4s ease;
+}
+.ventanilla::before {
+  content: "";
+  position: absolute;
+  inset: 8px 8px 26px;
+  border: 1px solid rgba(148, 167, 199, 0.22);
+  border-radius: 6px;
+}
+.ventanilla::after {
+  content: "CONSERJE";
+  position: absolute;
+  left: 50%;
+  bottom: 7px;
+  transform: translateX(-50%);
+  font-family: ui-monospace, monospace;
+  font-size: 0.48rem;
+  letter-spacing: 0.28em;
+  color: rgba(148, 167, 199, 0.6);
+}
+.ventanilla-luz {
+  position: absolute;
+  left: 50%;
+  top: 38%;
+  transform: translate(-50%, -50%);
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--pn-moon);
+  transition: background 0.4s ease, box-shadow 0.4s ease;
+}
+/* La ventana según el estado del portero */
+.porteria-scene[data-state="connected"] .ventanilla {
+  background:
+    radial-gradient(80px 60px at 50% 38%, rgba(255, 184, 77, 0.5), rgba(255, 184, 77, 0.1) 65%, transparent),
+    #101826;
+  box-shadow: 0 0 34px rgba(255, 184, 77, 0.18);
+}
+.porteria-scene[data-state="connected"] .ventanilla-luz {
+  background: #31D07A;
+  box-shadow: 0 0 14px 4px rgba(49, 208, 122, 0.55);
+}
+.porteria-scene[data-state="qr"] .ventanilla-luz,
+.porteria-scene[data-state="connecting"] .ventanilla-luz,
+.porteria-scene[data-state="loading"] .ventanilla-luz {
+  background: var(--pn-amber);
+  box-shadow: 0 0 12px 3px rgba(255, 184, 77, 0.55);
+  animation: wa-pulse 1.6s ease-in-out infinite;
+}
+.porteria-scene[data-state="disconnected"] .ventanilla-luz,
+.porteria-scene[data-state="error"] .ventanilla-luz {
+  background: #EF4444;
+  box-shadow: 0 0 12px 3px rgba(239, 68, 68, 0.55);
+}
+@media (prefers-reduced-motion: reduce) {
+  .porteria-scene .ventanilla-luz { animation: none !important; }
+}
+@media (max-width: 560px) {
+  .porteria-scene { flex-direction: column; align-items: stretch; }
+  .ventanilla { margin: 0 auto; }
+}
+
+/* --- Barrido de unicidad (auditoría automatizada de estilos computados) --- */
+/* Orbes de fondo: la noche no tiene neones azules ni verdes */
+.bg-glow-1 {
+  background: radial-gradient(circle, rgba(255, 184, 77, 0.45) 0%, rgba(255, 184, 77, 0) 70%);
+  opacity: 0.28;
+}
+.bg-glow-2 {
+  background: radial-gradient(circle, rgba(148, 167, 199, 0.35) 0%, rgba(148, 167, 199, 0) 70%);
+  opacity: 0.3;
+}
+
+/* La maqueta del edificio: el piso activo se enciende en ámbar */
+.building-floor.active {
+  border-color: rgba(255, 184, 77, 0.55);
+  background: rgba(255, 184, 77, 0.08);
+  box-shadow: 0 0 18px rgba(255, 184, 77, 0.12);
+}
+.building-floor.active .bf-door {
+  background: var(--pn-amber);
+  border-color: transparent;
+  color: #1A1206;
+}
+@keyframes bf-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 184, 77, 0.35); }
+  50% { box-shadow: 0 0 12px 2px rgba(255, 184, 77, 0.25); }
+}
+
+/* El código 2FA se escribe con la tinta de la casa */
+.input-2fa input { color: var(--pn-amber); }
+
+/* Unicidad tipográfica: todos los títulos hablan Fraunces */
+h1, h2, h3 { font-family: var(--font-display); }
+h3.admin-subsection-title,
+.admin-subsection-title { font-family: var(--font-display); }
+
+/* ==========================================================
+   DOS MATERIALES, UNA GRAMÁTICA
+   Noche y papel comparten forma: superficies a 16px, controles
+   a 12px. Solo cambia el material (oscuridad ámbar / papel tinta).
+   ========================================================== */
+:root {
+  --r-surface: 16px;
+  --r-control: 12px;
+}
+
+/* Superficies grandes: mismo radio en cristal, manila y papel */
+.glass-card { border-radius: var(--r-surface); }
+.admin-content > .section-card.glass-card,
+#admin-section-users,
+#admin-section-invites { border-radius: var(--r-surface); }
+.ledger-book { border-radius: var(--r-surface); }
+.ledger-page.is-left { border-radius: var(--r-surface) 0 0 var(--r-surface); }
+.ledger-page.is-right { border-radius: 0 var(--r-surface) var(--r-surface) 0; }
+.expenses-book { border-radius: var(--r-surface); }
+.cert-oficio { border-radius: var(--r-surface); }
+#admin-section-whatsapp { border-radius: var(--r-surface); }
+.confirm-dialog { border-radius: var(--r-surface); }
+@media (max-width: 720px) {
+  .ledger-page.is-left { border-radius: var(--r-surface) var(--r-surface) 0 0; }
+  .ledger-page.is-right { border-radius: 0 0 var(--r-surface) var(--r-surface); }
+}
+
+/* Controles: los tampones de tinta adoptan la forma del botón común */
+.cert-oficio .btn-descargar { border-radius: var(--r-control); }
+.ledger-filters .input-wrapper input,
+.ledger-filters .input-wrapper select { border-radius: var(--r-control); }
+.admin-content input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not(#admin-section-whatsapp *),
+.admin-content select:not(#admin-section-whatsapp *) { border-radius: var(--r-control); }
+.confirm-actions button { border-radius: var(--r-control); }
+
+/* La cabecera también habla la gramática: botones a 12px (los chips de estado siguen siendo píldora) */
+#auth-header-btn .btn { border-radius: var(--r-control); }
+
+/* --- La Ventana Encendida: la marca vuelve a la cabecera --- */
+.logo-icon {
+  display: flex;
+  background: none;
+  box-shadow: none;
+  width: 40px;
+  height: 40px;
+  filter: drop-shadow(0 4px 14px rgba(255, 184, 77, 0.25));
+}
+
+/* --- LA PORTERÍA COMO PANEL PROPIO (0.16) ---
+   El panel de WhatsApp deja de vivir incrustado en la caja de Invitaciones:
+   #admin-panel-porteria es su carpeta manila y #admin-section-whatsapp la
+   ventanilla nocturna de dentro (todas las guardas :not() siguen valiendo). */
+
+/* El grupo se guarda donde se elige: select y botón comparten fila. */
+.wa-group-row { display: flex; gap: 10px; align-items: stretch; }
+.wa-group-row .input-wrapper { flex: 1; min-width: 0; }
+.wa-group-row .btn { flex-shrink: 0; }
+
+/* Dos grupos de acciones: avisos del turno y difusión. */
+.wa-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin: 14px 0 16px;
+}
+
+@media (max-width: 600px) {
+  .wa-group-row { flex-direction: column; }
 }

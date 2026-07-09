@@ -116,10 +116,10 @@
     height: 22px;
   }
 
-  /* Active state — brand primary + iOS/Android-style top accent. */
+  /* Active state — la luz ámbar del portal + top accent estilo iOS/Android. */
   .mobile-bottom-nav button.active {
-    color: var(--color-primary);
-    background: rgba(59, 130, 246, 0.10);
+    color: var(--pn-amber, #FFB84D);
+    background: rgba(255, 184, 77, 0.10);
   }
 
   .mobile-bottom-nav button.active::before {
@@ -131,7 +131,7 @@
     width: 26px;
     height: 3px;
     border-radius: 50px;
-    background: var(--color-primary);
+    background: var(--pn-amber, #FFB84D);
   }
 
   /* ------------------------------------------------------------------------
