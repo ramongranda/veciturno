@@ -22,8 +22,8 @@
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <!-- Hojas de Estilo -->
-  <link rel="stylesheet" href="css/styles.css?v=portal-noche-0.12.3">
-  <link rel="stylesheet" href="css/mobile.css?v=portal-noche-0.12.3">
+  <link rel="stylesheet" href="css/styles.css?v=portal-noche-0.13.0">
+  <link rel="stylesheet" href="css/mobile.css?v=portal-noche-0.13.0">
 </head>
 <body>
 
@@ -1388,13 +1388,18 @@
                 <i data-lucide="message-square" class="text-success"></i>
                 <span>Panel de WhatsApp Servidor de la Comunidad</span>
               </h3>
-              <!-- Estado del bot como organismo: responde de un vistazo a la
-                   pregunta nº1 del panel (¿está WhatsApp vivo?). -->
-              <div id="admin-wa-status" class="wa-status" data-state="loading">
-                <span class="wa-status-dot" aria-hidden="true"></span>
-                <div class="wa-status-text">
-                  <span class="wa-status-title" id="admin-wa-desc">Cargando pasarela de WhatsApp…</span>
-                  <span class="wa-status-sub" id="admin-wa-sub"></span>
+              <!-- La escena de la ventanilla: la ventana del conserje con su
+                   luz de estado + el semáforo de siempre al lado. -->
+              <div class="porteria-scene" id="porteria-scene" data-state="loading">
+                <div class="ventanilla" aria-hidden="true">
+                  <span class="ventanilla-luz"></span>
+                </div>
+                <div id="admin-wa-status" class="wa-status" data-state="loading">
+                  <span class="wa-status-dot" aria-hidden="true"></span>
+                  <div class="wa-status-text">
+                    <span class="wa-status-title" id="admin-wa-desc">Cargando pasarela de WhatsApp…</span>
+                    <span class="wa-status-sub" id="admin-wa-sub"></span>
+                  </div>
                 </div>
               </div>
 
@@ -1860,6 +1865,6 @@
   <nav id="mobile-bottom-nav" class="mobile-bottom-nav"></nav>
 
   <!-- SCRIPT DEL FRONTEND -->
-  <script src="js/app.js?v=portal-noche-0.12.3"></script>
+  <script src="js/app.js?v=portal-noche-0.13.0"></script>
 </body>
 </html>

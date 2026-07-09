@@ -4816,3 +4816,83 @@ body {
   background: rgba(255, 184, 77, 0.12);
   transform: none;
 }
+
+/* --- La escena de la ventanilla: la ventana del conserje, encendida según el estado --- */
+.porteria-scene {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 14px;
+}
+.porteria-scene .wa-status { flex: 1; margin-bottom: 0; }
+.ventanilla {
+  flex: none;
+  width: 96px;
+  height: 116px;
+  border-radius: 10px 10px 4px 4px;
+  background:
+    radial-gradient(80px 60px at 50% 38%, rgba(148, 167, 199, 0.18), transparent 70%),
+    #0D1422;
+  border: 2px solid rgba(148, 167, 199, 0.3);
+  position: relative;
+  transition: box-shadow 0.4s ease, background 0.4s ease;
+}
+.ventanilla::before {
+  content: "";
+  position: absolute;
+  inset: 8px 8px 26px;
+  border: 1px solid rgba(148, 167, 199, 0.22);
+  border-radius: 6px;
+}
+.ventanilla::after {
+  content: "CONSERJE";
+  position: absolute;
+  left: 50%;
+  bottom: 7px;
+  transform: translateX(-50%);
+  font-family: ui-monospace, monospace;
+  font-size: 0.48rem;
+  letter-spacing: 0.28em;
+  color: rgba(148, 167, 199, 0.6);
+}
+.ventanilla-luz {
+  position: absolute;
+  left: 50%;
+  top: 38%;
+  transform: translate(-50%, -50%);
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--pn-moon);
+  transition: background 0.4s ease, box-shadow 0.4s ease;
+}
+/* La ventana según el estado del portero */
+.porteria-scene[data-state="connected"] .ventanilla {
+  background:
+    radial-gradient(80px 60px at 50% 38%, rgba(255, 184, 77, 0.5), rgba(255, 184, 77, 0.1) 65%, transparent),
+    #101826;
+  box-shadow: 0 0 34px rgba(255, 184, 77, 0.18);
+}
+.porteria-scene[data-state="connected"] .ventanilla-luz {
+  background: #31D07A;
+  box-shadow: 0 0 14px 4px rgba(49, 208, 122, 0.55);
+}
+.porteria-scene[data-state="qr"] .ventanilla-luz,
+.porteria-scene[data-state="connecting"] .ventanilla-luz,
+.porteria-scene[data-state="loading"] .ventanilla-luz {
+  background: var(--pn-amber);
+  box-shadow: 0 0 12px 3px rgba(255, 184, 77, 0.55);
+  animation: wa-pulse 1.6s ease-in-out infinite;
+}
+.porteria-scene[data-state="disconnected"] .ventanilla-luz,
+.porteria-scene[data-state="error"] .ventanilla-luz {
+  background: #EF4444;
+  box-shadow: 0 0 12px 3px rgba(239, 68, 68, 0.55);
+}
+@media (prefers-reduced-motion: reduce) {
+  .porteria-scene .ventanilla-luz { animation: none !important; }
+}
+@media (max-width: 560px) {
+  .porteria-scene { flex-direction: column; align-items: stretch; }
+  .ventanilla { margin: 0 auto; }
+}

@@ -191,7 +191,9 @@ function setWaStatus(stateName, title, sub = '') {
   const box = document.getElementById('admin-wa-status');
   const titleEl = document.getElementById('admin-wa-desc');
   const subEl = document.getElementById('admin-wa-sub');
+  const scene = document.getElementById('porteria-scene');
   if (box) box.dataset.state = stateName;
+  if (scene) scene.dataset.state = stateName;
   if (titleEl) titleEl.textContent = title;
   if (subEl) subEl.textContent = sub;
 }
