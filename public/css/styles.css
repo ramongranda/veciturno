@@ -4513,3 +4513,118 @@ body {
   color: #A63A2B !important;
 }
 .admin-table .muted-note { color: var(--lb-ink-soft); font-style: italic; font-size: 0.75rem; }
+
+/* --- Aire en los expedientes: las fichas anidadas respiran --- */
+.admin-content .section-card .section-card,
+.admin-content .section-card .glass-card,
+#admin-section-users .section-card,
+#admin-section-users .glass-card {
+  padding: 20px 22px;
+  margin-bottom: 22px;
+}
+.admin-content .section-card .section-card > h3:first-child,
+#admin-section-users .section-card > h3:first-child {
+  margin: 0 0 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(43, 36, 22, 0.25);
+}
+.admin-content .box-desc:not(#admin-section-whatsapp *) { margin-bottom: 14px; }
+.admin-content > .section-card.glass-card { padding: 30px; }
+@media (max-width: 768px) {
+  .admin-content > .section-card.glass-card { padding: 20px 16px; }
+  .admin-content .section-card .section-card,
+  #admin-section-users .section-card { padding: 16px 14px; }
+}
+
+/* --- El certificado oficial (vista Certificados) --- */
+.cert-oficio {
+  position: relative;
+  max-width: 640px;
+  margin: 44px auto 0;
+  background:
+    linear-gradient(180deg, rgba(255, 251, 240, 0.5), transparent 90px),
+    var(--lb-paper);
+  color: var(--lb-ink);
+  border-radius: 6px;
+  padding: 44px 42px 38px;
+  box-shadow:
+    0 2px 0 var(--lb-paper-edge), 0 4px 0 #CBBB93,
+    0 30px 60px -18px rgba(0, 0, 0, 0.85);
+}
+/* Marco doble de documento oficial */
+.cert-oficio::before {
+  content: "";
+  position: absolute;
+  inset: 12px;
+  border: 1.5px solid rgba(43, 36, 22, 0.4);
+  border-radius: 3px;
+  pointer-events: none;
+}
+.cert-cabecera { text-align: center; margin-bottom: 26px; }
+.cert-comunidad {
+  font-family: ui-monospace, monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--lb-ink-soft);
+}
+.cert-cabecera h2 {
+  font-family: var(--font-display, serif);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--lb-ink);
+  margin: 10px 0 6px;
+}
+.cert-cabecera .cert-sub { font-size: 0.85rem; color: var(--lb-ink-soft); margin: 0 auto; max-width: 40ch; }
+.cert-oficio .ledger-filters { grid-template-columns: 1fr 1fr; margin-bottom: 16px; }
+.cert-oficio .btn-descargar {
+  width: 100%;
+  font-family: ui-monospace, monospace;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  background: var(--lb-ink);
+  color: var(--lb-paper);
+  border: none;
+  border-radius: 6px;
+  padding: 14px;
+  cursor: pointer;
+  box-shadow: 0 4px 0 #14100A;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.cert-oficio .btn-descargar:hover { background: #3A3120; }
+.cert-oficio .btn-descargar:active { transform: translateY(3px); box-shadow: 0 1px 0 #14100A; }
+.cert-nota {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 14px;
+  margin-top: 26px;
+}
+.cert-nota p { font-size: 0.72rem; color: var(--lb-ink-soft); margin: 0; max-width: 34ch; }
+.cert-sello-csv {
+  flex: none;
+  font-family: ui-monospace, monospace;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-align: center;
+  color: rgba(166, 58, 43, 0.85);
+  border: 3px solid rgba(166, 58, 43, 0.75);
+  border-radius: 6px;
+  padding: 7px 12px;
+  transform: rotate(-6deg);
+  -webkit-mask-image: radial-gradient(circle at 35% 45%, #000 55%, rgba(0, 0, 0, 0.55) 78%, #000);
+          mask-image: radial-gradient(circle at 35% 45%, #000 55%, rgba(0, 0, 0, 0.55) 78%, #000);
+}
+.cert-sello-csv small { display: block; font-size: 0.52rem; letter-spacing: 0.12em; margin-top: 2px; }
+@media (max-width: 720px) {
+  .cert-oficio { padding: 30px 20px 26px; }
+  .cert-oficio .ledger-filters { grid-template-columns: 1fr; }
+  .cert-nota { flex-direction: column; align-items: flex-start; }
+}

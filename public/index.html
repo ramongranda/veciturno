@@ -22,8 +22,8 @@
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <!-- Hojas de Estilo -->
-  <link rel="stylesheet" href="css/styles.css?v=portal-noche-0.10.2">
-  <link rel="stylesheet" href="css/mobile.css?v=portal-noche-0.10.2">
+  <link rel="stylesheet" href="css/styles.css?v=portal-noche-0.10.3">
+  <link rel="stylesheet" href="css/mobile.css?v=portal-noche-0.10.3">
 </head>
 <body>
 
@@ -1805,12 +1805,21 @@
           <span>Volver a Inicio</span>
         </button>
       </div>
-      <div class="glass-card finance-dashboard">
-        <h2 style="font-family: var(--font-title); margin-bottom: 8px;">Certificados</h2>
-        <p class="box-desc">Descarga tu certificado PDF de cuotas abonadas por año y trimestre.</p>
-        <div class="section-card" style="margin-bottom:12px;">
-          <h3 style="font-size:1rem;">Certificado de Abonos</h3>
-          <div class="auth-form" style="margin-bottom:6px;">
+      <div class="ledger-scene">
+        <header class="ledger-head">
+          <div class="ledger-kicker">La ventanilla de certificados</div>
+        </header>
+        <div class="ledger-lamp" aria-hidden="true">
+          <span class="lamp-cord"></span>
+          <span class="lamp-bulb"></span>
+        </div>
+        <div class="cert-oficio">
+          <div class="cert-cabecera">
+            <div class="cert-comunidad">Comunidad de vecinos · Portal 37</div>
+            <h2>Certificado de Abonos</h2>
+            <p class="cert-sub">Documento oficial de cuotas abonadas, expedido en PDF por año y trimestre.</p>
+          </div>
+          <div class="ledger-filters">
             <div class="form-group">
               <label for="finance-cert-year">Año</label>
               <div class="input-wrapper">
@@ -1832,10 +1841,14 @@
               </div>
             </div>
           </div>
-          <button class="btn btn-primary" type="button" onclick="downloadFinanceCertificate()">
+          <button class="btn-descargar" type="button" onclick="downloadFinanceCertificate()">
             <i data-lucide="file-text"></i>
-            <span>Descargar Certificado PDF</span>
+            <span>Expedir certificado PDF</span>
           </button>
+          <div class="cert-nota">
+            <p>Cada certificado lleva un Código de Verificación Seguro (CSV) al pie. Cualquiera puede comprobarlo en la portada, en «Validar Certificado».</p>
+            <div class="cert-sello-csv" aria-hidden="true">CSV verificable<small>VeciTurno · Portal 37</small></div>
+          </div>
         </div>
       </div>
     </div>
@@ -1847,6 +1860,6 @@
   <nav id="mobile-bottom-nav" class="mobile-bottom-nav"></nav>
 
   <!-- SCRIPT DEL FRONTEND -->
-  <script src="js/app.js?v=portal-noche-0.10.2"></script>
+  <script src="js/app.js?v=portal-noche-0.10.3"></script>
 </body>
 </html>
