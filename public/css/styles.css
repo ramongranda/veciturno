@@ -4969,3 +4969,13 @@ h3.admin-subsection-title,
 
 /* La cabecera también habla la gramática: botones a 12px (los chips de estado siguen siendo píldora) */
 #auth-header-btn .btn { border-radius: var(--r-control); }
+
+/* --- La Ventana Encendida: la marca vuelve a la cabecera --- */
+.logo-icon {
+  display: flex;
+  background: none;
+  box-shadow: none;
+  width: 40px;
+  height: 40px;
+  filter: drop-shadow(0 4px 14px rgba(255, 184, 77, 0.25));
+}

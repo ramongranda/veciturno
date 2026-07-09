@@ -11,9 +11,9 @@
   <meta property="og:title" content="VeciTurno - Portal de tu Comunidad de Vecinos">
   <meta property="og:description" content="Gestiona turnos de limpieza, cuotas, finanzas e incidencias de forma transparente y automatizada.">
   <meta property="og:type" content="website">
-  <meta property="og:image" content="/favicon.svg?v=visualization-fix">
+  <meta property="og:image" content="/favicon.svg?v=ventana-encendida">
 
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=visualization-fix">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=ventana-encendida">
 
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -22,8 +22,8 @@
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <!-- Hojas de Estilo -->
-  <link rel="stylesheet" href="css/styles.css?v=portal-noche-0.14.1">
-  <link rel="stylesheet" href="css/mobile.css?v=portal-noche-0.14.1">
+  <link rel="stylesheet" href="css/styles.css?v=portal-noche-0.15.0">
+  <link rel="stylesheet" href="css/mobile.css?v=portal-noche-0.15.0">
 </head>
 <body>
 
@@ -37,8 +37,22 @@
     <!-- HEADER -->
     <header class="app-header">
       <div class="logo-area">
-        <div class="logo-icon">
-          <i data-lucide="rotate-cw"></i>
+        <div class="logo-icon" aria-hidden="true">
+          <svg width="40" height="40" viewBox="0 0 64 64" role="img" aria-label="VeciTurno">
+            <defs>
+              <radialGradient id="vtGlow" cx="50%" cy="40%" r="62%">
+                <stop offset="0%" stop-color="#FFDFAC"/>
+                <stop offset="48%" stop-color="#FFB84D"/>
+                <stop offset="100%" stop-color="#F59E0B"/>
+              </radialGradient>
+            </defs>
+            <rect x="2" y="2" width="60" height="60" rx="14" fill="#0B1120" stroke="rgba(148,167,199,0.35)" stroke-width="1.5"/>
+            <circle cx="32" cy="30" r="18" fill="rgba(255,184,77,0.16)"/>
+            <rect x="21" y="17" width="22" height="27" rx="3" fill="url(#vtGlow)"/>
+            <line x1="32" y1="17" x2="32" y2="44" stroke="#0B1120" stroke-width="2.6"/>
+            <line x1="21" y1="30.5" x2="43" y2="30.5" stroke="#0B1120" stroke-width="2.6"/>
+            <rect x="17.5" y="46.5" width="29" height="3" rx="1.5" fill="rgba(148,167,199,0.55)"/>
+          </svg>
         </div>
         <div class="logo-text">
           <h1>VeciTurno</h1>
@@ -281,7 +295,12 @@
         
         <div class="modal-header">
           <div class="modal-icon">
-            <i data-lucide="key-round"></i>
+            <svg width="30" height="30" viewBox="0 0 64 64" aria-hidden="true">
+              <rect x="18" y="12" width="28" height="34" rx="4" fill="none" stroke="currentColor" stroke-width="4"/>
+              <line x1="32" y1="12" x2="32" y2="46" stroke="currentColor" stroke-width="4"/>
+              <line x1="18" y1="29" x2="46" y2="29" stroke="currentColor" stroke-width="4"/>
+              <line x1="13" y1="52" x2="51" y2="52" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+            </svg>
           </div>
           <h2>Acceso a VeciTurno</h2>
           <p>Introduce tus credenciales de vecino</p>
@@ -1865,6 +1884,6 @@
   <nav id="mobile-bottom-nav" class="mobile-bottom-nav"></nav>
 
   <!-- SCRIPT DEL FRONTEND -->
-  <script src="js/app.js?v=portal-noche-0.14.1"></script>
+  <script src="js/app.js?v=portal-noche-0.15.0"></script>
 </body>
 </html>
