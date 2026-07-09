@@ -4702,3 +4702,94 @@ body {
   padding: 18px;
   box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.4);
 }
+
+/* ==========================================================
+   FASE COHERENCIA: UNA SOLA LUZ
+   El azul deja de ser acento de interacción. De noche manda
+   el ámbar; sobre papel, la tinta (los ámbitos papel ya traen
+   sus propios overrides y no se ven afectados).
+   ========================================================== */
+
+/* Acción primaria global: la luz del portal */
+.btn-primary {
+  background: linear-gradient(180deg, var(--pn-amber), var(--pn-amber-deep));
+  color: #1A1206;
+  font-weight: 800;
+  border: none;
+  box-shadow: 0 4px 18px rgba(245, 158, 11, 0.22);
+}
+.btn-primary:hover {
+  background: linear-gradient(180deg, #FFC569, var(--pn-amber));
+  color: #1A1206;
+}
+
+/* Iconos de modal: farolillo ámbar (verde/rojo semánticos se conservan) */
+.modal-icon {
+  background: rgba(255, 184, 77, 0.1);
+  color: var(--pn-amber);
+  border-color: rgba(255, 184, 77, 0.22);
+}
+
+/* Los modales hablan con la voz del portal */
+.modal-header h2 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: #EDF2FB;
+}
+
+/* Diálogos confirm/form: título serif y botones con cuerpo
+   (llevan btn-primary/btn-secondary sin la clase base .btn) */
+.confirm-header h3 { font-family: var(--font-display); font-weight: 700; }
+.confirm-actions button {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 700;
+  padding: 10px 20px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+.confirm-actions .btn-secondary {
+  background: transparent;
+  border: 1px solid var(--glass-border);
+  color: var(--text-muted);
+}
+.confirm-actions .btn-secondary:hover { color: #EDF2FB; border-color: rgba(148, 167, 199, 0.5); }
+
+/* Nav inferior móvil: la luz te sigue */
+.mobile-bottom-nav button:hover,
+.mobile-bottom-nav button.active {
+  color: var(--pn-amber);
+  background: rgba(255, 184, 77, 0.1);
+}
+
+/* La ventana encendida de la maqueta ya no es azul */
+.bf-badge.now {
+  background: var(--pn-amber);
+  color: #1A1206;
+}
+
+/* Focos ámbar en la noche (papel y libro traen los suyos de tinta) */
+.input-wrapper input:focus,
+.input-wrapper select:focus {
+  border-color: rgba(255, 184, 77, 0.6);
+  box-shadow: 0 0 10px rgba(255, 184, 77, 0.15);
+}
+
+/* Restos de azul en diálogos: icono y foco también ámbar */
+.confirm-icon {
+  background: rgba(255, 184, 77, 0.1);
+  color: var(--pn-amber);
+  border-color: rgba(255, 184, 77, 0.22);
+}
+.confirm-icon.danger {
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+.confirm-dialog input:focus,
+.confirm-dialog select:focus,
+.confirm-dialog textarea:focus {
+  border-color: rgba(255, 184, 77, 0.6);
+  box-shadow: 0 0 10px rgba(255, 184, 77, 0.15);
+  outline: none;
+}
